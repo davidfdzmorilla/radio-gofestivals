@@ -18,6 +18,9 @@ node_modules/
 .turbo/
 next-env.d.ts
 *.tsbuildinfo
+lighthouse-reports/
+test-results/
+playwright-report/
 
 # OS / editor
 .DS_Store

@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import api_v1_router
 from app.core.config import get_settings
@@ -52,6 +53,25 @@ app = FastAPI(
     title="radio.gofestivals API",
     version=APP_VERSION,
     lifespan=lifespan,
+)
+
+_settings = get_settings()
+_cors_origins: list[str] = (
+    ["*"] if _settings.is_dev else _settings.cors_allowed_origins
+)
+if not _settings.is_dev and not _settings.cors_allowed_origins:
+    _cors_warning_log = get_logger("app.main")
+    _cors_warning_log.warning(
+        "cors_allowed_origins_empty",
+        impact="cross-origin requests will be rejected outside same-origin deploy",
+    )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(api_v1_router)

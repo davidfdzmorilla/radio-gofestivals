@@ -52,6 +52,17 @@ class Settings(BaseSettings):
     prometheus_enabled: bool = Field(default=False)
     sentry_dsn: str = Field(default="")
 
+    cors_allowed_origins: list[str] = Field(default_factory=list)
+
+    @field_validator("cors_allowed_origins", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, v: object) -> list[str]:
+        if isinstance(v, str):
+            return [item.strip() for item in v.split(",") if item.strip()]
+        if isinstance(v, list):
+            return [str(item).strip() for item in v if str(item).strip()]
+        return []
+
     @property
     def is_dev(self) -> bool:
         return self.env == "dev"

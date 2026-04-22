@@ -1,0 +1,99 @@
+[project]
+name = "radio-gofestivals-api"
+version = "0.1.0"
+description = "radio.gofestivals · FastAPI backend"
+requires-python = ">=3.12,<3.13"
+readme = "README.md"
+license = { text = "Proprietary" }
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "sqlalchemy[asyncio]>=2.0.30",
+    "asyncpg>=0.29.0",
+    "psycopg2-binary>=2.9.9",
+    "alembic>=1.13.2",
+    "pydantic>=2.8.0",
+    "pydantic-settings>=2.4.0",
+    "redis>=5.0.7",
+    "structlog>=24.4.0",
+    "httpx>=0.27.0",
+    "geoalchemy2>=0.15.0",
+    "pyjwt>=2.9.0",
+    "bcrypt>=4.2.0",
+    "email-validator>=2.2.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.23.8",
+    "pytest-mock>=3.14.0",
+    "ruff>=0.6.0",
+    "mypy>=1.11.0",
+    "types-redis>=4.6.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",        # pydocstyle — docstrings opcionales per CLAUDE.md §6
+    "ANN401",   # permitir Any en firmas genéricas puntuales
+    "COM812",   # conflicto con formatter
+    "ISC001",   # conflicto con formatter
+    "TRY003",   # mensajes largos en excepciones de arranque son deseables
+    "EM101",    # idem
+    "EM102",    # idem
+    "FBT001",   # bool positional args aceptables en internals
+    "FBT002",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101", "PLR2004", "ANN", "INP001", "S311",
+    "S105", "S106", "S107",  # hardcoded passwords/tokens son legítimos en tests
+    "PLC0415", "PLR0913",    # imports diferidos + helpers con muchos kwargs
+    "ARG001",                # fixtures no siempre usados por el cuerpo
+    "TC001", "TC002", "TC003",
+    "F401",
+    "E501",
+]
+"alembic/**" = ["INP001", "ERA001", "S608"]
+"alembic/versions/**" = ["INP001", "N999", "ERA001"]
+"app/models/**" = ["TC001", "TC003"]      # SQLAlchemy resolves annotations at runtime
+"app/schemas/public/**" = ["TC001", "TC003"]  # deprecated placeholder
+"app/repos/**" = ["PLR0913"]              # repos aceptan varios filtros
+"app/services/**" = ["PLR0913"]           # services idem
+"app/api/**" = [
+    "TC001", "TC003", "PLR0913", "UP037",
+    "C901", "PLR0915",  # handlers WS con control-flow extenso pero lineal
+]
+"app/core/security.py" = ["TC001", "TC003"]            # annotations usadas en runtime
+"app/schemas/**" = ["TC001", "TC003", "E501", "S105"]  # Pydantic en runtime; token_type Literal
+"app/services/admin/**" = ["C416", "PERF401"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+files = ["app"]
+
+[[tool.mypy.overrides]]
+module = ["asyncpg.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]

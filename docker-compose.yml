@@ -1,0 +1,162 @@
+# =============================================================================
+# radio.gofestivals · docker-compose.yml
+# =============================================================================
+# Stack local completo. Para levantar solo lo mínimo (DB + cache) para
+# desarrollar:
+#
+#   $ docker compose up -d postgres redis
+#
+# Para todo el stack (incluye api y web en modo dev):
+#
+#   $ docker compose up -d
+#
+# Para producción se usa un compose diferente (infra/compose.prod.yml) con
+# Traefik, TLS y builds optimizados.
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL 16 con PostGIS 3.4
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: radio-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-radio}
+      POSTGRES_USER: ${POSTGRES_USER:-radio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-radio_dev_password}
+    # Puerto host 5433 para convivir con postgres de brew en :5432 (ver ADR 002 si
+    # procede). Dentro de la red docker el puerto sigue siendo 5432 (host=postgres).
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-radio}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Redis 7
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: radio-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # API FastAPI (dev, hot-reload)
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.dev
+    container_name: radio-api
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-radio}:${POSTGRES_PASSWORD:-radio_dev_password}@postgres:5432/${POSTGRES_DB:-radio}
+      REDIS_URL: redis://redis:6379/0
+      ENV: dev
+      JWT_SECRET: ${JWT_SECRET:-dev_secret_change_in_prod}
+      RB_USER_AGENT: "radio.gofestivals/0.1-dev"
+      LOG_LEVEL: DEBUG
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/api:/app
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # ICY metadata worker
+  # ---------------------------------------------------------------------------
+  icy-worker:
+    build:
+      context: ./packages/icy-worker
+      dockerfile: Dockerfile
+    container_name: radio-icy-worker
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-radio}:${POSTGRES_PASSWORD:-radio_dev_password}@postgres:5432/${POSTGRES_DB:-radio}
+      REDIS_URL: redis://redis:6379/0
+      RB_USER_AGENT: "radio.gofestivals/icy-worker (admin@gofestivals.eu)"
+      LOG_LEVEL: INFO
+      ICY_ONDEMAND_CONCURRENCY: 40
+      ICY_AMBIENT_CONCURRENCY: 10
+      ICY_AMBIENT_POLL_INTERVAL: 60
+      ICY_AMBIENT_TOP_N: 50
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    restart: unless-stopped
+    command: ["icy-worker", "serve"]
+
+  # ---------------------------------------------------------------------------
+  # Frontend Next.js (dev)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.dev
+    container_name: radio-web
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_WS_URL:  ws://localhost:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - api
+    command: pnpm dev
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Observabilidad (opcional, profile: obs)
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: radio-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    profiles: ["obs"]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: radio-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    restart: unless-stopped
+    profiles: ["obs"]
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:

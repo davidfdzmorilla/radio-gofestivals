@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --magenta: #e62de9;
+  --magenta-50: #fdeafd;
+  --magenta-700: #c424c7;
+  --magenta-900: #a61aa9;
+  --cyan: #1cc1f9;
+  --cyan-50: #e6f7fe;
+  --cyan-700: #15a8da;
+  --cyan-900: #0b8fbc;
+  --wave: #8b4ee8;
+  --wave-50: #f3edfb;
+  --wave-700: #5f2fa8;
+  --ink: #14130f;
+}
+
+html,
+body {
+  background-color: var(--ink);
+  color: white;
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}

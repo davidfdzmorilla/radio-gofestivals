@@ -37,7 +37,10 @@ async def db_session(
 async def _reset_tables(maker: async_sessionmaker[AsyncSession]) -> AsyncIterator[None]:
     async with maker() as session:
         await session.execute(
-            text("TRUNCATE now_playing, station_genres, stations RESTART IDENTITY CASCADE"),
+            text(
+                "TRUNCATE curation_log, now_playing, station_genres, stations, admins "
+                "RESTART IDENTITY CASCADE",
+            ),
         )
         await session.commit()
     yield

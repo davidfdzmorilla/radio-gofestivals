@@ -528,5 +528,160 @@ def cmd_show_stats() -> None:
     asyncio.run(_main())
 
 
+AUTO_CURATE_MAX_LIMIT = 200
+
+
+@dataclass
+class AutoCurateStats:
+    curated: int = 0
+    skipped_already_curated: int = 0
+    skipped_below_quality: int = 0
+
+
+async def _resolve_active_admin(session: AsyncSession, email: str) -> uuid.UUID | None:
+    row = (
+        await session.execute(
+            text("SELECT id, active FROM admins WHERE lower(email) = lower(:e)"),
+            {"e": email},
+        )
+    ).first()
+    if row is None or not row[1]:
+        return None
+    return uuid.UUID(str(row[0]))
+
+
+async def run_auto_curate_top(
+    maker: async_sessionmaker[AsyncSession],
+    *,
+    admin_email: str,
+    limit: int,
+    country: str | None,
+    min_quality: int,
+    dry_run: bool,
+) -> AutoCurateStats:
+    if limit > AUTO_CURATE_MAX_LIMIT:
+        msg = f"--limit {limit} exceeds max {AUTO_CURATE_MAX_LIMIT}"
+        raise ValueError(msg)
+
+    stats = AutoCurateStats()
+
+    async with maker() as session:
+        admin_id = await _resolve_active_admin(session, admin_email)
+        if admin_id is None:
+            msg = f"admin not found or inactive: {admin_email}"
+            raise ValueError(msg)
+
+        below_params: dict[str, object] = {"min_q": min_quality}
+        below_where = ["status = 'pending'", "quality_score < :min_q"]
+        if country:
+            below_where.append("country_code = :country")
+            below_params["country"] = country.upper()
+        stats.skipped_below_quality = int(
+            (
+                await session.execute(
+                    text(
+                        f"SELECT COUNT(*) FROM stations WHERE {' AND '.join(below_where)}",  # noqa: S608
+                    ),
+                    below_params,
+                )
+            ).scalar_one(),
+        )
+
+        select_params: dict[str, object] = {"min_q": min_quality, "limit": limit}
+        select_where = ["status = 'pending'", "quality_score >= :min_q"]
+        if country:
+            select_where.append("country_code = :country")
+            select_params["country"] = country.upper()
+        candidate_rows = (
+            await session.execute(
+                text(
+                    f"""
+                    SELECT id FROM stations
+                    WHERE {" AND ".join(select_where)}
+                    ORDER BY quality_score DESC, created_at ASC
+                    LIMIT :limit
+                    """,  # noqa: S608
+                ),
+                select_params,
+            )
+        ).all()
+        candidate_ids = [uuid.UUID(str(r[0])) for r in candidate_rows]
+
+        for station_id in candidate_ids:
+            await session.execute(
+                text(
+                    """
+                    UPDATE stations
+                    SET curated = true, status = 'active'
+                    WHERE id = :id
+                    """,
+                ),
+                {"id": str(station_id)},
+            )
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO curation_log (admin_id, station_id, decision, notes)
+                    VALUES (:aid, :sid, CAST('approve' AS curation_decision), :notes)
+                    """,
+                ),
+                {
+                    "aid": str(admin_id),
+                    "sid": str(station_id),
+                    "notes": "auto-curate-top",
+                },
+            )
+            stats.curated += 1
+
+        if dry_run:
+            await session.rollback()
+        else:
+            await session.commit()
+
+    log.info(
+        "auto_curate_done",
+        curated=stats.curated,
+        skipped_already_curated=stats.skipped_already_curated,
+        skipped_below_quality=stats.skipped_below_quality,
+        admin_email=admin_email,
+        country=country,
+        min_quality=min_quality,
+        limit=limit,
+        dry_run=dry_run,
+    )
+    return stats
+
+
+@app.command("auto-curate-top")
+def cmd_auto_curate_top(
+    limit: int = typer.Option(50, "--limit", max=AUTO_CURATE_MAX_LIMIT),
+    country: str | None = typer.Option(None, "--country"),
+    min_quality: int = typer.Option(60, "--min-quality", min=0, max=100),
+    dry_run: bool = typer.Option(False, "--dry-run"),
+    admin_email: str = typer.Option(..., "--admin-email"),
+) -> None:
+    engine = make_engine()
+    maker = make_sessionmaker(engine)
+
+    async def _main() -> None:
+        try:
+            await run_auto_curate_top(
+                maker,
+                admin_email=admin_email,
+                limit=limit,
+                country=country,
+                min_quality=min_quality,
+                dry_run=dry_run,
+            )
+        finally:
+            await engine.dispose()
+
+    try:
+        asyncio.run(_main())
+    except ValueError as exc:
+        typer.echo(f"ERROR: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+
 if __name__ == "__main__":
     app()

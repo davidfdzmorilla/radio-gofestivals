@@ -1,0 +1,48 @@
+{
+  "common": {
+    "play": "Reproducir",
+    "pause": "Pausar",
+    "loading": "Cargando…",
+    "error": "Ha ocurrido un error",
+    "retry": "Reintentar",
+    "by": "por",
+    "curated": "Curada",
+    "back": "Volver"
+  },
+  "home": {
+    "title": "radio.gofestivals",
+    "tagline": "Música electrónica, curada.",
+    "featured": "Destacadas",
+    "featuredEmpty": "Todavía no hay estaciones curadas. Pronto sonarán."
+  },
+  "genres": {
+    "title": "Géneros",
+    "exploreTitle": "Explorar {name}",
+    "stationCount": "{count, plural, =0 {sin estaciones} =1 {1 estación} other {# estaciones}}"
+  },
+  "station": {
+    "nowPlaying": "Sonando ahora",
+    "noMetadata": "Sin metadatos",
+    "recentTracks": "Tracks recientes",
+    "location": "{city}, {country}",
+    "notFound": "Estación no encontrada"
+  },
+  "player": {
+    "buffering": "Conectando…",
+    "error": "No se puede reproducir esta estación",
+    "empty": "Selecciona una estación para escucharla"
+  },
+  "filters": {
+    "country": "País",
+    "anyCountry": "Cualquier país",
+    "curatedOnly": "Solo curadas",
+    "allGenres": "Todos los géneros",
+    "apply": "Aplicar",
+    "clear": "Limpiar"
+  },
+  "nav": {
+    "home": "Inicio",
+    "genres": "Géneros",
+    "language": "Idioma"
+  }
+}

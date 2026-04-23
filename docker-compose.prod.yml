@@ -1,0 +1,180 @@
+# =============================================================================
+# radio.gofestivals · docker-compose.prod.yml
+# =============================================================================
+# Stack de producción/staging. Reutiliza red externa `traefik_proxy` del VPS.
+#
+# Uso:
+#   docker compose -f docker-compose.prod.yml build
+#   docker compose -f docker-compose.prod.yml up -d --wait
+#
+# Ver infra/deploy/README.md para el runbook completo.
+# =============================================================================
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-env-file: &env-file
+  env_file:
+    - .env.production
+
+services:
+  # ---------------------------------------------------------------------------
+  # Postgres 16 + PostGIS 3.4 · interno, sin puertos al host
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: radio-postgres-prod
+    <<: *env-file
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - radio_postgres_data:/var/lib/postgresql/data
+      - ./infra/sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      - radio_internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # Redis 7 · interno, sin puertos al host, con password
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: radio-redis-prod
+    <<: *env-file
+    command: ["sh", "-c", "redis-server --save 60 1 --requirepass \"$$REDIS_PASSWORD\""]
+    volumes:
+      - radio_redis_data:/data
+    networks:
+      - radio_internal
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # API FastAPI · expuesto vía Traefik bajo /api, /ws, /docs
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    image: radio-gofestivals/api:${GIT_SHA:-latest}
+    container_name: radio-api-prod
+    <<: *env-file
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    networks:
+      - radio_internal
+      - traefik_proxy
+    restart: unless-stopped
+    logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.http.routers.radio-api.rule=Host(`${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/ws`))"
+      - "traefik.http.routers.radio-api.entrypoints=websecure"
+      - "traefik.http.routers.radio-api.tls=true"
+      - "traefik.http.routers.radio-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.radio-api.priority=10"
+      - "traefik.http.services.radio-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.radio-api.middlewares=radio-api-headers"
+      - "traefik.http.middlewares.radio-api-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.radio-api-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.radio-api-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
+
+  # ---------------------------------------------------------------------------
+  # Web Next.js · expuesto vía Traefik (catch-all del dominio)
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    image: radio-gofestivals/web:${GIT_SHA:-latest}
+    container_name: radio-web-prod
+    environment:
+      NEXT_PUBLIC_API_URL: https://${DOMAIN}
+      NEXT_PUBLIC_WS_URL: wss://${DOMAIN}
+      NEXT_PUBLIC_APP_NAME: radio.gofestivals
+      NEXT_PUBLIC_DEFAULT_LOCALE: es
+      NODE_ENV: production
+    depends_on:
+      api: { condition: service_started }
+    networks:
+      - traefik_proxy
+    restart: unless-stopped
+    logging: *default-logging
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.http.routers.radio-web.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.radio-web.entrypoints=websecure"
+      - "traefik.http.routers.radio-web.tls=true"
+      - "traefik.http.routers.radio-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.radio-web.priority=1"
+      - "traefik.http.services.radio-web.loadbalancer.server.port=3000"
+
+  # ---------------------------------------------------------------------------
+  # ICY worker · sin exposición pública
+  # ---------------------------------------------------------------------------
+  icy-worker:
+    build:
+      context: ./packages/icy-worker
+      dockerfile: Dockerfile
+    image: radio-gofestivals/icy-worker:${GIT_SHA:-latest}
+    container_name: radio-icy-worker-prod
+    <<: *env-file
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    networks:
+      - radio_internal
+    restart: unless-stopped
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # Scripts (cron jobs) · imagen base, comandos one-shot vía `run`
+  # ---------------------------------------------------------------------------
+  scripts:
+    build:
+      context: ./packages/scripts
+      dockerfile: Dockerfile
+    image: radio-gofestivals/scripts:${GIT_SHA:-latest}
+    <<: *env-file
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks:
+      - radio_internal
+    profiles: ["cron"]
+    restart: "no"
+    logging: *default-logging
+
+networks:
+  radio_internal:
+    name: radio_internal
+    driver: bridge
+  traefik_proxy:
+    external: true
+    name: traefik_proxy
+
+volumes:
+  radio_postgres_data:
+    name: radio_postgres_data
+  radio_redis_data:
+    name: radio_redis_data

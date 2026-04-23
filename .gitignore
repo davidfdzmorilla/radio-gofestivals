@@ -1,6 +1,7 @@
 # Secrets y overrides locales
 .env
 .env.local
+.env.production
 .env.*.local
 
 # Python

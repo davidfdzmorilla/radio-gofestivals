@@ -1,0 +1,22 @@
+# radio.gofestivals · cron jobs (staging/prod)
+#
+# Instalación:
+#   sudo mkdir -p /var/log/radio
+#   sudo chown $(whoami): /var/log/radio
+#   crontab -e
+#   # pegar el contenido de este archivo
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Sync diario Radio-Browser a las 04:00 UTC
+0 4 * * * cd /opt/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts rb_sync run >> /var/log/radio/rb_sync.log 2>&1
+
+# Health-check de streams cada 6 horas
+0 */6 * * * cd /opt/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts rb_sync health-check >> /var/log/radio/health.log 2>&1
+
+# Backup Postgres diario a las 03:00 UTC
+0 3 * * * /opt/radio-gofestivals/infra/deploy/backup-postgres.sh >> /var/log/radio/backup.log 2>&1
+
+# Rotación simple de logs propios (14 días)
+0 2 * * * find /var/log/radio -name "*.log" -mtime +14 -delete

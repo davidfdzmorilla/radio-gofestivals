@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { Link } from '@/i18n/navigation';
 import { getGenresTree, listStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { SidebarFilters } from '@/components/layout/SidebarFilters';
@@ -14,8 +16,26 @@ export async function generateStaticParams() {
       .filter((g) => g.parent_id === null)
       .map((g) => ({ slug: g.slug }));
   } catch {
-    // API no disponible en build → renderizado on-demand
     return [];
+  }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const t = await getTranslations({ locale, namespace: 'genres' });
+  try {
+    const genres = await getGenresTree();
+    const genre = genres.find((g) => g.slug === slug);
+    if (!genre) return {};
+    return {
+      title: t('exploreTitle', { name: genre.name }),
+    };
+  } catch {
+    return {};
   }
 }
 
@@ -53,6 +73,7 @@ export default async function GenrePage({
   const tCommon = await getTranslations('common');
   const tStation = await getTranslations('station');
   const tHome = await getTranslations('home');
+  const tNav = await getTranslations('nav');
 
   const stationsPage = await listStations({
     genre: genre.slug,
@@ -66,25 +87,45 @@ export default async function GenrePage({
   const countries = ['ES', 'FR', 'DE', 'IT', 'UK', 'US', 'NL', 'BE'];
 
   return (
-    <div className="space-y-6">
-      <header
-        className="rounded-xl border border-white/10 p-6"
-        style={{
-          background: `linear-gradient(135deg, ${genre.color_hex}40, transparent)`,
-        }}
-      >
-        <p className="text-xs uppercase tracking-wider text-white/60">
-          {tGenres('title')}
-        </p>
-        <h1 className="mt-1 font-display text-4xl font-bold text-white">
-          {tGenres('exploreTitle', { name: genre.name })}
-        </h1>
-        <p className="mt-2 text-sm text-white/60">
-          {tGenres('stationCount', { count: stationsPage.total })}
-        </p>
+    <div className="space-y-8">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-fg-2">
+        <Link href="/" className="transition-colors hover:text-fg-0">
+          {tNav('home')}
+        </Link>
+        <span>/</span>
+        <span className="text-fg-1">{tGenres('title')}</span>
+      </nav>
+
+      {/* Hero con overlay sólido para A11y */}
+      <header className="relative overflow-hidden rounded-2xl border border-fg-3">
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{ backgroundColor: genre.color_hex, opacity: 0.25 }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-br from-bg-0/80 via-bg-0/70 to-bg-0/85"
+        />
+        <div className="relative px-6 py-10 sm:px-10">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+            {tGenres('title')}
+          </p>
+          <h1 className="mt-2 font-display text-[clamp(2.25rem,5vw,3.75rem)] font-semibold leading-tight text-fg-0">
+            {tGenres('exploreTitle', { name: genre.name })}
+          </h1>
+          <p className="mt-3 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-wide text-fg-1">
+            <span
+              className="inline-block h-2 w-2 rounded-full"
+              style={{ backgroundColor: genre.color_hex }}
+            />
+            {tGenres('stationCount', { count: stationsPage.total })}
+          </p>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-[220px_1fr]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-[240px_1fr]">
         <SidebarFilters
           current={{ country, curated: curatedParam === 'true' }}
           countries={countries}

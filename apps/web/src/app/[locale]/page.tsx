@@ -37,28 +37,49 @@ export default async function HomePage({
   const genresBySlug = indexBySlug(genres);
 
   return (
-    <div className="space-y-12">
-      <section className="space-y-3">
-        <h1 className="font-display text-5xl font-bold tracking-tight text-white">
+    <div className="space-y-16">
+      {/* Hero */}
+      <section className="space-y-5">
+        <span className="inline-flex -rotate-1 items-center gap-2 rounded-full border border-magenta/40 bg-magenta-soft px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-fg-0 shadow-sticker-magenta">
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-magenta" />
+          {tCommon('curated')} · 2026
+        </span>
+        <h1 className="font-display text-[clamp(2.75rem,7vw,5rem)] font-semibold leading-[1.02] tracking-tight text-fg-0">
           {tHome('title')}
         </h1>
-        <p className="text-lg text-white/70">{tHome('tagline')}</p>
+        <p className="max-w-xl font-display text-xl font-medium text-fg-1">
+          {tHome('tagline')}
+        </p>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="font-display text-2xl font-semibold text-white">
-          {tGenres('title')}
-        </h2>
+      {/* Géneros */}
+      <section className="space-y-5">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-display text-3xl font-semibold text-fg-0">
+            {tGenres('title')}
+          </h2>
+          <span className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+            {genres.filter((g) => g.parent_id === null).length} / 9
+          </span>
+        </div>
         <GenreTree
           genres={genres}
           countLabel={(count) => tGenres('stationCount', { count })}
         />
       </section>
 
-      <section className="space-y-4">
-        <h2 className="font-display text-2xl font-semibold text-white">
-          {tHome('featured')}
-        </h2>
+      {/* Destacadas */}
+      <section className="space-y-5">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-display text-3xl font-semibold text-fg-0">
+            <span className="mr-2 inline-block rotate-1 rounded-lg bg-wave px-2 py-0.5 text-bg-0 shadow-sticker-sm">
+              {tHome('featured')}
+            </span>
+          </h2>
+          <span className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+            {stationsPage.total} total
+          </span>
+        </div>
         <StationGrid
           stations={stationsPage.items}
           genresBySlug={genresBySlug}

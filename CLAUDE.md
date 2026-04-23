@@ -392,7 +392,7 @@ primero explique el plan antes de tocar código.
 - **Dominio staging**: `radio.gofestivals.eu`
 - **Traefik**: ya corriendo en el VPS con Let's Encrypt. Red externa
   `traefik_proxy`. No tocar la config global del Traefik.
-- **Repo en el VPS**: `/opt/radio-gofestivals`
+- **Repo en el VPS**: `/home/david/compose/radio-gofestivals`
 - **Archivo de entorno**: `.env.production` (gitignored) con secretos
   rotados. Plantilla en `.env.production.example`.
 - **Script principal**: `./infra/deploy/deploy.sh` — backup + build +

@@ -91,7 +91,7 @@ services:
       - "traefik.http.routers.radio-api.rule=Host(`${DOMAIN}`) && (PathPrefix(`/api`) || PathPrefix(`/ws`))"
       - "traefik.http.routers.radio-api.entrypoints=websecure"
       - "traefik.http.routers.radio-api.tls=true"
-      - "traefik.http.routers.radio-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.radio-api.tls.certresolver=myresolver"
       - "traefik.http.routers.radio-api.priority=10"
       - "traefik.http.services.radio-api.loadbalancer.server.port=8000"
       - "traefik.http.routers.radio-api.middlewares=radio-api-headers"
@@ -126,7 +126,7 @@ services:
       - "traefik.http.routers.radio-web.rule=Host(`${DOMAIN}`)"
       - "traefik.http.routers.radio-web.entrypoints=websecure"
       - "traefik.http.routers.radio-web.tls=true"
-      - "traefik.http.routers.radio-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.radio-web.tls.certresolver=myresolver"
       - "traefik.http.routers.radio-web.priority=1"
       - "traefik.http.services.radio-web.loadbalancer.server.port=3000"
 

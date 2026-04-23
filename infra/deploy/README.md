@@ -18,10 +18,10 @@ nyx, …). Traefik con Let's Encrypt ya operativo. Red externa `traefik_proxy`.
   sudo mkdir -p /var/log/radio /var/backups/radio-gofestivals
   sudo chown $(whoami): /var/log/radio /var/backups/radio-gofestivals
   ```
-- [ ] Repo clonado en `/opt/radio-gofestivals`:
+- [ ] Repo clonado en `/home/david/compose/radio-gofestivals`:
   ```
-  sudo mkdir -p /opt/radio-gofestivals
-  sudo chown $(whoami): /opt/radio-gofestivals
+  sudo mkdir -p /home/david/compose/radio-gofestivals
+  sudo chown $(whoami): /home/david/compose/radio-gofestivals
   cd /opt && git clone <repo-url> radio-gofestivals
   cd radio-gofestivals
   ```
@@ -29,7 +29,7 @@ nyx, …). Traefik con Let's Encrypt ya operativo. Red externa `traefik_proxy`.
 ## 1 · Primer deploy
 
 ```bash
-cd /opt/radio-gofestivals
+cd /home/david/compose/radio-gofestivals
 
 # 1. Crear .env.production con secretos rotados
 cp .env.production.example .env.production
@@ -66,7 +66,7 @@ crontab -e
 
 ```bash
 ssh vps
-cd /opt/radio-gofestivals
+cd /home/david/compose/radio-gofestivals
 git pull
 ./infra/deploy/deploy.sh
 ```

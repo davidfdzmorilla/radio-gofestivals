@@ -10,7 +10,7 @@ export async function Footer() {
           {t('title')}
         </p>
         <p className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
-          © {new Date().getFullYear()} · {t('tagline')}
+          © {new Date().getFullYear()} · gofestivals
         </p>
       </div>
     </footer>

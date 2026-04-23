@@ -6,9 +6,9 @@ test('genre page shows stations or empty state', async ({ page }) => {
 
   const stationCount = await page.locator('a[href*="/es/stations/"]').count();
   if (stationCount === 0) {
-    // empty state
+    // empty state (múltiples copies mencionan "estaciones" — .first() resuelve ambigüedad)
     await expect(
-      page.getByText(/Todavía no hay estaciones|sin estaciones/i),
+      page.getByText(/Todavía no hay estaciones|sin estaciones/i).first(),
     ).toBeVisible();
   } else {
     expect(stationCount).toBeGreaterThan(0);

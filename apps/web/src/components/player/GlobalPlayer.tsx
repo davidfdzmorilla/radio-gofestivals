@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { Play, Pause, X, Volume2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { cn, initials } from '@/lib/utils';
 import { usePlayerStore } from '@/lib/player-store';
 import { NowPlaying } from './NowPlaying';
 
@@ -53,29 +54,41 @@ export function GlobalPlayer() {
   if (!station) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-ink/95 backdrop-blur">
+    <div
+      className={cn(
+        'fixed inset-x-0 bottom-0 z-50 border-t-2 border-wave/50 bg-bg-0/95 backdrop-blur-lg animate-player',
+      )}
+    >
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-        <Button
-          variant="default"
-          size="icon"
+        <div
+          aria-hidden
+          className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-wave font-display text-lg font-bold text-bg-0 shadow-sticker-sm sm:flex"
+        >
+          {initials(station.name)}
+        </div>
+        <button
+          type="button"
           aria-label={isPlaying ? tCommon('pause') : tCommon('play')}
           onClick={() => toggle()}
+          className="inline-flex h-11 w-11 shrink-0 rotate-1 items-center justify-center rounded-full bg-wave text-bg-0 shadow-sticker transition-transform duration-200 hover:-rotate-1 hover:-translate-y-0.5"
         >
           {isPlaying ? (
-            <Pause className="h-5 w-5" />
+            <Pause className="h-5 w-5 fill-bg-0" />
           ) : (
-            <Play className="h-5 w-5 translate-x-0.5" />
+            <Play className="h-5 w-5 translate-x-0.5 fill-bg-0" />
           )}
-        </Button>
+        </button>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs text-white/60">{station.name}</p>
+          <p className="truncate font-mono text-[11px] uppercase tracking-wide text-fg-2">
+            {station.name}
+          </p>
           {isBuffering && !isPlaying ? (
-            <p className="text-sm text-white/40">{t('buffering')}</p>
+            <p className="font-display text-sm italic text-fg-2">{t('buffering')}</p>
           ) : (
             <NowPlaying slug={station.slug} />
           )}
         </div>
-        <label className="hidden items-center gap-2 text-white/50 sm:flex">
+        <label className="hidden items-center gap-2 text-fg-2 sm:flex">
           <Volume2 className="h-4 w-4" />
           <input
             aria-label="Volume"

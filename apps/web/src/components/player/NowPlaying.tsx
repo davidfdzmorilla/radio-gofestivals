@@ -16,7 +16,9 @@ export function NowPlaying({ slug, size = 'sm' }: Props) {
     return (
       <p
         className={
-          size === 'lg' ? 'text-lg text-white/60' : 'text-sm text-white/50'
+          size === 'lg'
+            ? 'font-display text-lg italic text-fg-2'
+            : 'text-xs italic text-fg-2'
         }
       >
         {t('noMetadata')}
@@ -24,13 +26,18 @@ export function NowPlaying({ slug, size = 'sm' }: Props) {
     );
   }
 
+  const key = `${state.title ?? ''}|${state.artist ?? ''}`;
   const mainClass =
-    size === 'lg' ? 'font-display text-xl text-white' : 'text-sm text-white';
+    size === 'lg'
+      ? 'font-display text-2xl font-semibold text-fg-0'
+      : 'text-sm font-medium text-fg-0';
   const subClass =
-    size === 'lg' ? 'text-base text-white/70' : 'text-xs text-white/60';
+    size === 'lg'
+      ? 'mt-1 font-mono text-sm uppercase tracking-wide text-warm'
+      : 'font-mono text-[11px] uppercase tracking-wide text-warm';
 
   return (
-    <div className="min-w-0">
+    <div key={key} className="min-w-0 animate-np">
       <p className={`${mainClass} truncate`}>
         {state.title ?? t('noMetadata')}
       </p>

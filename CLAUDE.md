@@ -141,6 +141,22 @@ Estas reglas están en orden de importancia:
    verificado end-to-end que el cambio funciona (no solo que los tests
    unitarios pasan), no está terminado.
 
+8. **`@pytest.mark.xfail` NO es una solución de primera línea**. Un test
+   que falla casi siempre revela un bug real, no un capricho del entorno.
+   Antes de aplicar xfail, es obligatorio:
+   - (a) **Diagnosticar causa raíz verificada** (no "suena a timing").
+     Añadir logs, reproducir, hipótesis probada.
+   - (b) **Documentar condiciones específicas** de la flakyness en el
+     `reason=` del decorator (plataforma, timing, dependencias).
+   - (c) **Usar `strict=True`** siempre que sea posible para que un
+     XPASS inesperado rompa el build (mejor que silenciarse).
+   - (d) **Abrir issue o `TODO(nombre, fecha)`** en código para el fix
+     futuro, con el hash del commit que introdujo el xfail.
+
+   Antiejemplo: marcar xfail sin diagnosticar y descubrir después que
+   el test detectaba un bug de producción (ver commit `9958880`,
+   cancellation-safety del publish en el WS handler).
+
 ---
 
 ## 5 · Comandos frecuentes
@@ -236,6 +252,15 @@ uv run alembic downgrade -1
 - **Tipos**: `mypy --strict`. Toda función pública tipada.
 - **Async por defecto** en endpoints y repos. Si algo es sync genuinamente
   bloqueante, usar `anyio.to_thread.run_sync`.
+- **Async cancellation safety**. Si hay un `await` dentro del `finally` de
+  un handler async (WebSocket, task de larga duración, background job),
+  protegerlo con `asyncio.shield(asyncio.ensure_future(op()))`. Sin
+  shield, cuando el task outer recibe `CancelledError` (cliente que se
+  desconecta, shutdown del server, timeout), el `await` del `finally` se
+  re-lanza como `CancelledError` ANTES de ejecutar la operación — y se
+  pierde silenciosamente. Referencia: `apps/api/app/api/v1/ws/nowplaying.py`
+  en el `finally` del handler publica `icy:release` con `shield` para que
+  el worker libere el stream aunque el cliente cierre abruptamente.
 - **Imports absolutos**: `from app.services.stations import ...`
 - **Config**: `app/core/config.py` con `pydantic-settings`. Todo
   setting leído de env con tipo explícito.

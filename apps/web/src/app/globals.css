@@ -1,29 +1,177 @@
+@import url('https://api.fontshare.com/v2/css?f[]=chillax@400,500,600,700&f[]=satoshi@400,500,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  /* Backgrounds */
+  --bg-0: #0c0b09;
+  --bg-1: #14130f;
+  --bg-2: #1e1c17;
+  --bg-3: #2b2924;
+
+  /* Foregrounds */
+  --fg-0: #fafaf9;
+  --fg-1: #e4e2dc;
+  --fg-2: #8a877f;
+  --fg-3: #4a463f;
+
+  /* Accents */
   --magenta: #e62de9;
-  --magenta-50: #fdeafd;
-  --magenta-700: #c424c7;
-  --magenta-900: #a61aa9;
+  --magenta-soft: #3d0e3e;
   --cyan: #1cc1f9;
-  --cyan-50: #e6f7fe;
-  --cyan-700: #15a8da;
-  --cyan-900: #0b8fbc;
+  --cyan-soft: #0b3b4f;
   --wave: #8b4ee8;
-  --wave-50: #f3edfb;
-  --wave-700: #5f2fa8;
-  --ink: #14130f;
+  --wave-soft: #2a1640;
+  --accent-warm: #f7b8f9;
+
+  /* Sticker shadows (offset sin blur, sensación "pegada") */
+  --sticker-shadow-sm: 0 2px 0 0 var(--bg-0);
+  --sticker-shadow-md: 0 3px 0 0 var(--wave);
+  --sticker-shadow-lg: 0 4px 0 0 var(--wave), 0 8px 24px -4px rgba(0, 0, 0, 0.6);
+  --sticker-shadow-magenta: 0 3px 0 0 var(--magenta);
+  --sticker-shadow-cyan: 0 3px 0 0 var(--cyan);
 }
 
 html,
 body {
-  background-color: var(--ink);
-  color: white;
-  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  background-color: var(--bg-1);
+  color: var(--fg-1);
+  font-family: var(--font-body), 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 * {
   box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--magenta);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-1);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-3);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--wave);
+}
+
+/* =============================================================================
+ *  Animaciones firma
+ * =============================================================================*/
+
+@keyframes np-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes play-pulse {
+  0% {
+    transform: rotate(1deg) scale(1);
+  }
+  50% {
+    transform: rotate(1deg) scale(0.92);
+  }
+  100% {
+    transform: rotate(1deg) scale(1);
+  }
+}
+
+@keyframes player-slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes dropdown-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-np {
+  animation: np-enter 250ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+.animate-card {
+  animation: card-enter 260ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+.animate-player {
+  animation: player-slide-up 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.animate-dropdown {
+  animation: dropdown-pop 150ms ease-out both;
+}
+.animate-pulse-play {
+  animation: play-pulse 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-2) 0%,
+    var(--bg-3) 50%,
+    var(--bg-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* =============================================================================
+ *  prefers-reduced-motion: desactiva todas las animaciones
+ * =============================================================================*/
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

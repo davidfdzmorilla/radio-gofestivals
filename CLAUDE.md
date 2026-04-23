@@ -361,7 +361,28 @@ primero explique el plan antes de tocar código.
 
 ---
 
-## 11 · Qué hacer cuando algo no encaja
+## 11 · Deploy (staging / prod)
+
+- **Host**: VPS Hetzner compartido con `formate.es`, `nyx`, …
+- **Dominio staging**: `radio.gofestivals.eu`
+- **Traefik**: ya corriendo en el VPS con Let's Encrypt. Red externa
+  `traefik_proxy`. No tocar la config global del Traefik.
+- **Repo en el VPS**: `/opt/radio-gofestivals`
+- **Archivo de entorno**: `.env.production` (gitignored) con secretos
+  rotados. Plantilla en `.env.production.example`.
+- **Script principal**: `./infra/deploy/deploy.sh` — backup + build +
+  migraciones + rolling up con healthchecks + smoke tests + rollback auto.
+- **Logs**: `/var/log/radio/{rb_sync,health,backup}.log` (rotados 14 días)
+- **Backups**: `/var/backups/radio-gofestivals/radio_<ts>.sql.gz` con
+  retención 7 días (`backup-postgres.sh`).
+- **Cron**: `infra/deploy/crontab.example` (sync diario 04:00 UTC,
+  health-check cada 6h, backup 03:00 UTC).
+- **Runbook completo**: `infra/deploy/README.md`.
+- **No hacer `git push` desde el VPS**. El VPS es destino, no origen.
+
+---
+
+## 12 · Qué hacer cuando algo no encaja
 
 Si durante una tarea Claude Code detecta que la spec contradice lo que
 hay en el código, o que una decisión de este CLAUDE.md no tiene sentido

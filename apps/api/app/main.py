@@ -49,13 +49,22 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         log.info("shutdown_complete")
 
 
+_settings = get_settings()
+
+# Hide /docs and /openapi.json outside of dev. In prod/staging the public
+# surface is the API under /api/v1; an exposed schema would be unnecessary
+# attack surface.
+_docs_url = "/docs" if _settings.is_dev else None
+_openapi_url = "/openapi.json" if _settings.is_dev else None
+
 app = FastAPI(
     title="radio.gofestivals API",
     version=APP_VERSION,
     lifespan=lifespan,
+    docs_url=_docs_url,
+    redoc_url=None,
+    openapi_url=_openapi_url,
 )
-
-_settings = get_settings()
 _cors_origins: list[str] = (
     ["*"] if _settings.is_dev else _settings.cors_allowed_origins
 )
@@ -80,3 +89,9 @@ app.include_router(api_v1_router)
 @app.get("/")
 async def root() -> dict[str, str]:
     return {"status": "ok", "version": APP_VERSION}
+
+
+@app.get("/api/v1/_health")
+async def health() -> dict[str, str]:
+    """Docker/Traefik healthcheck endpoint. No side effects, no DB touch."""
+    return {"status": "ok"}

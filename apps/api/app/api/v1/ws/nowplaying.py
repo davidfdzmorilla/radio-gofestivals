@@ -108,7 +108,15 @@ async def nowplaying_ws(
         for t in (poll_task, disc_task):
             if not t.done():
                 t.cancel()
+        # asyncio.shield: cuando el handler mismo es cancelado (TestClient
+        # cleanup, server shutdown), queremos que el publish SÍ llegue al
+        # broker para que el icy-worker libere el stream on-demand. Sin
+        # shield, el `await` dentro del finally de una task cancelled se
+        # re-lanza como CancelledError antes de ejecutar la operación.
+        publish_task = asyncio.ensure_future(redis.publish("icy:release", slug))
         try:
-            await redis.publish("icy:release", slug)
+            await asyncio.shield(publish_task)
+        except asyncio.CancelledError:
+            raise
         except Exception as exc:  # noqa: BLE001
             log.warning("ws_release_publish_failed", slug=slug, error=str(exc))

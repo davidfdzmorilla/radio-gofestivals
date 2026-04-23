@@ -81,14 +81,6 @@ def test_connect_valid_station_gets_initial_state(
         assert data["artist"] == "World"
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Flaky: redis sync pubsub in this thread sometimes misses the async "
-        "publish fired from the server's finally block. The functional path is "
-        "exercised end-to-end via smoke tests against the deployed stack."
-    ),
-    strict=False,
-)
 def test_publishes_subscribe_on_connect_and_release_on_disconnect(
     sync_client: TestClient,
     seed_station,  # type: ignore[no-untyped-def]
@@ -97,29 +89,42 @@ def test_publishes_subscribe_on_connect_and_release_on_disconnect(
     seed_station("ws-pub", "active")
     pubsub = sync_redis.pubsub()
     pubsub.subscribe("icy:subscribe", "icy:release")
+    # Drain subscribe-confirmation frames (one per channel)
     for _ in range(2):
         pubsub.get_message(timeout=0.5)
 
-    with sync_client.websocket_connect("/api/v1/ws/nowplaying/ws-pub"):
-        got_sub = False
-        for _ in range(20):
+    try:
+        with sync_client.websocket_connect("/api/v1/ws/nowplaying/ws-pub"):
+            got_sub = False
+            for _ in range(20):
+                m = pubsub.get_message(timeout=0.2)
+                if (
+                    m
+                    and m.get("type") == "message"
+                    and m["channel"] == b"icy:subscribe"
+                ):
+                    assert m["data"] == b"ws-pub"
+                    got_sub = True
+                    break
+            assert got_sub, "icy:subscribe not received"
+
+        # Out of the `with`: handler's finally runs asyncio.shield(publish),
+        # so icy:release lands in the broker even when the handler task is
+        # cancelled by TestClient cleanup.
+        got_rel = False
+        for _ in range(50):
             m = pubsub.get_message(timeout=0.2)
-            if m and m.get("type") == "message" and m["channel"] == b"icy:subscribe":
+            if (
+                m
+                and m.get("type") == "message"
+                and m["channel"] == b"icy:release"
+            ):
                 assert m["data"] == b"ws-pub"
-                got_sub = True
+                got_rel = True
                 break
-        assert got_sub, "icy:subscribe not received"
-
-    got_rel = False
-    for _ in range(25):
-        m = pubsub.get_message(timeout=0.2)
-        if m and m.get("type") == "message" and m["channel"] == b"icy:release":
-            assert m["data"] == b"ws-pub"
-            got_rel = True
-            break
-    assert got_rel, "icy:release not received"
-
-    pubsub.close()
+        assert got_rel, "icy:release not received"
+    finally:
+        pubsub.close()
 
 
 def test_receives_update_when_state_changes(

@@ -1,4 +1,5 @@
 import { Link } from '@/i18n/navigation';
+import { cn } from '@/lib/utils';
 import type { Genre } from '@/lib/types';
 
 interface Props {
@@ -6,26 +7,40 @@ interface Props {
   countLabel: (count: number) => string;
 }
 
+const hoverRotations = [
+  'hover:-rotate-0.5',
+  'hover:rotate-0.5',
+  'hover:-rotate-1',
+  'hover:rotate-1',
+];
+
 export function GenreTree({ genres, countLabel }: Props) {
   const roots = genres.filter((g) => g.parent_id === null);
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-      {roots.map((g) => (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {roots.map((g, i) => (
         <Link
           key={g.slug}
           href={`/genres/${g.slug}`}
-          className="group rounded-lg border border-white/10 bg-white/5 p-4 transition-all hover:scale-[1.02] hover:border-white/30"
-          style={{
-            borderLeftColor: g.color_hex,
-            borderLeftWidth: '4px',
-          }}
+          className={cn(
+            'group relative overflow-hidden rounded-xl border border-fg-3 bg-bg-2 p-4 transition-all duration-200',
+            'hover:-translate-y-0.5 hover:border-fg-2 hover:bg-bg-3',
+            hoverRotations[i % hoverRotations.length],
+          )}
         >
-          <p className="font-display text-lg font-semibold text-white group-hover:text-white">
-            {g.name}
-          </p>
-          <p className="mt-1 text-xs text-white/50">
-            {countLabel(g.station_count)}
-          </p>
+          <span
+            aria-hidden
+            className="absolute inset-y-0 left-0 w-1.5 transition-all duration-200 group-hover:w-2.5"
+            style={{ backgroundColor: g.color_hex }}
+          />
+          <div className="pl-3">
+            <p className="font-display text-lg font-semibold text-fg-0">
+              {g.name}
+            </p>
+            <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-fg-2">
+              {countLabel(g.station_count)}
+            </p>
+          </div>
         </Link>
       ))}
     </div>

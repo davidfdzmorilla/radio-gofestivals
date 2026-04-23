@@ -17,7 +17,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock* ./
 RUN uv sync --frozen --no-dev --no-install-project 2>/dev/null || uv sync --no-dev --no-install-project
 
-COPY icy_worker ./icy_worker
+COPY scripts ./scripts
 RUN uv sync --frozen --no-dev 2>/dev/null || uv sync --no-dev
 
 
@@ -28,11 +28,11 @@ ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:${PATH}"
 
 LABEL org.opencontainers.image.source="https://github.com/gofestivals/radio" \
-      org.opencontainers.image.title="radio.gofestivals icy-worker" \
+      org.opencontainers.image.title="radio.gofestivals scripts" \
       org.opencontainers.image.version="0.1.0"
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libpq5 \
+ && apt-get install -y --no-install-recommends libpq5 postgresql-client \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --system --gid 1000 radio \
  && useradd --system --uid 1000 --gid radio --no-create-home radio
@@ -40,11 +40,9 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY --from=builder --chown=radio:radio /app/.venv /app/.venv
-COPY --chown=radio:radio icy_worker ./icy_worker
+COPY --chown=radio:radio scripts ./scripts
 
 USER radio
 
-HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
-  CMD python -c "import asyncio, os, redis.asyncio as r; asyncio.run(r.Redis.from_url(os.environ['REDIS_URL']).ping())" || exit 1
-
-CMD ["icy-worker", "serve"]
+# Default command; override with `docker run <img> bootstrap-admin …` etc.
+CMD ["rb_sync", "--help"]

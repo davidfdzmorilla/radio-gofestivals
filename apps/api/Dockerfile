@@ -17,7 +17,9 @@ WORKDIR /app
 COPY pyproject.toml uv.lock* ./
 RUN uv sync --frozen --no-dev --no-install-project 2>/dev/null || uv sync --no-dev --no-install-project
 
-COPY icy_worker ./icy_worker
+COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini ./alembic.ini
 RUN uv sync --frozen --no-dev 2>/dev/null || uv sync --no-dev
 
 
@@ -28,11 +30,11 @@ ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:${PATH}"
 
 LABEL org.opencontainers.image.source="https://github.com/gofestivals/radio" \
-      org.opencontainers.image.title="radio.gofestivals icy-worker" \
+      org.opencontainers.image.title="radio.gofestivals API" \
       org.opencontainers.image.version="0.1.0"
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libpq5 \
+ && apt-get install -y --no-install-recommends curl libpq5 \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --system --gid 1000 radio \
  && useradd --system --uid 1000 --gid radio --no-create-home radio
@@ -40,11 +42,21 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY --from=builder --chown=radio:radio /app/.venv /app/.venv
-COPY --chown=radio:radio icy_worker ./icy_worker
+COPY --chown=radio:radio app ./app
+COPY --chown=radio:radio alembic ./alembic
+COPY --chown=radio:radio alembic.ini ./alembic.ini
 
 USER radio
 
-HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
-  CMD python -c "import asyncio, os, redis.asyncio as r; asyncio.run(r.Redis.from_url(os.environ['REDIS_URL']).ping())" || exit 1
+EXPOSE 8000
 
-CMD ["icy-worker", "serve"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8000/api/v1/_health || exit 1
+
+CMD ["uvicorn", "app.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--workers", "2", \
+     "--no-access-log", \
+     "--proxy-headers", \
+     "--forwarded-allow-ips", "*"]

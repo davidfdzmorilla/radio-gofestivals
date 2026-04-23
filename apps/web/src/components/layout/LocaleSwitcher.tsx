@@ -12,20 +12,20 @@ export function LocaleSwitcher() {
   const t = useTranslations('nav');
 
   return (
-    <label className="flex items-center gap-1.5 text-sm text-white/70">
-      <Globe className="h-4 w-4" aria-hidden />
+    <label className="inline-flex items-center gap-2 rounded-full border border-fg-3 bg-bg-2 px-3 py-1.5 text-sm text-fg-1 transition-colors hover:border-magenta/70 hover:text-fg-0">
+      <Globe className="h-3.5 w-3.5 text-fg-2" aria-hidden />
       <span className="sr-only">{t('language')}</span>
       <select
         aria-label={t('language')}
         value={locale}
-        className="bg-transparent text-white outline-none focus:ring-2 focus:ring-wave"
+        className="bg-transparent text-fg-0 outline-none"
         onChange={(e) => {
           const next = e.target.value as (typeof routing.locales)[number];
           router.replace(pathname, { locale: next });
         }}
       >
         {routing.locales.map((loc) => (
-          <option key={loc} value={loc} className="bg-ink">
+          <option key={loc} value={loc} className="bg-bg-1 text-fg-0">
             {loc.toUpperCase()}
           </option>
         ))}

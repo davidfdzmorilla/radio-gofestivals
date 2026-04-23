@@ -32,8 +32,9 @@ export async function generateMetadata({
       default: t('title'),
       template: `%s · ${t('title')}`,
     },
-    description: t('tagline'),
+    description: t('seoDescription'),
     alternates: {
+      canonical: `/${locale}`,
       languages: {
         en: '/en',
         es: '/es',
@@ -42,14 +43,14 @@ export async function generateMetadata({
     openGraph: {
       type: 'website',
       title: t('title'),
-      description: t('tagline'),
+      description: t('seoDescription'),
       locale,
       siteName: t('title'),
     },
     twitter: {
       card: 'summary_large_image',
       title: t('title'),
-      description: t('tagline'),
+      description: t('seoDescription'),
     },
     robots: { index: true, follow: true },
   };
@@ -70,6 +71,14 @@ export default async function LocaleLayout({
 
   return (
     <html lang={locale} className={mono.variable}>
+      <head>
+        <link rel="preconnect" href="https://api.fontshare.com" />
+        <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="" />
+        <link
+          rel="stylesheet"
+          href="https://api.fontshare.com/v2/css?f[]=chillax@500,600,700&f[]=satoshi@400,500&display=swap"
+        />
+      </head>
       <body className="min-h-screen bg-bg-1 text-fg-1 font-body antialiased">
         <NextIntlClientProvider messages={messages}>
           <Header />

@@ -3,11 +3,12 @@
     "play": "Reproducir",
     "pause": "Pausar",
     "loading": "Cargando…",
-    "error": "Ha ocurrido un error",
+    "error": "Uy, algo se desafinó",
+    "errorSubtitle": "Volvamos a empezar, la mezcla aún no termina.",
     "retry": "Reintentar",
     "by": "por",
     "curated": "Curada",
-    "back": "Volver"
+    "back": "Volver al inicio"
   },
   "home": {
     "title": "radio.gofestivals",

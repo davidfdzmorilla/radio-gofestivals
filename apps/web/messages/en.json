@@ -3,11 +3,12 @@
     "play": "Play",
     "pause": "Pause",
     "loading": "Loading…",
-    "error": "Something went wrong",
+    "error": "Whoops, we lost the beat",
+    "errorSubtitle": "Let's drop the needle again, the set isn't over.",
     "retry": "Retry",
     "by": "by",
     "curated": "Curated",
-    "back": "Back"
+    "back": "Back to home"
   },
   "home": {
     "title": "radio.gofestivals",

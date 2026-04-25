@@ -16,6 +16,7 @@ from sqlalchemy import text
 from scripts.constants import ELECTRONIC_TAGS
 from scripts.db import make_engine, make_sessionmaker
 from scripts.logging import get_logger
+from scripts.quality import compute_quality_score
 from scripts.rb_client import RadioBrowserClient
 from scripts.taxonomy_mapper import GenreRef, map_rb_tags_to_genre_slugs
 
@@ -160,8 +161,28 @@ async def upsert_station(
     geo_lng = _to_float(item.get("geo_long"))
     has_geo = geo_lat is not None and geo_lng is not None
 
+    def _to_int(v: Any) -> int | None:
+        if v in (None, ""):
+            return None
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return None
+
+    quality_score = compute_quality_score({
+        "bitrate": bitrate,
+        "codec": codec,
+        "clickcount": _to_int(item.get("clickcount")),
+        "votes": _to_int(item.get("votes")),
+        "failed_checks": 0,
+        "status": "active",
+    })
+
     existing = await session.execute(
-        text("SELECT id, slug, status FROM stations WHERE rb_uuid = :rb"),
+        text(
+            "SELECT id, slug, status, failed_checks "
+            "FROM stations WHERE rb_uuid = :rb",
+        ),
         {"rb": str(rb_uuid)},
     )
     row = existing.first()
@@ -186,6 +207,7 @@ async def upsert_station(
             "codec": codec,
             "bitrate": bitrate,
             "language": language,
+            "quality_score": quality_score,
             "now": datetime.now(tz=UTC),
         }
         if has_geo:
@@ -195,10 +217,11 @@ async def upsert_station(
             f"""
             INSERT INTO stations (
                 rb_uuid, slug, name, stream_url, country_code, city, codec,
-                bitrate, language, source, last_sync_at, geo
+                bitrate, language, quality_score, source, last_sync_at, geo
             ) VALUES (
                 :rb, :slug, :name, :stream_url, :country_code, :city, :codec,
-                :bitrate, :language, 'radio-browser', :now, {geo_expr}
+                :bitrate, :language, :quality_score, 'radio-browser', :now,
+                {geo_expr}
             )
             RETURNING id
             """,  # noqa: S608
@@ -209,6 +232,16 @@ async def upsert_station(
         return station_id
 
     station_id = uuid.UUID(str(row[0]))
+    existing_status = str(row[2]) if row[2] is not None else "active"
+    existing_fails = int(row[3]) if row[3] is not None else 0
+    update_quality = compute_quality_score({
+        "bitrate": bitrate,
+        "codec": codec,
+        "clickcount": _to_int(item.get("clickcount")),
+        "votes": _to_int(item.get("votes")),
+        "failed_checks": existing_fails,
+        "status": existing_status,
+    })
     params = {
         "id": str(station_id),
         "name": name,
@@ -218,6 +251,7 @@ async def upsert_station(
         "codec": codec,
         "bitrate": bitrate,
         "language": language,
+        "quality_score": update_quality,
         "now": datetime.now(tz=UTC),
     }
     if has_geo:
@@ -236,6 +270,7 @@ async def upsert_station(
             codec = :codec,
             bitrate = :bitrate,
             language = :language,
+            quality_score = :quality_score,
             {geo_fragment}
             last_sync_at = :now
         WHERE id = :id

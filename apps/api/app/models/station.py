@@ -68,6 +68,14 @@ class Station(Base):
     failed_checks: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     last_check_ok: Mapped[datetime | None] = mapped_column(nullable=True)
     last_sync_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    clickcount: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    votes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_changeuuid: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True,
+    )
+    last_local_checktime: Mapped[datetime | None] = mapped_column(nullable=True)
+    # Reserved for future history-based trend computation. Not populated yet.
+    click_trend: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     source: Mapped[str] = mapped_column(Text, nullable=False, default="radio-browser")
     created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())

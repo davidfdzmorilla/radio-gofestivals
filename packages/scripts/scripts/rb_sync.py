@@ -92,6 +92,37 @@ def parse_tags(raw: str | None) -> list[str]:
     return [t.strip() for t in raw.split(",") if t.strip()]
 
 
+def parse_uuid(value: Any) -> uuid.UUID | None:
+    if not value:
+        return None
+    try:
+        return uuid.UUID(str(value))
+    except (ValueError, TypeError):
+        return None
+
+
+def parse_iso_datetime(value: Any) -> datetime | None:
+    """Parse Radio-Browser timestamp.
+
+    RB ships values like "2026-04-25 16:34:58" (no timezone) or with a
+    trailing "Z"; both are stored as UTC. Falsy/garbage inputs return None.
+    """
+    if not value:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    try:
+        dt = datetime.fromisoformat(s)
+    except (ValueError, TypeError):
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=UTC)
+    return dt
+
+
 async def load_genres(session: AsyncSession) -> list[GenreRef]:
     result = await session.execute(text("SELECT id, slug FROM genres"))
     return [GenreRef(id=int(row[0]), slug=str(row[1])) for row in result.all()]
@@ -169,11 +200,18 @@ async def upsert_station(
         except (TypeError, ValueError):
             return None
 
+    clickcount = _to_int(item.get("clickcount")) or 0
+    votes = _to_int(item.get("votes")) or 0
+    last_changeuuid = parse_uuid(item.get("changeuuid"))
+    last_local_checktime = parse_iso_datetime(item.get("lastlocalchecktime"))
+    # click_trend: not computed yet; requires station_clickcount_history.
+    # TODO(quality_v2): backfill once history table lands.
+
     quality_score = compute_quality_score({
         "bitrate": bitrate,
         "codec": codec,
-        "clickcount": _to_int(item.get("clickcount")),
-        "votes": _to_int(item.get("votes")),
+        "clickcount": clickcount,
+        "votes": votes,
         "failed_checks": 0,
         "status": "active",
     })
@@ -208,6 +246,10 @@ async def upsert_station(
             "bitrate": bitrate,
             "language": language,
             "quality_score": quality_score,
+            "clickcount": clickcount,
+            "votes": votes,
+            "last_changeuuid": str(last_changeuuid) if last_changeuuid else None,
+            "last_local_checktime": last_local_checktime,
             "now": datetime.now(tz=UTC),
         }
         if has_geo:
@@ -217,11 +259,14 @@ async def upsert_station(
             f"""
             INSERT INTO stations (
                 rb_uuid, slug, name, stream_url, country_code, city, codec,
-                bitrate, language, quality_score, source, last_sync_at, geo
+                bitrate, language, quality_score, clickcount, votes,
+                last_changeuuid, last_local_checktime,
+                source, last_sync_at, geo
             ) VALUES (
                 :rb, :slug, :name, :stream_url, :country_code, :city, :codec,
-                :bitrate, :language, :quality_score, 'radio-browser', :now,
-                {geo_expr}
+                :bitrate, :language, :quality_score, :clickcount, :votes,
+                CAST(:last_changeuuid AS uuid), :last_local_checktime,
+                'radio-browser', :now, {geo_expr}
             )
             RETURNING id
             """,  # noqa: S608
@@ -237,8 +282,8 @@ async def upsert_station(
     update_quality = compute_quality_score({
         "bitrate": bitrate,
         "codec": codec,
-        "clickcount": _to_int(item.get("clickcount")),
-        "votes": _to_int(item.get("votes")),
+        "clickcount": clickcount,
+        "votes": votes,
         "failed_checks": existing_fails,
         "status": existing_status,
     })
@@ -252,6 +297,10 @@ async def upsert_station(
         "bitrate": bitrate,
         "language": language,
         "quality_score": update_quality,
+        "clickcount": clickcount,
+        "votes": votes,
+        "last_changeuuid": str(last_changeuuid) if last_changeuuid else None,
+        "last_local_checktime": last_local_checktime,
         "now": datetime.now(tz=UTC),
     }
     if has_geo:
@@ -271,6 +320,10 @@ async def upsert_station(
             bitrate = :bitrate,
             language = :language,
             quality_score = :quality_score,
+            clickcount = :clickcount,
+            votes = :votes,
+            last_changeuuid = CAST(:last_changeuuid AS uuid),
+            last_local_checktime = :last_local_checktime,
             {geo_fragment}
             last_sync_at = :now
         WHERE id = :id

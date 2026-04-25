@@ -45,8 +45,8 @@ async def _fetch_rows(
         where = "WHERE status = CAST(:st AS station_status)"
         params["st"] = where_status
     sql = (
-        "SELECT id::text AS id, bitrate, codec, failed_checks, status, "
-        "       quality_score "
+        "SELECT id::text AS id, bitrate, codec, clickcount, votes, "
+        "       failed_checks, status, quality_score "
         f"FROM stations {where} ORDER BY created_at"
     )
     if limit is not None:

@@ -50,9 +50,13 @@ def get_engine() -> AsyncEngine:
     return _engine
 
 
-async def get_session() -> AsyncIterator[AsyncSession]:
+def get_sessionmaker() -> async_sessionmaker[AsyncSession]:
     if _sessionmaker is None:
         msg = "DB sessionmaker no inicializado. ¿Olvidaste llamar init_engine en el lifespan?"
         raise RuntimeError(msg)
-    async with _sessionmaker() as session:
+    return _sessionmaker
+
+
+async def get_session() -> AsyncIterator[AsyncSession]:
+    async with get_sessionmaker()() as session:
         yield session

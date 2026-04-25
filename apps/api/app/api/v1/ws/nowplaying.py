@@ -6,7 +6,8 @@ from typing import Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from sqlalchemy import text
 
-from app.api.deps import RedisDep, SessionDep
+from app.api.deps import RedisDep
+from app.core.db import get_sessionmaker
 from app.core.logging import get_logger
 from app.services.rate_limit import check_rate_limit
 
@@ -34,7 +35,6 @@ async def _station_is_active(session: Any, slug: str) -> bool:
 async def nowplaying_ws(
     ws: WebSocket,
     slug: str,
-    session: SessionDep,
     redis: RedisDep,
 ) -> None:
     client_ip = ws.client.host if ws.client else "unknown"
@@ -48,7 +48,12 @@ async def nowplaying_ws(
         await ws.close(code=status.WS_1008_POLICY_VIOLATION, reason="rate_limited")
         return
 
-    if not await _station_is_active(session, slug):
+    # Acquire DB session ONLY for the active-station check, then release.
+    # Holding SessionDep for the WS lifetime would pin a pool connection per
+    # listener, exhausting the pool with a handful of subscribers.
+    async with get_sessionmaker()() as session:
+        is_active = await _station_is_active(session, slug)
+    if not is_active:
         await ws.accept()
         await ws.close(code=status.WS_1008_POLICY_VIOLATION, reason="station_not_available")
         return

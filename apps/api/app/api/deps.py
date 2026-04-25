@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends, HTTPException, status
@@ -17,11 +16,6 @@ from app.models.admin import Admin
 from app.repos import admins as admins_repo
 
 
-async def session_dep() -> AsyncIterator[AsyncSession]:
-    async for s in get_session():
-        yield s
-
-
 def redis_dep() -> "Redis[str]":
     return get_redis()
 
@@ -30,7 +24,7 @@ def settings_dep() -> Settings:
     return get_settings()
 
 
-SessionDep = Annotated[AsyncSession, Depends(session_dep)]
+SessionDep = Annotated[AsyncSession, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(settings_dep)]
 
 if TYPE_CHECKING:

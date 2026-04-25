@@ -32,6 +32,7 @@ station_status_enum = ENUM(
     "broken",
     "rejected",
     "unsupported",
+    "duplicate",
     name="station_status",
     create_type=False,
 )

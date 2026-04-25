@@ -33,23 +33,47 @@ export function GlobalPlayer() {
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !station) return;
-    audio.src = `${API_BASE}/api/v1/stations/${station.slug}/stream`;
-    audio.load();
-  }, [station]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
     if (!audio) return;
-    if (isPlaying) {
-      const p = audio.play();
-      if (p !== undefined) {
-        p.catch(() => pause());
-      }
-    } else {
+
+    if (!station) {
       audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      return;
     }
-  }, [isPlaying, pause]);
+
+    const nextSrc = `${API_BASE}/api/v1/stations/${station.slug}/stream`;
+    const srcChanged = audio.src !== nextSrc;
+    let cancelled = false;
+
+    const apply = async () => {
+      if (srcChanged) {
+        // pause-reset-load BEFORE assigning new src — switching src on a
+        // playing element rejects the in-flight play() with AbortError and
+        // leaves the audio in a frozen state.
+        audio.pause();
+        audio.src = nextSrc;
+        audio.load();
+      }
+      if (!isPlaying) {
+        audio.pause();
+        return;
+      }
+      try {
+        await audio.play();
+      } catch (err) {
+        // AbortError is the expected outcome when the user switches stations
+        // mid-play (next effect run interrupts this one). Don't flip state.
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        if (!cancelled) pause();
+      }
+    };
+
+    void apply();
+    return () => {
+      cancelled = true;
+    };
+  }, [station, isPlaying, pause]);
 
   if (!station) return null;
 

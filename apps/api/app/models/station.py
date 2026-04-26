@@ -67,6 +67,8 @@ class Station(Base):
     status: Mapped[str] = mapped_column(station_status_enum, nullable=False, default="pending")
     failed_checks: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)
     last_check_ok: Mapped[datetime | None] = mapped_column(nullable=True)
+    last_check_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_sync_at: Mapped[datetime | None] = mapped_column(nullable=True)
     clickcount: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     votes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

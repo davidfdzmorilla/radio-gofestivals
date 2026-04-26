@@ -18,6 +18,7 @@ from scripts.db import make_engine, make_sessionmaker
 from scripts.logging import get_logger
 from scripts.quality import compute_quality_score
 from scripts.rb_client import RadioBrowserClient
+from scripts.stream_check import DEFAULT_TIMEOUT_S, check_stream_alive
 from scripts.taxonomy_mapper import GenreRef, map_rb_tags_to_genre_slugs
 
 if TYPE_CHECKING:
@@ -461,11 +462,9 @@ async def check_station_head(
     url: str,
     timeout: float,
 ) -> bool:
-    try:
-        resp = await client.head(url, timeout=timeout, follow_redirects=True)
-    except (httpx.TimeoutException, httpx.TransportError):
-        return False
-    return resp.status_code < httpx.codes.BAD_REQUEST
+    """Legacy bool wrapper kept for callers that don't care about diagnostics."""
+    result = await check_stream_alive(url, timeout_s=timeout, client=client)
+    return result.alive
 
 
 async def _iter_health_candidates(
@@ -488,12 +487,10 @@ async def _iter_health_candidates(
 async def run_health_check(
     maker: async_sessionmaker[AsyncSession],
     *,
-    timeout: float = 5.0,
+    timeout: float = DEFAULT_TIMEOUT_S,
     client: httpx.AsyncClient | None = None,
 ) -> dict[str, int]:
     stats = {"checked": 0, "ok": 0, "failed": 0, "marked_broken": 0, "recovered": 0}
-    close_client = client is None
-    hc = client or httpx.AsyncClient()
     sem = asyncio.Semaphore(HEALTH_CONCURRENCY)
 
     async with maker() as session:
@@ -501,51 +498,83 @@ async def run_health_check(
 
         async def _one(station_id: uuid.UUID, url: str, failed: int, prev: str) -> None:
             async with sem:
-                ok = await check_station_head(hc, url, timeout)
-            if ok:
+                result = await check_stream_alive(
+                    url, timeout_s=timeout, client=client,
+                )
+            if result.alive:
                 new_status = "active" if prev == "broken" else prev
                 await session.execute(
                     text(
                         """
                         UPDATE stations SET failed_checks = 0,
                                             last_check_ok = now(),
+                                            last_check_at = now(),
+                                            last_error = :err,
                                             status = :st
                         WHERE id = :id
                         """,
                     ),
-                    {"id": str(station_id), "st": new_status},
+                    {
+                        "id": str(station_id),
+                        "st": new_status,
+                        "err": result.error,
+                    },
                 )
                 stats["ok"] += 1
                 if prev == "broken" and new_status == "active":
                     stats["recovered"] += 1
+                    log.info(
+                        "stream_recovered",
+                        station_id=str(station_id),
+                        url=url,
+                        status_code=result.status_code,
+                        latency_ms=result.latency_ms,
+                    )
             else:
                 new_failed = failed + 1
                 new_status = "broken" if new_failed >= HEALTH_MAX_FAILURES else prev
                 await session.execute(
                     text(
                         """
-                        UPDATE stations SET failed_checks = :fc, status = :st
+                        UPDATE stations SET failed_checks = :fc,
+                                            last_check_at = now(),
+                                            last_error = :err,
+                                            status = :st
                         WHERE id = :id
                         """,
                     ),
-                    {"id": str(station_id), "fc": new_failed, "st": new_status},
+                    {
+                        "id": str(station_id),
+                        "fc": new_failed,
+                        "st": new_status,
+                        "err": result.error,
+                    },
                 )
                 stats["failed"] += 1
                 if new_status == "broken" and prev != "broken":
                     stats["marked_broken"] += 1
+                log.info(
+                    "stream_check_failed",
+                    station_id=str(station_id),
+                    url=url,
+                    status_code=result.status_code,
+                    error=result.error,
+                    failed_checks=new_failed,
+                    new_status=new_status,
+                )
             stats["checked"] += 1
 
         await asyncio.gather(*(_one(*c) for c in candidates))
         await session.commit()
 
-    if close_client:
-        await hc.aclose()
     log.info("health_check_done", **stats)
     return stats
 
 
 @app.command("health-check")
-def cmd_health_check(timeout: float = typer.Option(5.0, "--timeout")) -> None:
+def cmd_health_check(
+    timeout: float = typer.Option(DEFAULT_TIMEOUT_S, "--timeout"),
+) -> None:
     engine = make_engine()
     maker = make_sessionmaker(engine)
 

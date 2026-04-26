@@ -19,11 +19,13 @@ class NearbyRow(NamedTuple):
     name: str
     country_code: str | None
     city: str | None
-    codec: str | None
-    bitrate: int | None
     curated: bool
     quality_score: int
     distance_km: float
+    stream_id: uuid.UUID | None
+    stream_url: str | None
+    codec: str | None
+    bitrate: int | None
 
 
 async def list_active_stations(
@@ -104,12 +106,15 @@ async def find_nearby(
         """
         SELECT
             s.id, s.slug, s.name, s.country_code, s.city,
-            s.codec, s.bitrate, s.curated, s.quality_score,
+            s.curated, s.quality_score,
             ST_Distance(
                 s.geo,
                 ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
-            ) / 1000.0 AS distance_km
+            ) / 1000.0 AS distance_km,
+            ss.id AS stream_id, ss.stream_url, ss.codec, ss.bitrate
         FROM stations s
+        LEFT JOIN station_streams ss
+               ON ss.station_id = s.id AND ss.is_primary = true
         WHERE s.status = 'active'
           AND s.geo IS NOT NULL
           AND ST_DWithin(

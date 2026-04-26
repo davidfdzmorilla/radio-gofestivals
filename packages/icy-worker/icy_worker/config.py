@@ -7,7 +7,10 @@ from pathlib import Path
 
 def _load_env_files() -> None:
     here = Path(__file__).resolve()
-    root = here.parents[3]
+    try:
+        root = here.parents[3]
+    except IndexError:
+        return  # in container: env vars come from Docker environment
     for candidate in (root / ".env.local", root / ".env"):
         if not candidate.is_file():
             continue

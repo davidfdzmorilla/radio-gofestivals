@@ -31,6 +31,7 @@ rb_sync = "scripts.rb_sync:app"
 bootstrap-admin = "scripts.bootstrap_admin:app"
 dedupe-stations = "scripts.dedupe_stations:app"
 compute-quality-scores = "scripts.quality_cmd:app"
+migrate-streams = "scripts.migrate_streams:app"
 
 [tool.uv]
 package = true

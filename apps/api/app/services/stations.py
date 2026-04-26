@@ -11,6 +11,7 @@ from app.schemas.station import (
     StationDetail,
     StationGenreRef,
     StationsPage,
+    StationStreamRef,
     StationSummary,
 )
 
@@ -19,20 +20,39 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from app.models.station import Station
+    from app.models.station_stream import StationStream
+
+
+def _stream_ref(s: StationStream) -> StationStreamRef:
+    return StationStreamRef(
+        id=s.id,
+        url=s.stream_url,
+        codec=s.codec,
+        bitrate=s.bitrate,
+        format=s.format,
+        is_primary=s.is_primary,
+    )
+
+
+def _primary_of(station: Station) -> StationStream | None:
+    for s in station.streams:
+        if s.is_primary:
+            return s
+    return station.streams[0] if station.streams else None
 
 
 def _to_summary(station: Station) -> StationSummary:
+    primary = _primary_of(station)
     return StationSummary(
         id=station.id,
         slug=station.slug,
         name=station.name,
         country_code=station.country_code,
         city=station.city,
-        codec=station.codec,
-        bitrate=station.bitrate,
         curated=station.curated,
         quality_score=station.quality_score,
         genres=[g.slug for g in station.genres],
+        primary_stream=_stream_ref(primary) if primary else None,
     )
 
 
@@ -65,7 +85,9 @@ async def list_stations(
 
 
 def _detail_cache_key(slug: str) -> str:
-    return f"station:detail:{slug}:v1"
+    # v2 = primary_stream/streams shape; bumped from v1 to invalidate stale
+    # detail blobs left over from the legacy schema.
+    return f"station:detail:{slug}:v2"
 
 
 async def get_station_detail(
@@ -91,8 +113,6 @@ async def get_station_detail(
         homepage_url=station.homepage_url,
         country_code=station.country_code,
         city=station.city,
-        codec=station.codec,
-        bitrate=station.bitrate,
         language=station.language,
         curated=station.curated,
         quality_score=station.quality_score,
@@ -101,6 +121,7 @@ async def get_station_detail(
             StationGenreRef(slug=g.slug, name=g.name, color_hex=g.color_hex)
             for g in station.genres
         ],
+        streams=[_stream_ref(s) for s in station.streams],
         now_playing=[
             NowPlayingEntry(title=np.title, artist=np.artist, captured_at=np.captured_at)
             for np in now_playing
@@ -114,7 +135,10 @@ async def get_stream_url(session: AsyncSession, slug: str) -> tuple[str, str] | 
     station = await stations_repo.get_active_station_by_slug(session, slug)
     if station is None:
         return None
-    return str(station.id), station.stream_url
+    primary = _primary_of(station)
+    if primary is None:
+        return None
+    return str(station.id), primary.stream_url
 
 
 async def find_nearby(
@@ -128,19 +152,32 @@ async def find_nearby(
     rows = await stations_repo.find_nearby(
         session, lat=lat, lng=lng, radius_km=radius_km, limit=limit,
     )
-    return [
-        NearbyStation(
-            id=row.id,
-            slug=row.slug,
-            name=row.name,
-            country_code=row.country_code,
-            city=row.city,
-            codec=row.codec,
-            bitrate=row.bitrate,
-            curated=row.curated,
-            quality_score=row.quality_score,
-            genres=[],
-            distance_km=round(row.distance_km, 3),
+    nearby: list[NearbyStation] = []
+    for row in rows:
+        primary = (
+            StationStreamRef(
+                id=row.stream_id,
+                url=row.stream_url,
+                codec=row.codec,
+                bitrate=row.bitrate,
+                format=row.codec,
+                is_primary=True,
+            )
+            if row.stream_id is not None
+            else None
         )
-        for row in rows
-    ]
+        nearby.append(
+            NearbyStation(
+                id=row.id,
+                slug=row.slug,
+                name=row.name,
+                country_code=row.country_code,
+                city=row.city,
+                curated=row.curated,
+                quality_score=row.quality_score,
+                genres=[],
+                primary_stream=primary,
+                distance_km=round(row.distance_km, 3),
+            ),
+        )
+    return nearby

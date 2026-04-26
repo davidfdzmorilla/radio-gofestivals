@@ -18,17 +18,25 @@ class StationGenreRef(BaseModel):
     color_hex: str
 
 
+class StationStreamRef(BaseModel):
+    id: uuid.UUID
+    url: str
+    codec: str | None
+    bitrate: int | None
+    format: str | None
+    is_primary: bool
+
+
 class StationSummary(BaseModel):
     id: uuid.UUID
     slug: str
     name: str
     country_code: str | None
     city: str | None
-    codec: str | None
-    bitrate: int | None
     curated: bool
     quality_score: int
     genres: list[str] = Field(default_factory=list)
+    primary_stream: StationStreamRef | None = None
 
 
 class StationDetail(BaseModel):
@@ -38,13 +46,12 @@ class StationDetail(BaseModel):
     homepage_url: str | None
     country_code: str | None
     city: str | None
-    codec: str | None
-    bitrate: int | None
     language: str | None
     curated: bool
     quality_score: int
     status: str
     genres: list[StationGenreRef] = Field(default_factory=list)
+    streams: list[StationStreamRef] = Field(default_factory=list)
     now_playing: list[NowPlayingEntry] = Field(default_factory=list)
 
 

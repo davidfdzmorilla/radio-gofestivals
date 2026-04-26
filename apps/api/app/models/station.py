@@ -24,6 +24,7 @@ from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.genre import Genre
+    from app.models.station_stream import StationStream
 
 
 station_status_enum = ENUM(
@@ -33,6 +34,7 @@ station_status_enum = ENUM(
     "rejected",
     "unsupported",
     "duplicate",
+    "inactive",
     name="station_status",
     create_type=False,
 )
@@ -51,7 +53,8 @@ class Station(Base):
     )
     slug: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)
-    stream_url: Mapped[str] = mapped_column(Text, nullable=False)
+    # stream_url, codec, bitrate were moved to station_streams in migration
+    # 0005. The columns are kept on the table only until 0007 drops them.
     homepage_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     country_code: Mapped[str | None] = mapped_column(CHAR(2), nullable=True)
     city: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -59,8 +62,6 @@ class Station(Base):
         Geography(geometry_type="POINT", srid=4326),
         nullable=True,
     )
-    codec: Mapped[str | None] = mapped_column(Text, nullable=True)
-    bitrate: Mapped[int | None] = mapped_column(Integer, nullable=True)
     language: Mapped[str | None] = mapped_column(Text, nullable=True)
     curated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     quality_score: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=50)
@@ -91,6 +92,14 @@ class Station(Base):
         "Genre",
         secondary="station_genres",
         lazy="selectin",
+    )
+
+    streams: Mapped[list[StationStream]] = relationship(
+        "StationStream",
+        back_populates="station",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="(StationStream.is_primary.desc(), StationStream.bitrate.desc())",
     )
 
 

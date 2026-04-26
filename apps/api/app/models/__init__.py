@@ -2,6 +2,7 @@ from app.models.admin import Admin, CurationLog
 from app.models.base import Base
 from app.models.genre import Genre
 from app.models.station import NowPlaying, Station, StationGenre
+from app.models.station_stream import StationStream
 
 __all__ = [
     "Admin",
@@ -11,4 +12,5 @@ __all__ = [
     "NowPlaying",
     "Station",
     "StationGenre",
+    "StationStream",
 ]

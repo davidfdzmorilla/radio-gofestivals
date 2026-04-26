@@ -15,8 +15,9 @@ from sqlalchemy import text
 
 from scripts.constants import ELECTRONIC_TAGS
 from scripts.db import make_engine, make_sessionmaker
+from scripts.dedupe_stations import normalize_name
 from scripts.logging import get_logger
-from scripts.quality import compute_quality_score
+from scripts.quality import compute_quality_score, compute_technical_score
 from scripts.rb_client import RadioBrowserClient
 from scripts.stream_check import DEFAULT_TIMEOUT_S, check_stream_alive
 from scripts.taxonomy_mapper import GenreRef, map_rb_tags_to_genre_slugs
@@ -217,6 +218,9 @@ async def upsert_station(
         "status": "active",
     })
 
+    # Lookup order: rb_uuid → dedupe brand. Both keep re-sync idempotent
+    # while letting multiple RB rows of the same logical station collapse
+    # onto a single brand (with one stream each).
     existing = await session.execute(
         text(
             "SELECT id, slug, status, failed_checks "
@@ -227,6 +231,27 @@ async def upsert_station(
     row = existing.first()
 
     if row is None:
+        # Try to attach this RB row as a stream of an existing brand.
+        normalized = normalize_name(name)
+        brand_lookup = await session.execute(
+            text(
+                """
+                SELECT id, status, failed_checks
+                FROM stations
+                WHERE LOWER(TRIM(name)) = :n
+                  AND COALESCE(country_code, '') = COALESCE(:cc, '')
+                  AND COALESCE(LOWER(TRIM(homepage_url)), '') = ''
+                  AND status IN ('active', 'pending')
+                LIMIT 1
+                """,
+            ),
+            {"n": normalized, "cc": country_code},
+        )
+        brand_row = brand_lookup.first()
+    else:
+        brand_row = None
+
+    if row is None and brand_row is None:
         base_slug = slugify(name) or f"station-{rb_uuid.hex[:8]}"
         final_slug, collided = await reserve_slug(session, base_slug)
         if collided:
@@ -240,11 +265,8 @@ async def upsert_station(
             "rb": str(rb_uuid),
             "slug": final_slug,
             "name": name,
-            "stream_url": stream_url,
             "country_code": country_code,
             "city": city,
-            "codec": codec,
-            "bitrate": bitrate,
             "language": language,
             "quality_score": quality_score,
             "clickcount": clickcount,
@@ -259,13 +281,13 @@ async def upsert_station(
         stmt = text(
             f"""
             INSERT INTO stations (
-                rb_uuid, slug, name, stream_url, country_code, city, codec,
-                bitrate, language, quality_score, clickcount, votes,
+                rb_uuid, slug, name, country_code, city, language,
+                quality_score, clickcount, votes,
                 last_changeuuid, last_local_checktime,
                 source, last_sync_at, geo
             ) VALUES (
-                :rb, :slug, :name, :stream_url, :country_code, :city, :codec,
-                :bitrate, :language, :quality_score, :clickcount, :votes,
+                :rb, :slug, :name, :country_code, :city, :language,
+                :quality_score, :clickcount, :votes,
                 CAST(:last_changeuuid AS uuid), :last_local_checktime,
                 'radio-browser', :now, {geo_expr}
             )
@@ -274,7 +296,17 @@ async def upsert_station(
         )
         result = await session.execute(stmt, params)
         station_id = uuid.UUID(str(result.scalar_one()))
+        await _upsert_stream(session, station_id, stream_url, codec, bitrate)
+        await _reassign_primary_stream(session, station_id)
         stats.inserted += 1
+        return station_id
+
+    if row is None and brand_row is not None:
+        # Attach stream to existing brand without disturbing its identity.
+        station_id = uuid.UUID(str(brand_row[0]))
+        await _upsert_stream(session, station_id, stream_url, codec, bitrate)
+        await _reassign_primary_stream(session, station_id)
+        stats.updated += 1
         return station_id
 
     station_id = uuid.UUID(str(row[0]))
@@ -291,11 +323,8 @@ async def upsert_station(
     params = {
         "id": str(station_id),
         "name": name,
-        "stream_url": stream_url,
         "country_code": country_code,
         "city": city,
-        "codec": codec,
-        "bitrate": bitrate,
         "language": language,
         "quality_score": update_quality,
         "clickcount": clickcount,
@@ -314,11 +343,8 @@ async def upsert_station(
         f"""
         UPDATE stations SET
             name = :name,
-            stream_url = :stream_url,
             country_code = :country_code,
             city = :city,
-            codec = :codec,
-            bitrate = :bitrate,
             language = :language,
             quality_score = :quality_score,
             clickcount = :clickcount,
@@ -331,8 +357,81 @@ async def upsert_station(
         """,  # noqa: S608
     )
     await session.execute(stmt, params)
+    await _upsert_stream(session, station_id, stream_url, codec, bitrate)
+    await _reassign_primary_stream(session, station_id)
     stats.updated += 1
     return station_id
+
+
+async def _upsert_stream(
+    session: AsyncSession,
+    station_id: uuid.UUID,
+    stream_url: str,
+    codec: str | None,
+    bitrate: int | None,
+) -> None:
+    await session.execute(
+        text(
+            """
+            INSERT INTO station_streams
+                (station_id, stream_url, codec, bitrate, format, status)
+            VALUES
+                (:sid, :url, :codec, :br, :codec, 'active')
+            ON CONFLICT (station_id, stream_url) DO UPDATE SET
+                codec = EXCLUDED.codec,
+                bitrate = EXCLUDED.bitrate,
+                format = EXCLUDED.format,
+                updated_at = now()
+            """,
+        ),
+        {
+            "sid": str(station_id),
+            "url": stream_url,
+            "codec": codec,
+            "br": bitrate,
+        },
+    )
+
+
+async def _reassign_primary_stream(
+    session: AsyncSession,
+    station_id: uuid.UUID,
+) -> None:
+    """Set is_primary=true on the highest-technical stream of this station."""
+    rows = (
+        await session.execute(
+            text(
+                """
+                SELECT id::text, codec, bitrate
+                FROM station_streams
+                WHERE station_id = :sid AND status != 'inactive'
+                """,
+            ),
+            {"sid": str(station_id)},
+        )
+    ).all()
+    if not rows:
+        return
+    rows_sorted = sorted(
+        rows,
+        key=lambda r: compute_technical_score(r[2], r[1]),
+        reverse=True,
+    )
+    winner_id = rows_sorted[0][0]
+    await session.execute(
+        text(
+            "UPDATE station_streams SET is_primary = false "
+            "WHERE station_id = :sid AND is_primary = true",
+        ),
+        {"sid": str(station_id)},
+    )
+    await session.execute(
+        text(
+            "UPDATE station_streams SET is_primary = true "
+            "WHERE id = CAST(:wid AS uuid)",
+        ),
+        {"wid": winner_id},
+    )
 
 
 async def replace_rb_tag_links(
@@ -469,19 +568,28 @@ async def check_station_head(
 
 async def _iter_health_candidates(
     session: AsyncSession,
-) -> AsyncIterator[tuple[uuid.UUID, str, int, str]]:
+) -> AsyncIterator[tuple[uuid.UUID, uuid.UUID, str, int, str]]:
+    """Yield (stream_id, station_id, url, failed_checks, prev_status)."""
     result = await session.execute(
         text(
             """
-            SELECT id, stream_url, failed_checks, status
-            FROM stations
-            WHERE status IN ('active', 'broken')
-            ORDER BY last_check_ok NULLS FIRST
+            SELECT s.id, s.station_id, s.stream_url, s.failed_checks, s.status
+            FROM station_streams s
+            JOIN stations st ON st.id = s.station_id
+            WHERE s.status IN ('active', 'broken')
+              AND st.status IN ('active', 'broken', 'pending')
+            ORDER BY s.last_check_at NULLS FIRST
             """,
         ),
     )
     for row in result.all():
-        yield uuid.UUID(str(row[0])), str(row[1]), int(row[2]), str(row[3])
+        yield (
+            uuid.UUID(str(row[0])),
+            uuid.UUID(str(row[1])),
+            str(row[2]),
+            int(row[3]),
+            str(row[4]),
+        )
 
 
 async def run_health_check(
@@ -490,41 +598,67 @@ async def run_health_check(
     timeout: float = DEFAULT_TIMEOUT_S,
     client: httpx.AsyncClient | None = None,
 ) -> dict[str, int]:
-    stats = {"checked": 0, "ok": 0, "failed": 0, "marked_broken": 0, "recovered": 0}
+    stats = {
+        "checked": 0,
+        "ok": 0,
+        "failed": 0,
+        "marked_broken": 0,
+        "recovered": 0,
+        "stations_active": 0,
+        "stations_broken": 0,
+    }
     sem = asyncio.Semaphore(HEALTH_CONCURRENCY)
 
     async with maker() as session:
         candidates = [c async for c in _iter_health_candidates(session)]
+        touched_stations: set[uuid.UUID] = set()
 
-        async def _one(station_id: uuid.UUID, url: str, failed: int, prev: str) -> None:
+        async def _one(
+            stream_id: uuid.UUID,
+            station_id: uuid.UUID,
+            url: str,
+            failed: int,
+            prev: str,
+        ) -> None:
             async with sem:
                 result = await check_stream_alive(
                     url, timeout_s=timeout, client=client,
                 )
+            touched_stations.add(station_id)
             if result.alive:
                 new_status = "active" if prev == "broken" else prev
                 await session.execute(
                     text(
                         """
-                        UPDATE stations SET failed_checks = 0,
-                                            last_check_ok = now(),
-                                            last_check_at = now(),
-                                            last_error = :err,
-                                            status = :st
+                        UPDATE station_streams
+                        SET failed_checks = 0,
+                            last_check_at = now(),
+                            last_error = :err,
+                            status = :st
                         WHERE id = :id
                         """,
                     ),
                     {
-                        "id": str(station_id),
+                        "id": str(stream_id),
                         "st": new_status,
                         "err": result.error,
                     },
+                )
+                # Mirror the success on the station for legacy observability
+                # (last_check_ok is documented as last successful check).
+                await session.execute(
+                    text(
+                        "UPDATE stations SET last_check_ok = now(), "
+                        "last_check_at = now() WHERE id = :id",
+                    ),
+                    {"id": str(station_id)},
                 )
                 stats["ok"] += 1
                 if prev == "broken" and new_status == "active":
                     stats["recovered"] += 1
                     log.info(
                         "stream_recovered",
+                        stream_id=str(stream_id),
                         station_id=str(station_id),
                         url=url,
                         status_code=result.status_code,
@@ -536,25 +670,34 @@ async def run_health_check(
                 await session.execute(
                     text(
                         """
-                        UPDATE stations SET failed_checks = :fc,
-                                            last_check_at = now(),
-                                            last_error = :err,
-                                            status = :st
+                        UPDATE station_streams
+                        SET failed_checks = :fc,
+                            last_check_at = now(),
+                            last_error = :err,
+                            status = :st
                         WHERE id = :id
                         """,
                     ),
                     {
-                        "id": str(station_id),
+                        "id": str(stream_id),
                         "fc": new_failed,
                         "st": new_status,
                         "err": result.error,
                     },
+                )
+                await session.execute(
+                    text(
+                        "UPDATE stations SET last_check_at = now(), "
+                        "last_error = :err WHERE id = :id",
+                    ),
+                    {"id": str(station_id), "err": result.error},
                 )
                 stats["failed"] += 1
                 if new_status == "broken" and prev != "broken":
                     stats["marked_broken"] += 1
                 log.info(
                     "stream_check_failed",
+                    stream_id=str(stream_id),
                     station_id=str(station_id),
                     url=url,
                     status_code=result.status_code,
@@ -565,6 +708,45 @@ async def run_health_check(
             stats["checked"] += 1
 
         await asyncio.gather(*(_one(*c) for c in candidates))
+
+        # Cascade to station status: at least one active stream → active;
+        # otherwise (all broken) → broken. Streams in inactive don't count.
+        for sid in touched_stations:
+            counts = (
+                await session.execute(
+                    text(
+                        """
+                        SELECT
+                            COUNT(*) FILTER (WHERE status = 'active')   AS act,
+                            COUNT(*) FILTER (WHERE status = 'broken')   AS brk,
+                            COUNT(*) FILTER (WHERE status != 'inactive') AS total
+                        FROM station_streams
+                        WHERE station_id = :sid
+                        """,
+                    ),
+                    {"sid": str(sid)},
+                )
+            ).first()
+            if counts is None:
+                continue
+            active_n, broken_n, total_n = int(counts[0]), int(counts[1]), int(counts[2])
+            if total_n == 0:
+                continue
+            new_station_status = "active" if active_n > 0 else "broken"
+            if new_station_status == "active":
+                stats["stations_active"] += 1
+            else:
+                stats["stations_broken"] += 1
+            await session.execute(
+                text(
+                    "UPDATE stations SET status = CAST(:st AS station_status) "
+                    "WHERE id = :sid AND status IN ('active', 'broken', 'pending')",
+                ),
+                {"st": new_station_status, "sid": str(sid)},
+            )
+            # Re-pick primary if the previous primary is now broken.
+            await _reassign_primary_stream(session, sid)
+
         await session.commit()
 
     log.info("health_check_done", **stats)

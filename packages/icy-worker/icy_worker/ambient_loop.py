@@ -28,9 +28,14 @@ async def _top_stations(
             await session.execute(
                 text(
                     """
-                    SELECT id, slug, stream_url FROM stations
-                    WHERE curated = true AND status = 'active'
-                    ORDER BY quality_score DESC, name ASC
+                    SELECT s.id, s.slug, ss.stream_url
+                    FROM stations s
+                    JOIN station_streams ss
+                      ON ss.station_id = s.id AND ss.is_primary = true
+                    WHERE s.curated = true
+                      AND s.status = 'active'
+                      AND ss.status = 'active'
+                    ORDER BY s.quality_score DESC, s.name ASC
                     LIMIT :n
                     """,
                 ),

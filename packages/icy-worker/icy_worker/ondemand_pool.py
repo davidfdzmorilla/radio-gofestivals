@@ -29,8 +29,15 @@ async def _resolve_station(
         row = (
             await session.execute(
                 text(
-                    "SELECT id, stream_url FROM stations "
-                    "WHERE slug = :slug AND status = 'active'",
+                    """
+                    SELECT s.id, ss.stream_url
+                    FROM stations s
+                    JOIN station_streams ss
+                      ON ss.station_id = s.id AND ss.is_primary = true
+                    WHERE s.slug = :slug
+                      AND s.status = 'active'
+                      AND ss.status = 'active'
+                    """,
                 ),
                 {"slug": slug},
             )

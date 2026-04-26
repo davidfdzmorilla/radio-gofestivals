@@ -34,17 +34,26 @@ export const GenreSchema: z.ZodType<Genre, z.ZodTypeDef, unknown> = z.lazy(() =>
     ),
 );
 
+export const StationStreamRefSchema = z.object({
+  id: z.string(),
+  url: z.string(),
+  codec: z.string().nullable(),
+  bitrate: z.number().nullable(),
+  format: z.string().nullable(),
+  is_primary: z.boolean(),
+});
+export type StationStreamRef = z.infer<typeof StationStreamRefSchema>;
+
 export const StationSummarySchema = z.object({
   id: z.string(),
   slug: z.string(),
   name: z.string(),
   country_code: z.string().nullable(),
   city: z.string().nullable(),
-  codec: z.string().nullable(),
-  bitrate: z.number().nullable(),
   curated: z.boolean(),
   quality_score: z.number(),
   genres: z.array(z.string()),
+  primary_stream: StationStreamRefSchema.nullable().optional(),
 });
 export type StationSummary = z.infer<typeof StationSummarySchema>;
 
@@ -77,13 +86,12 @@ export const StationDetailSchema = z.object({
   homepage_url: z.string().nullable(),
   country_code: z.string().nullable(),
   city: z.string().nullable(),
-  codec: z.string().nullable(),
-  bitrate: z.number().nullable(),
   language: z.string().nullable(),
   curated: z.boolean(),
   quality_score: z.number(),
   status: z.string(),
   genres: z.array(StationGenreRefSchema),
+  streams: z.array(StationStreamRefSchema).default([]),
   now_playing: z.array(NowPlayingEntrySchema),
 });
 export type StationDetail = z.infer<typeof StationDetailSchema>;

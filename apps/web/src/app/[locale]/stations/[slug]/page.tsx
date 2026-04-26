@@ -44,17 +44,18 @@ export default async function StationPage({
 
   const primaryColor = station.genres[0]?.color_hex ?? '#8B4EE8';
 
+  const primaryStream =
+    station.streams.find((s) => s.is_primary) ?? station.streams[0] ?? null;
   const summary: StationSummary = {
     id: station.id,
     slug: station.slug,
     name: station.name,
     country_code: station.country_code,
     city: station.city,
-    codec: station.codec,
-    bitrate: station.bitrate,
     curated: station.curated,
     quality_score: station.quality_score,
     genres: station.genres.map((g) => g.slug),
+    primary_stream: primaryStream,
   };
 
   return (
@@ -99,9 +100,9 @@ export default async function StationPage({
               {station.city ?? ''}
               {station.city && station.country_code ? ' · ' : ''}
               {station.country_code ?? ''}
-              {station.codec && station.bitrate && (
+              {primaryStream?.codec && primaryStream.bitrate && (
                 <span className="ml-3 text-fg-2/80">
-                  {station.codec.toUpperCase()} · {station.bitrate}kbps
+                  {primaryStream.codec.toUpperCase()} · {primaryStream.bitrate}kbps
                 </span>
               )}
             </p>

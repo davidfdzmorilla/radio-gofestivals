@@ -32,7 +32,8 @@
   "player": {
     "buffering": "Conectando…",
     "error": "No se puede reproducir esta estación",
-    "empty": "Selecciona una estación para escucharla"
+    "empty": "Selecciona una estación para escucharla",
+    "quality": "Calidad"
   },
   "filters": {
     "country": "País",

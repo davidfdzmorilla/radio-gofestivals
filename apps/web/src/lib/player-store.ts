@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { StationSummary } from './types';
+import type { StationStreamRef, StationSummary } from './types';
 
 interface PlayerState {
   currentStation: StationSummary | null;
@@ -13,6 +13,7 @@ interface PlayerState {
   setBuffering: (buffering: boolean) => void;
   setVolume: (v: number) => void;
   toggle: () => void;
+  setStream: (stream: StationStreamRef) => void;
 }
 
 export const usePlayerStore = create<PlayerState>()(
@@ -36,6 +37,11 @@ export const usePlayerStore = create<PlayerState>()(
         const { currentStation, isPlaying } = get();
         if (!currentStation) return;
         set({ isPlaying: !isPlaying, isBuffering: !isPlaying });
+      },
+      setStream: (stream) => {
+        const cur = get().currentStation;
+        if (!cur) return;
+        set({ currentStation: { ...cur, primary_stream: stream } });
       },
     }),
     {

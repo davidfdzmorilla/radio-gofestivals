@@ -42,7 +42,13 @@ export function GlobalPlayer() {
       return;
     }
 
-    const nextSrc = `${API_BASE}/api/v1/stations/${station.slug}/stream`;
+    // Prefer the explicit stream URL on the station summary so the quality
+    // selector can switch variants without going through the slug-based
+    // 302 redirect endpoint. Fallback to the API redirect for any caller
+    // that still passes a station without primary_stream populated.
+    const nextSrc =
+      station.primary_stream?.url ??
+      `${API_BASE}/api/v1/stations/${station.slug}/stream`;
     const srcChanged = audio.src !== nextSrc;
     let cancelled = false;
 

@@ -32,7 +32,8 @@
   "player": {
     "buffering": "Connecting…",
     "error": "Cannot play this station",
-    "empty": "Pick a station to listen"
+    "empty": "Pick a station to listen",
+    "quality": "Quality"
   },
   "filters": {
     "country": "Country",

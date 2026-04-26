@@ -3,11 +3,10 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { getStation } from '@/lib/api';
-import { PlayButton } from '@/components/stations/PlayButton';
+import { StationPlayerControls } from '@/components/stations/StationPlayerControls';
 import { NowPlaying } from '@/components/player/NowPlaying';
 import { Badge } from '@/components/ui/badge';
 import { initials } from '@/lib/utils';
-import type { StationSummary } from '@/lib/types';
 
 export const revalidate = 60;
 
@@ -46,7 +45,7 @@ export default async function StationPage({
 
   const primaryStream =
     station.streams.find((s) => s.is_primary) ?? station.streams[0] ?? null;
-  const summary: StationSummary = {
+  const baseSummary = {
     id: station.id,
     slug: station.slug,
     name: station.name,
@@ -55,7 +54,6 @@ export default async function StationPage({
     curated: station.curated,
     quality_score: station.quality_score,
     genres: station.genres.map((g) => g.slug),
-    primary_stream: primaryStream,
   };
 
   return (
@@ -108,7 +106,11 @@ export default async function StationPage({
             </p>
           )}
           <div className="pt-2">
-            <PlayButton station={summary} color={primaryColor} size="lg" />
+            <StationPlayerControls
+              baseSummary={baseSummary}
+              streams={station.streams}
+              color={primaryColor}
+            />
           </div>
         </div>
       </section>

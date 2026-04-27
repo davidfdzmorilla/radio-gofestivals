@@ -420,3 +420,54 @@ para el caso concreto:
 Los documentos (este incluido) son guía, no dogma. Si hay una razón
 genuina para desviarse, se discute y se actualiza el documento. Mejor
 una conversación corta que código divergente.
+
+---
+
+## 13 · Post-refactor de schema · gate obligatorio
+
+Tras cualquier migración alembic que añada/elimine/renombre columnas en
+tablas referenciadas por SQL raw (`text("…")`, no ORM), seguir estos 3
+pasos antes de cerrar el refactor:
+
+### 13.1 Escaneo exhaustivo de queries
+
+```bash
+grep -rEn "FROM <tabla>" packages/ apps/ --include="*.py"
+```
+
+Revisar TODOS los matches. Filtrar por queries que toquen las columnas
+afectadas. No fiarse del modelo SQLAlchemy — los queries raw son
+invisibles al ORM.
+
+### 13.2 Rebuild de TODAS las imágenes afectadas
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production \
+  build api scripts icy-worker web
+```
+
+No solo las que parecen "afectadas". Una imagen vieja con código nuevo
+pero schema cambiado puede crashear silenciosamente en background.
+
+**Caso real**: tras el refactor de station_streams (commit 0a919d9),
+el icy-worker quedó en restart loop por 20h porque el deploy no rebuildó
+su imagen. El healthcheck de Docker no detectó el problema porque el
+worker reiniciaba antes de fallar. Solo se descubrió en verificación
+nightly del lunes siguiente (2026-04-27).
+
+### 13.3 Smoke test de cada comando CLI
+
+Ejecutar manualmente cada comando del CLI de scripts post-rebuild:
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.production \
+  run --rm scripts rb_sync run --dry-run
+
+docker compose -f docker-compose.prod.yml --env-file .env.production \
+  run --rm scripts compute-quality-scores --dry-run
+
+docker compose -f docker-compose.prod.yml --env-file .env.production \
+  run --rm scripts dedupe-stations --dry-run
+```
+
+Solo cerrar el refactor cuando todos pasen sin stack trace.

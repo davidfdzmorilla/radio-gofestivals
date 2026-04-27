@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 from typing import TYPE_CHECKING
 
 from geoalchemy2 import Geography
@@ -12,6 +13,7 @@ from sqlalchemy import (
     CheckConstraint,
     ForeignKey,
     Integer,
+    Numeric,
     PrimaryKeyConstraint,
     SmallInteger,
     Text,
@@ -24,6 +26,7 @@ from app.models.base import Base
 
 if TYPE_CHECKING:
     from app.models.genre import Genre
+    from app.models.station_clickcount_history import StationClickcountHistory
     from app.models.station_stream import StationStream
 
 
@@ -77,8 +80,11 @@ class Station(Base):
         UUID(as_uuid=True), nullable=True,
     )
     last_local_checktime: Mapped[datetime | None] = mapped_column(nullable=True)
-    # Reserved for future history-based trend computation. Not populated yet.
-    click_trend: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # 7-day log-ratio of clickcount, computed nightly from
+    # station_clickcount_history. Defaults to 0 until the 7th snapshot lands.
+    click_trend: Mapped[Decimal] = mapped_column(
+        Numeric(10, 4), nullable=False, default=0,
+    )
     source: Mapped[str] = mapped_column(Text, nullable=False, default="radio-browser")
     created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
@@ -92,6 +98,13 @@ class Station(Base):
         "Genre",
         secondary="station_genres",
         lazy="selectin",
+    )
+
+    clickcount_history: Mapped[list[StationClickcountHistory]] = relationship(
+        "StationClickcountHistory",
+        back_populates="station",
+        cascade="all, delete-orphan",
+        lazy="noload",
     )
 
     streams: Mapped[list[StationStream]] = relationship(

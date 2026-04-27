@@ -32,6 +32,9 @@ bootstrap-admin = "scripts.bootstrap_admin:app"
 dedupe-stations = "scripts.dedupe_stations:app"
 compute-quality-scores = "scripts.quality_cmd:app"
 migrate-streams = "scripts.migrate_streams:app"
+snapshot-clickcounts = "scripts.snapshot_clickcounts:app"
+compute-click-trends = "scripts.compute_click_trends:app"
+cleanup-clickcount-history = "scripts.cleanup_clickcount_history:app"
 
 [tool.uv]
 package = true

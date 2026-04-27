@@ -12,8 +12,17 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Sync diario Radio-Browser a las 04:00 UTC
 0 4 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts rb_sync run >> /var/log/radio/rb_sync.log 2>&1
 
+# Snapshot diario de clickcount post-sync (04:15 UTC)
+15 4 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts snapshot-clickcounts >> /var/log/radio/snapshot.log 2>&1
+
+# Cálculo del 7-day click_trend post-snapshot (04:20 UTC)
+20 4 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts compute-click-trends >> /var/log/radio/click_trends.log 2>&1
+
 # Recalcular quality scores tras sync, a las 04:30 UTC
 30 4 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts compute-quality-scores >> /var/log/radio/quality.log 2>&1
+
+# Cleanup mensual de history (día 1 de cada mes, 04:45 UTC)
+45 4 1 * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts cleanup-clickcount-history >> /var/log/radio/cleanup.log 2>&1
 
 # Health-check de streams cada 6 horas
 0 */6 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts rb_sync health-check >> /var/log/radio/health.log 2>&1

@@ -61,7 +61,7 @@ export function StationPlayerControls({ baseSummary, streams, color }: Props) {
 
   return (
     <div className="space-y-4">
-      <PlayButton station={summary} color={color} size="lg" />
+      <PlayButton station={summary} color={color} size="lg" streams={streams} />
       <QualitySelector
         streams={streams}
         activeStreamId={activeStreamId ?? ''}

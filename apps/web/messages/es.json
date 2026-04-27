@@ -33,7 +33,9 @@
     "buffering": "Conectando…",
     "error": "No se puede reproducir esta estación",
     "empty": "Selecciona una estación para escucharla",
-    "quality": "Calidad"
+    "quality": "Calidad",
+    "streamUnavailable": "Emisora no disponible temporalmente",
+    "retry": "Reintentar"
   },
   "filters": {
     "country": "País",

@@ -41,6 +41,7 @@ export const StationStreamRefSchema = z.object({
   bitrate: z.number().nullable(),
   format: z.string().nullable(),
   is_primary: z.boolean(),
+  status: z.string().default('active'),
 });
 export type StationStreamRef = z.infer<typeof StationStreamRefSchema>;
 

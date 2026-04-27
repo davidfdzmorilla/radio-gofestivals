@@ -33,7 +33,9 @@
     "buffering": "Connecting…",
     "error": "Cannot play this station",
     "empty": "Pick a station to listen",
-    "quality": "Quality"
+    "quality": "Quality",
+    "streamUnavailable": "Station temporarily unavailable",
+    "retry": "Retry"
   },
   "filters": {
     "country": "Country",

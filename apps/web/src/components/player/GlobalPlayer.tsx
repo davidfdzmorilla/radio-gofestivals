@@ -19,11 +19,14 @@ export function GlobalPlayer() {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const isBuffering = usePlayerStore((s) => s.isBuffering);
   const volume = usePlayerStore((s) => s.volume);
+  const error = usePlayerStore((s) => s.error);
   const pause = usePlayerStore((s) => s.pause);
   const stop = usePlayerStore((s) => s.stop);
   const toggle = usePlayerStore((s) => s.toggle);
   const setBuffering = usePlayerStore((s) => s.setBuffering);
   const setVolume = usePlayerStore((s) => s.setVolume);
+  const tryNextFallback = usePlayerStore((s) => s.tryNextFallback);
+  const retry = usePlayerStore((s) => s.retry);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -112,7 +115,18 @@ export function GlobalPlayer() {
           <p className="truncate font-mono text-[11px] uppercase tracking-wide text-fg-2">
             {station.name}
           </p>
-          {isBuffering && !isPlaying ? (
+          {error ? (
+            <p className="flex items-center gap-2 font-display text-sm italic text-fg-2">
+              <span>{t('streamUnavailable')}</span>
+              <button
+                type="button"
+                onClick={() => retry()}
+                className="rounded-full border border-fg-3 bg-bg-2 px-2 py-0.5 font-mono text-[10px] uppercase tracking-widest text-fg-1 transition-colors hover:border-magenta/60 hover:text-fg-0"
+              >
+                {t('retry')}
+              </button>
+            </p>
+          ) : isBuffering && !isPlaying ? (
             <p className="font-display text-sm italic text-fg-2">{t('buffering')}</p>
           ) : (
             <NowPlaying slug={station.slug} />
@@ -148,7 +162,16 @@ export function GlobalPlayer() {
         preload="none"
         onWaiting={() => setBuffering(true)}
         onPlaying={() => setBuffering(false)}
-        onError={() => pause()}
+        onError={() => {
+          // Conservative trigger: only audio.onerror — no onstalled, no
+          // timeout. Covers network errors, decode errors, 404s and
+          // content-type mismatches. tryNextFallback returns false when
+          // every active stream has been tried; in that case it has
+          // already set error='streamUnavailable' and pause()d.
+          if (!tryNextFallback()) {
+            pause();
+          }
+        }}
       />
     </div>
   );

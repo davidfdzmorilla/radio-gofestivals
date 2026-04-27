@@ -25,6 +25,7 @@ class StationStreamRef(BaseModel):
     bitrate: int | None
     format: str | None
     is_primary: bool
+    status: str
 
 
 class StationSummary(BaseModel):

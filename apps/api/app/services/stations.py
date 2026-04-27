@@ -31,6 +31,7 @@ def _stream_ref(s: StationStream) -> StationStreamRef:
         bitrate=s.bitrate,
         format=s.format,
         is_primary=s.is_primary,
+        status=s.status,
     )
 
 
@@ -162,6 +163,7 @@ async def find_nearby(
                 bitrate=row.bitrate,
                 format=row.codec,
                 is_primary=True,
+                status="active",
             )
             if row.stream_id is not None
             else None

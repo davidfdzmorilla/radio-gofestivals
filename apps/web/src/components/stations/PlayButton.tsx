@@ -5,12 +5,16 @@ import { Play, Pause } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { usePlayerStore } from '@/lib/player-store';
-import type { StationSummary } from '@/lib/types';
+import type { StationStreamRef, StationSummary } from '@/lib/types';
 
 interface Props {
   station: StationSummary;
   color: string;
   size?: 'sm' | 'md' | 'lg';
+  // Full list of variants for fallback. Cards in lists (home, genre pages)
+  // don't have it and pass nothing — the store synthesises a single-element
+  // list from primary_stream.
+  streams?: StationStreamRef[];
 }
 
 const sizeMap = {
@@ -25,7 +29,7 @@ const iconMap = {
   lg: 'h-7 w-7',
 } as const;
 
-export function PlayButton({ station, color, size = 'md' }: Props) {
+export function PlayButton({ station, color, size = 'md', streams }: Props) {
   const t = useTranslations('common');
   const current = usePlayerStore((s) => s.currentStation);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -44,7 +48,7 @@ export function PlayButton({ station, color, size = 'md' }: Props) {
         e.stopPropagation();
         if (isActive) pause();
         else {
-          play(station);
+          play(station, streams);
           setPulseKey((k) => k + 1);
         }
       }}

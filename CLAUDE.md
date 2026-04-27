@@ -403,7 +403,13 @@ primero explique el plan antes de tocar código.
 - **Cron**: `infra/deploy/crontab.example` (sync diario 04:00 UTC,
   health-check cada 6h, backup 03:00 UTC).
 - **Runbook completo**: `infra/deploy/README.md`.
-- **No hacer `git push` desde el VPS**. El VPS es destino, no origen.
+- **Push desde VPS autorizado** (configurado 2026-04-27): el VPS usa una
+  SSH deploy key específica del repo (`~/.ssh/github_radio`, configurada
+  como host `github-radio` en `~/.ssh/config`). Esto evita tener credenciales
+  personales en el VPS y permite revocar acceso granularmente desde GitHub
+  → repo Settings → Deploy keys. La regla original "no push desde VPS"
+  asumía un setup local funcional, pero el desarrollo actual ocurre
+  directamente en el VPS.
 
 ---
 

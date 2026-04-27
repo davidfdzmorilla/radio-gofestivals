@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn, initials } from '@/lib/utils';
 import { usePlayerStore } from '@/lib/player-store';
 import { NowPlaying } from './NowPlaying';
+import { SpectrumAnalyzer } from './SpectrumAnalyzer';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -111,6 +112,12 @@ export function GlobalPlayer() {
             <Play className="h-5 w-5 translate-x-0.5 fill-bg-0" />
           )}
         </button>
+        <SpectrumAnalyzer
+          audioElement={audioRef.current}
+          isPlaying={isPlaying}
+          barCount={10}
+          className="hidden sm:flex"
+        />
         <div className="min-w-0 flex-1">
           <p className="truncate font-mono text-[11px] uppercase tracking-wide text-fg-2">
             {station.name}
@@ -160,6 +167,7 @@ export function GlobalPlayer() {
       <audio
         ref={audioRef}
         preload="none"
+        crossOrigin="anonymous"
         onWaiting={() => setBuffering(true)}
         onPlaying={() => setBuffering(false)}
         onError={() => {

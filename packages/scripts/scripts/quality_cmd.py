@@ -42,12 +42,19 @@ async def _fetch_rows(
     where = ""
     params: dict[str, object] = {}
     if where_status:
-        where = "WHERE status = CAST(:st AS station_status)"
+        where = "WHERE s.status = CAST(:st AS station_status)"
         params["st"] = where_status
+    # bitrate/codec live on station_streams since migration 0007. LEFT JOIN
+    # so stations without a primary stream still appear with NULL technical
+    # signals — compute_quality_score tolerates None.
     sql = (
-        "SELECT id::text AS id, bitrate, codec, clickcount, votes, "
-        "       failed_checks, status, quality_score "
-        f"FROM stations {where} ORDER BY created_at"
+        "SELECT s.id::text AS id, ss.bitrate, ss.codec, "
+        "       s.clickcount, s.votes, s.failed_checks, "
+        "       s.status, s.quality_score "
+        "FROM stations s "
+        "LEFT JOIN station_streams ss "
+        "  ON ss.station_id = s.id AND ss.is_primary = true "
+        f"{where} ORDER BY s.created_at"
     )
     if limit is not None:
         sql += " LIMIT :limit"

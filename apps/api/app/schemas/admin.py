@@ -44,7 +44,7 @@ class StationPending(BaseModel):
     id: uuid.UUID
     slug: str
     name: str
-    stream_url: str
+    stream_url: str | None
     country_code: str | None
     city: str | None
     codec: str | None

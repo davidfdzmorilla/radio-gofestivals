@@ -13,14 +13,28 @@ if TYPE_CHECKING:
 
 
 async def _seed(db_session: AsyncSession, *, curated: bool, status: str, score: int, slug: str) -> None:
+    sid = (
+        await db_session.execute(
+            text(
+                """
+                INSERT INTO stations (slug, name, curated, status, quality_score)
+                VALUES (:slug, :slug, :c, :st, :sc)
+                RETURNING id
+                """,
+            ),
+            {"slug": slug, "c": curated, "st": status, "sc": score},
+        )
+    ).scalar_one()
     await db_session.execute(
         text(
             """
-            INSERT INTO stations (slug, name, stream_url, curated, status, quality_score)
-            VALUES (:slug, :slug, 'https://unreachable.test/s', :c, :st, :sc)
+            INSERT INTO station_streams
+                (station_id, stream_url, codec, bitrate, is_primary, status)
+            VALUES (:sid, 'https://unreachable.test/s', 'mp3', 128,
+                    true, 'active')
             """,
         ),
-        {"slug": slug, "c": curated, "st": status, "sc": score},
+        {"sid": sid},
     )
     await db_session.commit()
 
@@ -117,14 +131,24 @@ async def test_ambient_does_not_write_now_playing(
                 await db_session.execute(
                     text(
                         """
-                        INSERT INTO stations (slug, name, stream_url, curated, status, quality_score)
-                        VALUES ('amb2', 'amb2', 'https://x/y', true, 'active', 50)
+                        INSERT INTO stations (slug, name, curated, status, quality_score)
+                        VALUES ('amb2', 'amb2', true, 'active', 50)
                         RETURNING id
                         """,
                     ),
                 )
             ).scalar_one(),
         ),
+    )
+    await db_session.execute(
+        text(
+            """
+            INSERT INTO station_streams
+                (station_id, stream_url, codec, bitrate, is_primary, status)
+            VALUES (:sid, 'https://x/y', 'mp3', 128, true, 'active')
+            """,
+        ),
+        {"sid": sid},
     )
     await db_session.commit()
 

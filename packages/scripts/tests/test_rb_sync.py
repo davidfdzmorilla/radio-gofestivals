@@ -420,17 +420,32 @@ async def test_health_check_marks_broken(
     maker: async_sessionmaker[AsyncSession],
     db_session: AsyncSession,
 ) -> None:
+    sid = (
+        await db_session.execute(
+            text(
+                """
+                INSERT INTO stations (slug, name, status, failed_checks)
+                VALUES ('bad', 'Bad', 'active', 2)
+                RETURNING id
+                """,
+            ),
+        )
+    ).scalar_one()
     await db_session.execute(
         text(
             """
-            INSERT INTO stations (slug, name, stream_url, status, failed_checks)
-            VALUES ('bad', 'Bad', 'https://bad.example/x.mp3', 'active', 2)
+            INSERT INTO station_streams
+                (station_id, stream_url, codec, bitrate, is_primary, status,
+                 failed_checks)
+            VALUES (:sid, 'https://bad.example/x.mp3', 'mp3', 128,
+                    true, 'active', 2)
             """,
         ),
+        {"sid": sid},
     )
     await db_session.commit()
 
-    respx.head(url__regex=r"https://bad\.example/.*").respond(status_code=500)
+    respx.get(url__regex=r"https://bad\.example/.*").respond(status_code=500)
 
     async with httpx.AsyncClient() as hc:
         stats = await run_health_check(maker, timeout=2, client=hc)
@@ -448,17 +463,35 @@ async def test_health_check_recovers(
     maker: async_sessionmaker[AsyncSession],
     db_session: AsyncSession,
 ) -> None:
+    sid = (
+        await db_session.execute(
+            text(
+                """
+                INSERT INTO stations (slug, name, status, failed_checks)
+                VALUES ('rec', 'Rec', 'broken', 5)
+                RETURNING id
+                """,
+            ),
+        )
+    ).scalar_one()
     await db_session.execute(
         text(
             """
-            INSERT INTO stations (slug, name, stream_url, status, failed_checks)
-            VALUES ('rec', 'Rec', 'https://ok.example/x.mp3', 'broken', 5)
+            INSERT INTO station_streams
+                (station_id, stream_url, codec, bitrate, is_primary, status,
+                 failed_checks)
+            VALUES (:sid, 'https://ok.example/x.mp3', 'mp3', 128,
+                    true, 'broken', 5)
             """,
         ),
+        {"sid": sid},
     )
     await db_session.commit()
 
-    respx.head(url__regex=r"https://ok\.example/.*").respond(status_code=200)
+    respx.get(url__regex=r"https://ok\.example/.*").respond(
+        status_code=200,
+        headers={"content-type": "audio/mpeg"},
+    )
 
     async with httpx.AsyncClient() as hc:
         stats = await run_health_check(maker, timeout=2, client=hc)

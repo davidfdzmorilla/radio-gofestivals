@@ -20,15 +20,27 @@ async def _insert_station(db_session: AsyncSession, slug: str) -> uuid.UUID:
     result = await db_session.execute(
         text(
             """
-            INSERT INTO stations (slug, name, stream_url, status)
-            VALUES (:slug, :slug, 'https://unreachable.test/s', 'active')
+            INSERT INTO stations (slug, name, status)
+            VALUES (:slug, :slug, 'active')
             RETURNING id
             """,
         ),
         {"slug": slug},
     )
+    sid = uuid.UUID(str(result.scalar_one()))
+    await db_session.execute(
+        text(
+            """
+            INSERT INTO station_streams
+                (station_id, stream_url, codec, bitrate, is_primary, status)
+            VALUES (:sid, 'https://unreachable.test/s', 'mp3', 128,
+                    true, 'active')
+            """,
+        ),
+        {"sid": sid},
+    )
     await db_session.commit()
-    return uuid.UUID(str(result.scalar_one()))
+    return sid
 
 
 async def _fake_redis():  # type: ignore[no-untyped-def]

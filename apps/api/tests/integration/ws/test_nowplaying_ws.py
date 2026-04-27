@@ -37,8 +37,8 @@ def seed_station(sync_db_url: str):  # type: ignore[no-untyped-def]
             conn.execute(
                 text(
                     """
-                    INSERT INTO stations (slug, name, stream_url, status)
-                    VALUES (:slug, :slug, 'https://x/y.mp3', CAST(:status AS station_status))
+                    INSERT INTO stations (slug, name, status)
+                    VALUES (:slug, :slug, CAST(:status AS station_status))
                     ON CONFLICT (slug) DO UPDATE SET status = EXCLUDED.status
                     """,
                 ),

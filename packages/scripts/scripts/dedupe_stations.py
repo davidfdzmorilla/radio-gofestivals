@@ -122,13 +122,20 @@ class DedupeStats:
 
 
 async def _fetch_candidates(session: AsyncSession) -> list[StationRow]:
+    # bitrate/codec moved to station_streams in migration 0007. After the
+    # brand+streams refactor `dedupe_stations` is largely obsolete (the
+    # rb_sync upsert now collapses duplicates at insert time), but the
+    # command is still callable for manual cleanup so we keep it working.
     result = await session.execute(
         text(
             """
-            SELECT id::text, name, country_code, homepage_url,
-                   bitrate, codec, quality_score, created_at, status
-            FROM stations
-            WHERE status != 'duplicate'
+            SELECT s.id::text, s.name, s.country_code, s.homepage_url,
+                   ss.bitrate, ss.codec, s.quality_score, s.created_at,
+                   s.status
+            FROM stations s
+            LEFT JOIN station_streams ss
+              ON ss.station_id = s.id AND ss.is_primary = true
+            WHERE s.status != 'duplicate'
             """,
         ),
     )

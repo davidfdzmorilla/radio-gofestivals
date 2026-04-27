@@ -50,14 +50,19 @@ async def list_pending(
         )
     ).scalar_one()
 
+    # stream_url/codec/bitrate moved to station_streams in migration 0007.
+    # LEFT JOIN the primary stream so admin pending lists keep showing the
+    # technical info that operators rely on for curation decisions.
     rows = (
         await session.execute(
             text(
                 f"""
-                SELECT s.id, s.slug, s.name, s.stream_url, s.country_code, s.city,
-                       s.codec, s.bitrate, s.quality_score, s.created_at, s.last_sync_at,
-                       s.geo IS NOT NULL AS has_geo
+                SELECT s.id, s.slug, s.name, ss.stream_url, s.country_code, s.city,
+                       ss.codec, ss.bitrate, s.quality_score, s.created_at,
+                       s.last_sync_at, s.geo IS NOT NULL AS has_geo
                 FROM stations s
+                LEFT JOIN station_streams ss
+                  ON ss.station_id = s.id AND ss.is_primary = true
                 WHERE {where_clause}
                 ORDER BY s.quality_score DESC, s.created_at ASC
                 LIMIT :limit OFFSET :offset
@@ -101,7 +106,7 @@ async def list_pending(
             id=uuid.UUID(str(row[0])),
             slug=str(row[1]),
             name=str(row[2]),
-            stream_url=str(row[3]),
+            stream_url=row[3],
             country_code=row[4],
             city=row[5],
             codec=row[6],

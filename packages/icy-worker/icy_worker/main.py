@@ -22,11 +22,20 @@ async def _run(cfg: WorkerConfig) -> None:
     engine = make_engine(cfg.database_url)
     maker = make_sessionmaker(engine)
     redis: Redis[bytes] = Redis.from_url(cfg.redis_url, decode_responses=False)
+    # follow_redirects: many Radio-Browser URLs 301/302 to CDN-rewritten
+    # endpoints (rautemusik.fm → stream37.radiohost.de, technolovers.fm,
+    # piratefm.net, …). Without this, ~30 popular stations were dropped on
+    # the first hop and never produced NowPlaying metadata. max_redirects=3
+    # caps cycles; legitimate streams resolve in 1-2 hops.
     client = httpx.AsyncClient(
         timeout=httpx.Timeout(connect=10.0, read=30.0, write=5.0, pool=5.0),
+        follow_redirects=True,
+        max_redirects=3,
     )
     ambient_client = httpx.AsyncClient(
         timeout=httpx.Timeout(connect=5.0, read=cfg.ambient_probe_timeout, write=2.0, pool=2.0),
+        follow_redirects=True,
+        max_redirects=3,
     )
 
     pool = OnDemandPool(

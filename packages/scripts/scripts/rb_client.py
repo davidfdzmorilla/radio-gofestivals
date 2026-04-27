@@ -52,6 +52,8 @@ class RadioBrowserClient:
         self._client = client or httpx.AsyncClient(
             timeout=timeout,
             headers={"User-Agent": _user_agent()},
+            follow_redirects=True,
+            max_redirects=3,
         )
 
     async def __aenter__(self) -> RadioBrowserClient:

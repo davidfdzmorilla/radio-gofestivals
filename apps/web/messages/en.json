@@ -49,5 +49,10 @@
     "home": "Home",
     "genres": "Genres",
     "language": "Language"
+  },
+  "pagination": {
+    "pageOf": "Page {current} of {total}",
+    "previous": "Previous",
+    "next": "Next"
   }
 }

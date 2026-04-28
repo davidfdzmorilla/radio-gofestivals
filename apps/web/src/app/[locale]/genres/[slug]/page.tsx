@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { getGenresTree, listStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { SidebarFilters } from '@/components/layout/SidebarFilters';
+import { PublicPagination } from '@/components/PublicPagination';
 import type { Genre } from '@/lib/types';
 
 export const revalidate = 300;
@@ -74,6 +75,7 @@ export default async function GenrePage({
   const tStation = await getTranslations('station');
   const tHome = await getTranslations('home');
   const tNav = await getTranslations('nav');
+  const tPagination = await getTranslations('pagination');
 
   const stationsPage = await listStations({
     genre: genre.slug,
@@ -85,6 +87,15 @@ export default async function GenrePage({
   });
 
   const countries = ['ES', 'FR', 'DE', 'IT', 'UK', 'US', 'NL', 'BE'];
+
+  const buildPageHref = (targetPage: number): string => {
+    const params = new URLSearchParams();
+    if (country) params.set('country', country);
+    if (curatedParam) params.set('curated', curatedParam);
+    if (targetPage > 1) params.set('page', String(targetPage));
+    const qs = params.toString();
+    return `/${locale}/genres/${slug}${qs ? `?${qs}` : ''}`;
+  };
 
   return (
     <div className="space-y-8">
@@ -130,16 +141,29 @@ export default async function GenrePage({
           current={{ country, curated: curatedParam === 'true' }}
           countries={countries}
         />
-        <StationGrid
-          stations={stationsPage.items}
-          genresBySlug={genresBySlug}
-          labels={{
-            curated: tCommon('curated'),
-            location: ({ city, country: c }) =>
-              tStation('location', { city, country: c }),
-            empty: tHome('featuredEmpty'),
-          }}
-        />
+        <div className="space-y-4">
+          <StationGrid
+            stations={stationsPage.items}
+            genresBySlug={genresBySlug}
+            labels={{
+              curated: tCommon('curated'),
+              location: ({ city, country: c }) =>
+                tStation('location', { city, country: c }),
+              empty: tHome('featuredEmpty'),
+            }}
+          />
+          <PublicPagination
+            currentPage={stationsPage.page}
+            totalPages={stationsPage.pages}
+            buildHref={buildPageHref}
+            pageLabel={tPagination('pageOf', {
+              current: stationsPage.page,
+              total: stationsPage.pages,
+            })}
+            prevLabel={tPagination('previous')}
+            nextLabel={tPagination('next')}
+          />
+        </div>
       </div>
     </div>
   );

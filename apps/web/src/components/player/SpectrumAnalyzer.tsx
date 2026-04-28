@@ -38,6 +38,7 @@ export function SpectrumAnalyzer({
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const sourceRef = useRef<MediaElementAudioSourceNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const silenceFramesRef = useRef(0);
 
@@ -66,6 +67,7 @@ export function SpectrumAnalyzer({
         ctx.resume().catch(() => {});
       }
       const source = ctx.createMediaElementSource(audioElement);
+      sourceRef.current = source;
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 64;
       analyser.smoothingTimeConstant = 0.85;
@@ -80,6 +82,36 @@ export function SpectrumAnalyzer({
       setMode('decorative');
     }
   }, [audioElement, isPlaying]);
+
+  useEffect(() => {
+    if (!audioElement) return;
+
+    const handleSrcChange = () => {
+      const src = sourceRef.current;
+      const analyser = analyserRef.current;
+      const ctx = audioContextRef.current;
+      if (!src || !analyser || !ctx) return;
+      try {
+        // createMediaElementSource can only be called once per element, so
+        // we keep the existing source and refresh the pipeline by
+        // disconnecting and reconnecting. This forces the AnalyserNode to
+        // re-read from the new audio buffer instead of stale state.
+        src.disconnect();
+        analyser.disconnect();
+        src.connect(analyser);
+        analyser.connect(ctx.destination);
+        silenceFramesRef.current = 0;
+        setMode('real');
+      } catch {
+        // ignore — keep current mode
+      }
+    };
+
+    audioElement.addEventListener('loadstart', handleSrcChange);
+    return () => {
+      audioElement.removeEventListener('loadstart', handleSrcChange);
+    };
+  }, [audioElement]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -125,6 +157,14 @@ export function SpectrumAnalyzer({
     return () => {
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (sourceRef.current) {
+        try {
+          sourceRef.current.disconnect();
+        } catch {
+          // ignore
+        }
+        sourceRef.current = null;
       }
       if (audioContextRef.current) {
         try {

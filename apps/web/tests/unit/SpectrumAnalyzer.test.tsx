@@ -64,8 +64,9 @@ describe('<SpectrumAnalyzer />', () => {
         for (let i = 0; i < arr.length; i++) arr[i] = 0;
       },
       connect: vi.fn(),
+      disconnect: vi.fn(),
     } as unknown as AnalyserNode;
-    const fakeSource = { connect: vi.fn() };
+    const fakeSource = { connect: vi.fn(), disconnect: vi.fn() };
     const fakeCtx = {
       state: 'running',
       resume: vi.fn().mockResolvedValue(undefined),
@@ -94,5 +95,67 @@ describe('<SpectrumAnalyzer />', () => {
     });
 
     expect(wrapper.dataset.mode).toBe('decorative');
+  });
+
+  it('reconnects pipeline and resets mode on audio loadstart', () => {
+    vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
+    const fakeAnalyser = {
+      fftSize: 64,
+      smoothingTimeConstant: 0.85,
+      frequencyBinCount: 32,
+      getByteFrequencyData: (arr: Uint8Array) => {
+        for (let i = 0; i < arr.length; i++) arr[i] = 0;
+      },
+      connect: vi.fn(),
+      disconnect: vi.fn(),
+    } as unknown as AnalyserNode;
+    const fakeSource = { connect: vi.fn(), disconnect: vi.fn() };
+    const fakeCtx = {
+      state: 'running',
+      resume: vi.fn().mockResolvedValue(undefined),
+      close: vi.fn().mockResolvedValue(undefined),
+      destination: {} as AudioDestinationNode,
+      createMediaElementSource: vi.fn().mockReturnValue(fakeSource),
+      createAnalyser: vi.fn().mockReturnValue(fakeAnalyser),
+    };
+    (window as unknown as { AudioContext: unknown }).AudioContext = vi
+      .fn()
+      .mockImplementation(() => fakeCtx);
+
+    const audio = document.createElement('audio');
+    const addSpy = vi.spyOn(audio, 'addEventListener');
+    render(<SpectrumAnalyzer audioElement={audio} isPlaying barCount={8} />);
+
+    const wrapper = screen.getByTestId('spectrum-analyzer');
+    expect(wrapper.dataset.mode).toBe('real');
+    expect(addSpy).toHaveBeenCalledWith('loadstart', expect.any(Function));
+
+    // Reset mocks so we can assert the reconnect path runs
+    (fakeSource.connect as ReturnType<typeof vi.fn>).mockClear();
+    (fakeSource.disconnect as ReturnType<typeof vi.fn>).mockClear();
+    (fakeAnalyser.connect as ReturnType<typeof vi.fn>).mockClear();
+    (fakeAnalyser.disconnect as ReturnType<typeof vi.fn>).mockClear();
+
+    act(() => {
+      audio.dispatchEvent(new Event('loadstart'));
+    });
+
+    expect(fakeSource.disconnect).toHaveBeenCalledTimes(1);
+    expect(fakeAnalyser.disconnect).toHaveBeenCalledTimes(1);
+    expect(fakeSource.connect).toHaveBeenCalledWith(fakeAnalyser);
+    expect(fakeAnalyser.connect).toHaveBeenCalledWith(fakeCtx.destination);
+    expect(wrapper.dataset.mode).toBe('real');
+  });
+
+  it('removes loadstart listener on unmount', () => {
+    const audio = document.createElement('audio');
+    const removeSpy = vi.spyOn(audio, 'removeEventListener');
+    const { unmount } = render(
+      <SpectrumAnalyzer audioElement={audio} isPlaying={false} barCount={4} />,
+    );
+    unmount();
+    expect(removeSpy).toHaveBeenCalledWith('loadstart', expect.any(Function));
   });
 });

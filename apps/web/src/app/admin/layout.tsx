@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   type AdminMe,
@@ -8,7 +9,18 @@ import {
   isAuthenticated,
   logout,
 } from '@/lib/admin/auth';
+import { cn } from '@/lib/utils';
 import '../globals.css';
+
+const NAV_ITEMS = [
+  { href: '/admin', label: 'Dashboard' },
+  { href: '/admin/stations', label: 'Stations' },
+];
+
+function isActive(pathname: string, href: string): boolean {
+  if (href === '/admin') return pathname === '/admin';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export default function AdminLayout({
   children,
@@ -64,10 +76,28 @@ export default function AdminLayout({
 
   return (
     <div className="bg-bg-1 text-fg-1 flex min-h-screen flex-col">
-      <header className="border-fg-3/40 bg-bg-0/95 flex items-center justify-between border-b-2 px-6 py-4 backdrop-blur">
-        <h1 className="font-display text-fg-0 text-lg font-semibold">
-          radio.gofestivals <span className="text-magenta">admin</span>
-        </h1>
+      <header className="border-fg-3/40 bg-bg-0/95 flex items-center justify-between gap-6 border-b-2 px-6 py-4 backdrop-blur">
+        <div className="flex items-center gap-6">
+          <h1 className="font-display text-fg-0 text-lg font-semibold">
+            radio.gofestivals <span className="text-magenta">admin</span>
+          </h1>
+          <nav className="flex gap-1">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'rounded-md px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest transition-colors',
+                  isActive(pathname, item.href)
+                    ? 'bg-bg-2 text-fg-0'
+                    : 'text-fg-2 hover:bg-bg-2 hover:text-fg-0',
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
         <div className="flex items-center gap-4">
           <span className="text-fg-2 font-mono text-xs uppercase tracking-widest">
             {me.name ?? me.email}

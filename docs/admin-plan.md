@@ -313,3 +313,111 @@ Total Tier 3 estimado: 5-6 horas (2-3 sesiones).
 - Decidir TTL de jobs viejos (cleanup mensual?)
 - Considerar timeout configurable por comando
 
+
+---
+
+## Tier 4 · Plan detallado · 29 abril 2026
+
+### Decisiones de scope
+
+Dashboard en página única `/admin` (reemplaza el placeholder actual).
+4 KPIs grandes arriba + grid 2x2 con 4 secciones.
+
+**Métricas elegidas** (basadas en datos disponibles):
+
+KPIs (4 cards):
+- Active stations (count status='active')
+- Curated stations (count curated=true AND status='active')
+- Broken stations (count status='broken')
+- Avg quality score (active stations)
+
+Secciones (grid 2x2):
+- Quality distribution: 4 buckets (0-29, 30-49, 50-69, 70-89, 90+) con bar chart CSS
+- Top 10 genres curated: count(DISTINCT station_id) por genre name
+- Top 10 countries: count stations active por country_code (ISO 2-letter)
+- Recent activity: últimas 20 entries de curation_log con station name + decision + timestamp
+
+### Métricas descartadas (apuntables para futuro)
+
+- Time series temporal (broken vs active por día): no hay tabla histórica
+  de health-check stats. Requiere nueva tabla.
+- Click trends UI: lunes 4 mayo será día 7 (primeros valores reales).
+  Apuntar feature separada para entonces.
+- Curated stations no-active alert (1 broken, 9 inactive curated): útil
+  pero scope creep. Añadir en sesión iterativa si se quiere.
+- Top stations by clickcount: requiere ordenar tabla, scope creep.
+- Admin jobs feed: ya está en /admin/operations, no duplicar.
+
+### Decisiones técnicas
+
+1. Layout: KPI cards arriba + grid 2-col abajo (patrón estándar admin)
+2. Refresco: snapshot al cargar + botón refresh manual (sin polling).
+   Métricas cambian cada 24h con sync nocturno, polling es overhead.
+3. Charts: CSS puro con bars proporcionales (sin Recharts ni Chart.js).
+   ~20 líneas, accesible, ligero, suficiente para bar charts simples.
+4. Endpoint único: GET /api/v1/admin/dashboard/stats devuelve TODO en
+   una respuesta (kpis + 4 sections). 1 request al cargar.
+5. Activity feed: solo curation_log (no admin_jobs, ya tiene su página).
+
+### Schema endpoint /api/v1/admin/dashboard/stats
+
+Response shape:
+{
+  "kpis": {
+    "stations_active": 1300,
+    "stations_curated": 142,
+    "stations_broken": 41,
+    "avg_quality_active": 47.8
+  },
+  "quality_distribution": [
+    {"bucket": "0-29", "count": 206},
+    {"bucket": "30-49", "count": 524},
+    {"bucket": "50-69", "count": 427},
+    {"bucket": "70-89", "count": 143},
+    {"bucket": "90+", "count": 0}
+  ],
+  "top_genres_curated": [
+    {"name": "Techno", "count": 109},
+    {"name": "House", "count": 75},
+    ...
+  ],
+  "top_countries": [
+    {"country_code": "ES", "count": 234},
+    ...
+  ],
+  "recent_activity": [
+    {
+      "id": 1,
+      "decision": "edit_metadata",
+      "station_id": "uuid...",
+      "station_name": "Radio Disco Party - Club",
+      "admin_email": "davidfdzmorilla@gmail.com",
+      "notes": "...",
+      "created_at": "2026-04-29T13:42:..."
+    },
+    ...
+  ]
+}
+
+### Roadmap
+
+Sesión 7 · Backend + Frontend (~2-2.5h):
+- Endpoint nuevo en apps/api/app/api/v1/admin/dashboard.py
+- Service en apps/api/app/services/admin/dashboard_stats.py con
+  queries SQL agregadas
+- Schemas Pydantic
+- Frontend: reemplazar /admin/page.tsx (dashboard placeholder) con
+  el dashboard real
+- Componentes: KpiCard, BarChart (CSS), ActivityFeed
+- Tests del endpoint (queries devuelven shape correcta)
+- Botón Refresh en header con icon RefreshCw
+
+Total Tier 4 estimado: 2-2.5 horas (1 sesión).
+
+### Pendientes operacionales tras Tier 4
+
+- Considerar añadir métricas de "stations recently_synced" (last_sync_at
+  vs ahora) si stations dejan de sincronizarse
+- Añadir alerta visual cuando hay curated en non-active state
+- Considerar polling cuando se vuelva relevante (futuras integraciones)
+

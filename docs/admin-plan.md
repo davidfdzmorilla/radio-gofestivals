@@ -211,3 +211,105 @@ GET    /admin/health-checks               → últimos N checks con stats
 - El comando `auto_curate` debe seguir funcionando como helper SQL para casos
   bulk (ej. promover 50 stations a curated en una iteración).
 - Mantener `curation_log` como audit canónico independiente de UI.
+
+---
+
+## Tier 3 · Plan detallado · 29 abril 2026
+
+### Decisión arquitectónica · sistema async
+
+**Elegido**: Job table en Postgres + worker en container `scripts` (opción D
+del análisis).
+
+**Alternativas descartadas**:
+- BackgroundTasks de FastAPI: rompe el patrón "container efímero", acopla
+  comandos largos al API container
+- ARQ con worker dedicado: production-grade pero overkill para uso real
+  (1-2 ops/mes)
+- subprocess + docker socket desde API: riesgo de seguridad inaceptable
+
+**Por qué la opción elegida**:
+- Coherente con el patrón existente (crons del host ejecutan
+  docker compose run --rm scripts CMD)
+- Cero infraestructura nueva (reusa container scripts)
+- Auditable vía SELECT * FROM admin_jobs en Postgres
+- Latencia ~1 min aceptable para uso esporádico
+
+### Schema · admin_jobs
+
+CREATE TABLE admin_jobs (
+  id BIGSERIAL PRIMARY KEY,
+  command TEXT NOT NULL,
+  params_json JSONB,
+  status TEXT NOT NULL,
+  result_json JSONB,
+  stderr_tail TEXT,
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ,
+  admin_id UUID REFERENCES admins(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+Status enum: pending | running | success | failed | timeout
+
+Worker pickea con FOR UPDATE SKIP LOCKED (configuración: 1 job a la vez
+globalmente, no concurrencia paralela).
+
+### Comandos expuestos (6)
+
+Todos los comandos safe del CLI Typer existente:
+
+- Run sync               -> rb_sync run                  (defaults)
+- Run health-check       -> rb_sync health-check         (defaults)
+- Auto-curate            -> rb_sync auto-curate-top      (params)
+- Recompute quality      -> compute-quality-scores       (defaults)
+- Snapshot clickcounts   -> snapshot-clickcounts         (defaults)
+- Recompute click trends -> compute-click-trends         (defaults)
+
+Stream operations (promote primary, bulk inactive) se posponen a
+Sesión 6.3 (paradigma distinto: PATCH endpoints simples, no CLI exec).
+
+### Decisiones UX
+
+1. Params: defaults para 5 comandos (1 click), modal con form solo
+   para auto-curate (min_quality, limit, country, dry_run)
+2. Concurrencia: 1 job a la vez globalmente (FOR UPDATE SKIP LOCKED)
+3. Output captura: result_json (event final estructurado) +
+   stderr_tail (50 líneas si error)
+4. Worker: cron del host cada minuto (* * * * *)
+5. Polling frontend: 5s mientras job en estado running
+
+### Roadmap
+
+Sesión 6.1 · Backend + Worker (~2-3h):
+- Migración alembic: tabla admin_jobs
+- Schemas Pydantic
+- Repo admin_jobs (insert, list, get_by_id, claim_next, complete)
+- Endpoint POST /admin/operations/run (encola)
+- Endpoint GET /admin/operations/jobs (paginado, filtros)
+- Endpoint GET /admin/operations/jobs/{id} (detalle)
+- Comando CLI nuevo: run-pending-admin-jobs (en packages/scripts)
+- Tests de integración
+- Cron line en crontab.example (operador instala manual)
+
+Sesión 6.2 · Frontend (~2-3h):
+- Página /admin/operations
+- 6 botones (5 directos + 1 con modal de params)
+- Tabla de jobs históricos con paginación
+- Detalle de job (modal o página) con result_json + stderr_tail
+- Polling automático mientras hay job running
+- Nav actualizado con "Operations"
+
+Sesión 6.3 · Stream operations (futuro, separada):
+- PATCH /admin/streams/{id}/promote-primary
+- Bulk endpoints (mark inactive, etc)
+- UI en /admin/stations/[id] (detail) con acciones por stream
+
+Total Tier 3 estimado: 5-6 horas (2-3 sesiones).
+
+### Pendientes operacionales tras Tier 3
+
+- Documentar en CLAUDE.md el patrón admin_jobs para próximos agentes
+- Decidir TTL de jobs viejos (cleanup mensual?)
+- Considerar timeout configurable por comando
+

@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/stations', label: 'Stations' },
   { href: '/admin/genres', label: 'Genres' },
+  { href: '/admin/operations', label: 'Operations' },
 ];
 
 function isActive(pathname: string, href: string): boolean {

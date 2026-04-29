@@ -15,6 +15,7 @@ import '../globals.css';
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard' },
   { href: '/admin/stations', label: 'Stations' },
+  { href: '/admin/genres', label: 'Genres' },
 ];
 
 function isActive(pathname: string, href: string): boolean {

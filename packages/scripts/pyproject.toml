@@ -35,6 +35,7 @@ migrate-streams = "scripts.migrate_streams:app"
 snapshot-clickcounts = "scripts.snapshot_clickcounts:app"
 compute-click-trends = "scripts.compute_click_trends:app"
 cleanup-clickcount-history = "scripts.cleanup_clickcount_history:app"
+run-pending-admin-jobs = "scripts.run_pending_admin_jobs:app"
 
 [tool.uv]
 package = true

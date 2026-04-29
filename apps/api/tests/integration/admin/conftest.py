@@ -16,7 +16,11 @@ if TYPE_CHECKING:
 
 @pytest_asyncio.fixture(autouse=True)
 async def _reset_admin_tables(db_session: AsyncSession) -> AsyncIterator[None]:
-    await db_session.execute(text("TRUNCATE curation_log, admins RESTART IDENTITY CASCADE"))
+    await db_session.execute(
+        text(
+            "TRUNCATE admin_jobs, curation_log, admins RESTART IDENTITY CASCADE",
+        ),
+    )
     await db_session.commit()
     yield
 

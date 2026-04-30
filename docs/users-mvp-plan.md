@@ -138,8 +138,8 @@ Flow 6 · Delete account:
 
 Antes de programar:
 1. Crear cuenta en https://resend.com (gratis)
-2. Verificar dominio gofestivals.eu (3 DNS records: SPF, DKIM, DMARC)
-3. Email "from": noreply@gofestivals.eu
+2. Verificar dominio davidfdzmorilla.dev (3 DNS records SPF + DKIM + DMARC)
+3. Email "from": noreply@davidfdzmorilla.dev
 4. API key en .env.production: RESEND_API_KEY=re_xxxxxxxxxxxx
 
 Free tier: 3000 emails/mes + 100/día

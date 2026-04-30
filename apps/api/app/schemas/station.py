@@ -36,8 +36,12 @@ class StationSummary(BaseModel):
     city: str | None
     curated: bool
     quality_score: int
+    votes_local: int = 0
     genres: list[str] = Field(default_factory=list)
     primary_stream: StationStreamRef | None = None
+    # Populated only when the request carries a valid user JWT.
+    is_favorite: bool | None = None
+    user_voted: bool | None = None
 
 
 class StationDetail(BaseModel):
@@ -51,9 +55,12 @@ class StationDetail(BaseModel):
     curated: bool
     quality_score: int
     status: str
+    votes_local: int = 0
     genres: list[StationGenreRef] = Field(default_factory=list)
     streams: list[StationStreamRef] = Field(default_factory=list)
     now_playing: list[NowPlayingEntry] = Field(default_factory=list)
+    is_favorite: bool | None = None
+    user_voted: bool | None = None
 
 
 class StationsPage(BaseModel):

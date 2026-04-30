@@ -5,6 +5,12 @@ from app.models.genre import Genre
 from app.models.station import NowPlaying, Station, StationGenre
 from app.models.station_clickcount_history import StationClickcountHistory
 from app.models.station_stream import StationStream
+from app.models.user import (
+    PasswordResetToken,
+    User,
+    UserFavorite,
+    UserVote,
+)
 
 __all__ = [
     "Admin",
@@ -13,8 +19,12 @@ __all__ = [
     "CurationLog",
     "Genre",
     "NowPlaying",
+    "PasswordResetToken",
     "Station",
     "StationClickcountHistory",
     "StationGenre",
     "StationStream",
+    "User",
+    "UserFavorite",
+    "UserVote",
 ]

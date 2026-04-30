@@ -54,8 +54,9 @@ async def _reset_state(db_session: AsyncSession) -> AsyncIterator[None]:
 
     await db_session.execute(
         text(
-            "TRUNCATE curation_log, now_playing, station_genres, stations, admins "
-            "RESTART IDENTITY CASCADE",
+            "TRUNCATE password_reset_tokens, user_votes, user_favorites, "
+            "users, curation_log, now_playing, station_genres, stations, "
+            "admins RESTART IDENTITY CASCADE",
         ),
     )
     await db_session.execute(

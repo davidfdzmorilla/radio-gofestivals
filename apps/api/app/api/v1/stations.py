@@ -5,7 +5,12 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 
-from app.api.deps import RedisDep, SessionDep, SettingsDep
+from app.api.deps import (
+    OptionalUserDep,
+    RedisDep,
+    SessionDep,
+    SettingsDep,
+)
 from app.core.logging import get_logger
 from app.schemas.station import NearbyStation, StationDetail, StationsPage
 from app.services import stations as stations_service
@@ -21,6 +26,7 @@ STREAM_RATE_WINDOW = 60
 @router.get("", response_model=StationsPage)
 async def list_stations(
     session: SessionDep,
+    user: OptionalUserDep,
     genre: Annotated[str | None, Query()] = None,
     country: Annotated[str | None, Query(min_length=2, max_length=2)] = None,
     curated: Annotated[bool | None, Query()] = None,
@@ -36,6 +42,7 @@ async def list_stations(
         q=q,
         page=page,
         size=size,
+        user_id=user.id if user else None,
     )
 
 
@@ -57,9 +64,14 @@ async def station_detail(
     session: SessionDep,
     redis: RedisDep,
     settings: SettingsDep,
+    user: OptionalUserDep,
 ) -> StationDetail:
     detail = await stations_service.get_station_detail(
-        session, redis, slug, ttl=settings.redis_cache_ttl,
+        session,
+        redis,
+        slug,
+        ttl=settings.redis_cache_ttl,
+        user_id=user.id if user else None,
     )
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="station_not_found")

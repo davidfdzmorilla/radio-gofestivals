@@ -60,9 +60,56 @@ def decode_access_token(token: str, settings: Settings) -> dict[str, Any]:
             token,
             settings.jwt_secret.get_secret_value(),
             algorithms=[settings.jwt_algorithm],
+            options={"verify_aud": False},
         )
     except jwt.ExpiredSignatureError as exc:
         msg = "token_expired"
+        raise TokenError(msg) from exc
+    except jwt.InvalidTokenError as exc:
+        msg = "invalid_token"
+        raise TokenError(msg) from exc
+
+
+# 30 days for end-user accounts (admin uses 24h via jwt_expire_minutes).
+USER_TOKEN_TTL_DAYS = 30
+
+
+def issue_user_token(
+    user_id: uuid.UUID,
+    email: str,
+    settings: Settings,
+) -> tuple[str, datetime]:
+    """Mint a 30d JWT for an end user. Audience='user' separates them from
+    admin tokens (which carry no audience claim — verified via DB lookup).
+    """
+    expire = datetime.now(tz=UTC) + timedelta(days=USER_TOKEN_TTL_DAYS)
+    payload: dict[str, Any] = {
+        "sub": str(user_id),
+        "email": email,
+        "aud": "user",
+        "exp": int(expire.timestamp()),
+    }
+    token = jwt.encode(
+        payload,
+        settings.jwt_secret.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+    return token, expire
+
+
+def decode_user_token(token: str, settings: Settings) -> dict[str, Any]:
+    try:
+        return jwt.decode(
+            token,
+            settings.jwt_secret.get_secret_value(),
+            algorithms=[settings.jwt_algorithm],
+            audience="user",
+        )
+    except jwt.ExpiredSignatureError as exc:
+        msg = "token_expired"
+        raise TokenError(msg) from exc
+    except jwt.InvalidAudienceError as exc:
+        msg = "wrong_audience"
         raise TokenError(msg) from exc
     except jwt.InvalidTokenError as exc:
         msg = "invalid_token"

@@ -76,6 +76,9 @@ class Station(Base):
     last_sync_at: Mapped[datetime | None] = mapped_column(nullable=True)
     clickcount: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     votes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # Local "like" count, driven by user_votes (separate from `votes` which
+    # mirrors the Radio-Browser remote count via rb_sync).
+    votes_local: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_changeuuid: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True,
     )

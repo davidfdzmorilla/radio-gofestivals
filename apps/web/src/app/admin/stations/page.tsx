@@ -10,6 +10,8 @@ import {
   listStations,
   updateStation,
 } from '@/lib/admin/stations';
+import { BulkActionBar } from '@/components/admin/BulkActionBar';
+import { BulkInactiveModal } from '@/components/admin/BulkInactiveModal';
 import { CuratedToggle } from '@/components/admin/CuratedToggle';
 import { Pagination } from '@/components/admin/Pagination';
 import { StatusBadge } from '@/components/admin/StatusBadge';
@@ -48,6 +50,11 @@ function StationsListInner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState(search);
+  const [selected, setSelected] = useState<
+    Map<string, { id: string; name: string }>
+  >(new Map());
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkResultMsg, setBulkResultMsg] = useState<string | null>(null);
 
   const updateUrl = useCallback(
     (updates: Record<string, string | number | null>) => {
@@ -76,11 +83,28 @@ function StationsListInner() {
     return () => clearTimeout(timer);
   }, [searchInput, search, updateUrl]);
 
+  const fetchList = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await listStations({
+        status,
+        curated,
+        search: search || undefined,
+        page,
+        size,
+      });
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'unknown_error');
+    } finally {
+      setLoading(false);
+    }
+  }, [status, curated, search, page, size]);
+
   // Fetch on filter change
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
     listStations({
       status,
       curated,
@@ -99,10 +123,50 @@ function StationsListInner() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    setLoading(true);
+    setError(null);
     return () => {
       cancelled = true;
     };
   }, [status, curated, search, page, size]);
+
+  function toggleRow(item: StationListItem) {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      if (next.has(item.id)) next.delete(item.id);
+      else next.set(item.id, { id: item.id, name: item.name });
+      return next;
+    });
+  }
+
+  function toggleAllVisible() {
+    if (!data) return;
+    setSelected((prev) => {
+      const visible = data.items;
+      const allSelected = visible.every((it) => prev.has(it.id));
+      const next = new Map(prev);
+      if (allSelected) {
+        for (const it of visible) next.delete(it.id);
+      } else {
+        for (const it of visible) next.set(it.id, { id: it.id, name: it.name });
+      }
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelected(new Map());
+  }
+
+  async function handleBulkCompleted(affected: number, skipped: number) {
+    setShowBulkModal(false);
+    clearSelection();
+    setBulkResultMsg(
+      `Bulk inactive: ${affected} actualizadas, ${skipped} ya estaban inactive.`,
+    );
+    setTimeout(() => setBulkResultMsg(null), 5000);
+    await fetchList();
+  }
 
   async function toggleCurated(station: StationListItem) {
     const newValue = !station.curated;
@@ -136,6 +200,11 @@ function StationsListInner() {
     }
   }
 
+  const allVisibleSelected =
+    data !== null
+    && data.items.length > 0
+    && data.items.every((it) => selected.has(it.id));
+
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between gap-4">
@@ -146,6 +215,15 @@ function StationsListInner() {
           </p>
         ) : null}
       </div>
+
+      {bulkResultMsg ? (
+        <div
+          role="status"
+          className="bg-cyan-soft text-cyan rounded-md px-3 py-2 text-sm"
+        >
+          {bulkResultMsg}
+        </div>
+      ) : null}
 
       <div className="border-fg-3/40 bg-bg-2/40 flex flex-wrap items-center gap-3 rounded-lg border p-4">
         <input
@@ -196,6 +274,15 @@ function StationsListInner() {
           <table className="w-full text-sm">
             <thead className="bg-bg-3/50 text-fg-2 sticky top-0 font-mono text-[10px] uppercase tracking-widest">
               <tr>
+                <th className="px-3 py-2 text-center">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleAllVisible}
+                    aria-label="Select all visible stations"
+                    className="accent-magenta h-4 w-4"
+                  />
+                </th>
                 <th className="px-3 py-2 text-left">Name</th>
                 <th className="px-3 py-2 text-left">Slug</th>
                 <th className="px-3 py-2 text-left">Status</th>
@@ -210,7 +297,7 @@ function StationsListInner() {
             <tbody>
               {error ? (
                 <tr>
-                  <td colSpan={9} className="text-warm py-8 text-center text-sm">
+                  <td colSpan={10} className="text-warm py-8 text-center text-sm">
                     Error: {error}
                   </td>
                 </tr>
@@ -218,7 +305,7 @@ function StationsListInner() {
               {loading && !data ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="text-fg-2 py-8 text-center text-sm"
                   >
                     <Loader2 className="mx-auto animate-spin" size={20} />
@@ -228,7 +315,7 @@ function StationsListInner() {
               {data && data.items.length === 0 && !loading ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="text-fg-2 py-8 text-center text-sm"
                   >
                     No stations match the filters.
@@ -241,8 +328,18 @@ function StationsListInner() {
                   className={cn(
                     'border-fg-3/30 hover:bg-bg-3/40 border-t transition-colors',
                     loading && 'opacity-60',
+                    selected.has(station.id) && 'bg-magenta-soft/30',
                   )}
                 >
+                  <td className="px-3 py-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(station.id)}
+                      onChange={() => toggleRow(station)}
+                      aria-label={`Select ${station.name}`}
+                      className="accent-magenta h-4 w-4"
+                    />
+                  </td>
                   <td className="text-fg-0 px-3 py-2 font-medium">
                     {station.name}
                   </td>
@@ -296,6 +393,24 @@ function StationsListInner() {
           page={data.page}
           pages={data.pages}
           onChange={(p) => updateUrl({ page: p })}
+        />
+      ) : null}
+
+      {selected.size > 0 ? (
+        <BulkActionBar
+          count={selected.size}
+          actionLabel="Mark as inactive"
+          onAction={() => setShowBulkModal(true)}
+          onCancel={clearSelection}
+        />
+      ) : null}
+
+      {showBulkModal ? (
+        <BulkInactiveModal
+          selectedIds={Array.from(selected.keys())}
+          selectedNames={Array.from(selected.values()).map((v) => v.name)}
+          onClose={() => setShowBulkModal(false)}
+          onCompleted={handleBulkCompleted}
         />
       ) : null}
     </div>

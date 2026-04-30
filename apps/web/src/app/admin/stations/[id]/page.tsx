@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   useParams,
@@ -12,6 +12,7 @@ import {
   type StationDetail,
   getStationDetail,
 } from '@/lib/admin/stations';
+import { PromotePrimaryButton } from '@/components/admin/PromotePrimaryButton';
 import { StatusBadge } from '@/components/admin/StatusBadge';
 import { cn } from '@/lib/utils';
 
@@ -39,6 +40,17 @@ function StationDetailInner() {
   const [station, setStation] = useState<StationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    if (!stationId) return;
+    try {
+      const data = await getStationDetail(stationId);
+      setStation(data);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'unknown_error');
+    }
+  }, [stationId]);
 
   useEffect(() => {
     if (!stationId) return;
@@ -200,6 +212,7 @@ function StationDetailInner() {
                   <th className="py-2 text-center">Primary</th>
                   <th className="py-2 text-left">Status</th>
                   <th className="py-2 text-right">Failed</th>
+                  <th className="py-2 text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -228,6 +241,18 @@ function StationDetailInner() {
                     </td>
                     <td className="text-fg-2 py-1.5 text-right font-mono">
                       {s.failed_checks}
+                    </td>
+                    <td className="py-1.5 text-right">
+                      {s.is_primary ? (
+                        <span className="text-fg-3 font-mono text-[10px] uppercase tracking-widest">
+                          —
+                        </span>
+                      ) : (
+                        <PromotePrimaryButton
+                          streamId={s.id}
+                          onPromoted={refresh}
+                        />
+                      )}
                     </td>
                   </tr>
                 ))}

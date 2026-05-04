@@ -5,6 +5,8 @@ import { Link } from '@/i18n/navigation';
 import { getStation } from '@/lib/api';
 import { StationPlayerControls } from '@/components/stations/StationPlayerControls';
 import { NowPlaying } from '@/components/player/NowPlaying';
+import { HeartButton } from '@/components/auth/HeartButton';
+import { LikeButton } from '@/components/auth/LikeButton';
 import { Badge } from '@/components/ui/badge';
 import { initials } from '@/lib/utils';
 
@@ -53,7 +55,10 @@ export default async function StationPage({
     city: station.city,
     curated: station.curated,
     quality_score: station.quality_score,
+    votes_local: station.votes_local ?? 0,
     genres: station.genres.map((g) => g.slug),
+    is_favorite: station.is_favorite ?? null,
+    user_voted: station.user_voted ?? null,
   };
 
   return (
@@ -105,11 +110,22 @@ export default async function StationPage({
               )}
             </p>
           )}
-          <div className="pt-2">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <StationPlayerControls
               baseSummary={baseSummary}
               streams={station.streams}
               color={primaryColor}
+            />
+            <LikeButton
+              stationId={station.id}
+              initialUserVoted={station.user_voted ?? null}
+              initialVotesLocal={station.votes_local ?? 0}
+              size="md"
+            />
+            <HeartButton
+              stationId={station.id}
+              initialIsFavorite={station.is_favorite ?? null}
+              size="md"
             />
           </div>
         </div>

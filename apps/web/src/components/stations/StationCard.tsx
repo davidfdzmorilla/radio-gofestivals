@@ -1,5 +1,7 @@
 import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
+import { HeartButton } from '@/components/auth/HeartButton';
+import { LikeButton } from '@/components/auth/LikeButton';
 import { cn, initials } from '@/lib/utils';
 import type { StationSummary, Genre } from '@/lib/types';
 import { PlayButton } from './PlayButton';
@@ -30,7 +32,7 @@ export function StationCard({ station, genresBySlug, index = 0, labels }: Props)
   return (
     <div
       className={cn(
-        'group relative flex items-center gap-4 rounded-xl border border-fg-3/50 bg-bg-2 p-4 transition-all duration-200',
+        'group relative flex items-center gap-3 rounded-xl border border-fg-3/50 bg-bg-2 p-4 transition-all duration-200',
         'hover:-translate-y-0.5 hover:border-fg-3 hover:bg-bg-3 hover:shadow-sticker-lg',
         rotationHover,
         'animate-card',
@@ -39,7 +41,7 @@ export function StationCard({ station, genresBySlug, index = 0, labels }: Props)
     >
       <Link
         href={`/stations/${station.slug}`}
-        className="flex min-w-0 flex-1 items-center gap-4 outline-none"
+        className="flex min-w-0 flex-1 items-center gap-3 outline-none"
       >
         <div
           className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg font-display text-xl font-bold text-bg-0 shadow-sticker-sm"
@@ -76,7 +78,20 @@ export function StationCard({ station, genresBySlug, index = 0, labels }: Props)
           </div>
         </div>
       </Link>
-      <PlayButton station={station} color={color} size="sm" />
+      <div className="flex shrink-0 items-center gap-1">
+        <LikeButton
+          stationId={station.id}
+          initialUserVoted={station.user_voted ?? null}
+          initialVotesLocal={station.votes_local ?? 0}
+          size="sm"
+        />
+        <HeartButton
+          stationId={station.id}
+          initialIsFavorite={station.is_favorite ?? null}
+          size="sm"
+        />
+        <PlayButton station={station} color={color} size="sm" />
+      </div>
     </div>
   );
 }

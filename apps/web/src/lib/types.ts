@@ -53,8 +53,11 @@ export const StationSummarySchema = z.object({
   city: z.string().nullable(),
   curated: z.boolean(),
   quality_score: z.number(),
+  votes_local: z.number().default(0),
   genres: z.array(z.string()),
   primary_stream: StationStreamRefSchema.nullable().optional(),
+  is_favorite: z.boolean().nullable().optional(),
+  user_voted: z.boolean().nullable().optional(),
 });
 export type StationSummary = z.infer<typeof StationSummarySchema>;
 
@@ -91,9 +94,12 @@ export const StationDetailSchema = z.object({
   curated: z.boolean(),
   quality_score: z.number(),
   status: z.string(),
+  votes_local: z.number().default(0),
   genres: z.array(StationGenreRefSchema),
   streams: z.array(StationStreamRefSchema).default([]),
   now_playing: z.array(NowPlayingEntrySchema),
+  is_favorite: z.boolean().nullable().optional(),
+  user_voted: z.boolean().nullable().optional(),
 });
 export type StationDetail = z.infer<typeof StationDetailSchema>;
 

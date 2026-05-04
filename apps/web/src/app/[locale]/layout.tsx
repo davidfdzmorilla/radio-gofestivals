@@ -7,6 +7,8 @@ import { routing } from '@/i18n/routing';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { GlobalPlayer } from '@/components/player/GlobalPlayer';
+import { ToastProvider } from '@/components/auth/ToastContext';
+import { AuthProvider } from '@/lib/users/AuthContext';
 import '../globals.css';
 
 const mono = JetBrains_Mono({
@@ -81,10 +83,16 @@ export default async function LocaleLayout({
       </head>
       <body className="min-h-screen bg-bg-1 text-fg-1 font-body antialiased">
         <NextIntlClientProvider messages={messages}>
-          <Header />
-          <main className="mx-auto max-w-6xl px-4 py-10 pb-32">{children}</main>
-          <Footer />
-          <GlobalPlayer />
+          <AuthProvider>
+            <ToastProvider>
+              <Header />
+              <main className="mx-auto max-w-6xl px-4 py-10 pb-32">
+                {children}
+              </main>
+              <Footer />
+              <GlobalPlayer />
+            </ToastProvider>
+          </AuthProvider>
         </NextIntlClientProvider>
       </body>
     </html>

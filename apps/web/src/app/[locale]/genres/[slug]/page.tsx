@@ -145,6 +145,7 @@ export default async function GenrePage({
           <StationGrid
             stations={stationsPage.items}
             genresBySlug={genresBySlug}
+            maxCols={2}
             labels={{
               curated: tCommon('curated'),
               location: ({ city, country: c }) =>

@@ -48,11 +48,57 @@
   "nav": {
     "home": "Inicio",
     "genres": "Géneros",
-    "language": "Idioma"
+    "language": "Idioma",
+    "signin": "Entrar",
+    "profile": "Perfil",
+    "favorites": "Favoritas",
+    "logout": "Salir",
+    "support": "Soporte"
   },
   "pagination": {
     "pageOf": "Página {current} de {total}",
     "previous": "Anterior",
     "next": "Siguiente"
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "signUp": "Crear cuenta",
+    "signOut": "Cerrar sesión",
+    "email": "Email",
+    "password": "Contraseña",
+    "newPassword": "Nueva contraseña",
+    "confirmPassword": "Confirma la contraseña",
+    "passwordsDoNotMatch": "Las contraseñas no coinciden",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "resetPassword": "Restablecer contraseña",
+    "needAccount": "¿No tienes cuenta? Crea una",
+    "haveAccount": "¿Ya tienes cuenta? Inicia sesión",
+    "invalidCredentials": "Email o contraseña incorrectos",
+    "emailExists": "Ese email ya está en uso",
+    "rateLimited": "Demasiados intentos, espera un momento",
+    "passwordTooShort": "La contraseña debe tener al menos 8 caracteres",
+    "sendResetLink": "Enviar enlace",
+    "resetEmailSent": "Si el email existe, recibirás un enlace para restablecer la contraseña en breve.",
+    "passwordUpdated": "Contraseña actualizada. Te llevamos al login…",
+    "tokenInvalid": "El enlace ha caducado o ya se ha usado",
+    "tokenMissing": "Falta el token de reset en la URL",
+    "deleteAccount": "Borrar cuenta",
+    "deleteConfirm": "Esta acción es definitiva. Confirma con tu contraseña.",
+    "deleted": "Cuenta eliminada",
+    "support": "Soporte"
+  },
+  "favorites": {
+    "title": "Favoritas",
+    "empty": "Aún no has guardado ninguna estación.",
+    "add": "Añadir a favoritas",
+    "remove": "Quitar de favoritas",
+    "saveFailed": "No se pudo guardar, inténtalo de nuevo",
+    "signUpToSync": "Crea una cuenta para sincronizar entre dispositivos",
+    "syncedToast": "{count, plural, =1 {Sincronizada 1 favorita} other {Sincronizadas # favoritas}}"
+  },
+  "vote": {
+    "vote": "Me gusta",
+    "voted": "Te gusta",
+    "signInToVote": "Inicia sesión para votar"
   }
 }

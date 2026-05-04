@@ -1,5 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
+import { HeaderAuth } from '@/components/auth/HeaderAuth';
+import { MobileMenu } from '@/components/auth/MobileMenu';
 import { LocaleSwitcher } from './LocaleSwitcher';
 
 export async function Header() {
@@ -18,15 +20,29 @@ export async function Header() {
           />
           {tHome('title')}
         </Link>
-        <nav className="flex items-center gap-5 text-sm">
+        <nav className="hidden items-center gap-5 text-sm md:flex">
           <Link
             href="/"
             className="font-medium text-fg-1 underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:text-fg-0 hover:decoration-magenta"
           >
             {t('home')}
           </Link>
+          <Link
+            href="/genres"
+            className="font-medium text-fg-1 underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:text-fg-0 hover:decoration-magenta"
+          >
+            {t('genres')}
+          </Link>
+          <Link
+            href="/favorites"
+            className="font-medium text-fg-1 underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:text-fg-0 hover:decoration-magenta"
+          >
+            {t('favorites')}
+          </Link>
           <LocaleSwitcher />
+          <HeaderAuth />
         </nav>
+        <MobileMenu />
       </div>
     </header>
   );

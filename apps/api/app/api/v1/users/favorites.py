@@ -57,6 +57,42 @@ async def list_favorites(
     return FavoritesListResponse(items=items, total=len(items))
 
 
+# NOTE: /migrate must be declared BEFORE the /{station_id} routes —
+# FastAPI evaluates routes in order, and a literal segment must win
+# over a UUID path parameter ("migrate" would otherwise be parsed as
+# station_id and fail Pydantic UUID validation with 422).
+@router.post("/migrate", response_model=MigrateFavoritesResponse)
+async def migrate_favorites(
+    body: MigrateFavoritesRequest,
+    user: UserDep,
+    session: SessionDep,
+    redis: RedisDep,
+) -> MigrateFavoritesResponse:
+    allowed, _ = await check_rate_limit(
+        redis,
+        f"user_migrate_fav:{user.id}",
+        limit=MIGRATE_LIMIT,
+        window_seconds=MIGRATE_WINDOW,
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="rate_limit_exceeded",
+        )
+    counts = await fav_repo.bulk_add_favorites(
+        session, user.id, body.station_ids,
+    )
+    await session.commit()
+    log.info(
+        "user_favorites_migrated",
+        user_id=str(user.id),
+        added=counts["added"],
+        already_existed=counts["already_existed"],
+        invalid=counts["invalid"],
+    )
+    return MigrateFavoritesResponse(**counts)
+
+
 @router.post("/{station_id}", status_code=status.HTTP_201_CREATED)
 async def add_favorite(
     station_id: uuid.UUID,
@@ -89,35 +125,3 @@ async def remove_favorite(
 ) -> None:
     await fav_repo.remove_favorite(session, user.id, station_id)
     await session.commit()
-
-
-@router.post("/migrate", response_model=MigrateFavoritesResponse)
-async def migrate_favorites(
-    body: MigrateFavoritesRequest,
-    user: UserDep,
-    session: SessionDep,
-    redis: RedisDep,
-) -> MigrateFavoritesResponse:
-    allowed, _ = await check_rate_limit(
-        redis,
-        f"user_migrate_fav:{user.id}",
-        limit=MIGRATE_LIMIT,
-        window_seconds=MIGRATE_WINDOW,
-    )
-    if not allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="rate_limit_exceeded",
-        )
-    counts = await fav_repo.bulk_add_favorites(
-        session, user.id, body.station_ids,
-    )
-    await session.commit()
-    log.info(
-        "user_favorites_migrated",
-        user_id=str(user.id),
-        added=counts["added"],
-        already_existed=counts["already_existed"],
-        invalid=counts["invalid"],
-    )
-    return MigrateFavoritesResponse(**counts)

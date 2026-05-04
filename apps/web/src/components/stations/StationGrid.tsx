@@ -9,9 +9,20 @@ interface Props {
     location: (values: { city: string; country: string }) => string;
     empty: string;
   };
+  /**
+   * Max number of columns at lg+. Defaults to 3 (no-sidebar pages).
+   * Genre listing pages render with a 240px sidebar that crushes the
+   * 3-col layout below the comfort zone — pass 2 there.
+   */
+  maxCols?: 2 | 3;
 }
 
-export function StationGrid({ stations, genresBySlug, labels }: Props) {
+export function StationGrid({
+  stations,
+  genresBySlug,
+  labels,
+  maxCols = 3,
+}: Props) {
   if (stations.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-fg-3 bg-bg-2 p-10 text-center">
@@ -26,8 +37,13 @@ export function StationGrid({ stations, genresBySlug, labels }: Props) {
     );
   }
 
+  const gridCols =
+    maxCols === 2
+      ? 'grid grid-cols-1 gap-4 sm:grid-cols-2'
+      : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3';
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className={gridCols}>
       {stations.map((s, i) => (
         <StationCard
           key={s.id}

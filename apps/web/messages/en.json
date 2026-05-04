@@ -48,11 +48,57 @@
   "nav": {
     "home": "Home",
     "genres": "Genres",
-    "language": "Language"
+    "language": "Language",
+    "signin": "Sign in",
+    "profile": "Profile",
+    "favorites": "Favorites",
+    "logout": "Log out",
+    "support": "Support"
   },
   "pagination": {
     "pageOf": "Page {current} of {total}",
     "previous": "Previous",
     "next": "Next"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "forgotPassword": "Forgot your password?",
+    "resetPassword": "Reset password",
+    "needAccount": "Need an account? Sign up",
+    "haveAccount": "Have an account? Sign in",
+    "invalidCredentials": "Wrong email or password",
+    "emailExists": "That email is already in use",
+    "rateLimited": "Too many attempts, please wait a moment",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "sendResetLink": "Send reset link",
+    "resetEmailSent": "If that email is registered, a reset link is on its way.",
+    "passwordUpdated": "Password updated. Taking you to sign in…",
+    "tokenInvalid": "This link has expired or has already been used",
+    "tokenMissing": "Reset token is missing from the URL",
+    "deleteAccount": "Delete account",
+    "deleteConfirm": "This is permanent. Confirm with your password.",
+    "deleted": "Account deleted",
+    "support": "Support"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "empty": "No saved stations yet.",
+    "add": "Add to favorites",
+    "remove": "Remove from favorites",
+    "saveFailed": "Couldn't save, please try again",
+    "signUpToSync": "Sign up to sync across devices",
+    "syncedToast": "{count, plural, =1 {1 favorite synced} other {# favorites synced}}"
+  },
+  "vote": {
+    "vote": "Like",
+    "voted": "Liked",
+    "signInToVote": "Sign in to vote"
   }
 }

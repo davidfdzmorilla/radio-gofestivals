@@ -40,6 +40,8 @@
 ---
 
 ## Architecture
+
+```
 ┌─ apps/web (Next.js 14, App Router)
 │  ├─ Server Components (SSR) for public pages
 │  ├─ Client Components for auth, favorites, player
@@ -57,6 +59,7 @@
 ├─ Postgres 16 + PostGIS (Docker)
 ├─ Redis 7 (cache + rate limit)
 └─ Traefik (reverse proxy + TLS via Let's Encrypt)
+```
 
 ---
 
@@ -77,6 +80,8 @@ Hetzner VPS, Postgres 16 (postgis/postgis:16-3.4), Redis 7-alpine
 ---
 
 ## Repository structure
+
+```
 .
 ├── apps/
 │   ├── api/                    # FastAPI backend
@@ -101,6 +106,7 @@ Hetzner VPS, Postgres 16 (postgis/postgis:16-3.4), Redis 7-alpine
 ├── docs/                       # Architecture docs and roadmap
 ├── infra/                      # Docker, deploy scripts
 └── docker-compose.prod.yml     # Production stack
+```
 
 ---
 

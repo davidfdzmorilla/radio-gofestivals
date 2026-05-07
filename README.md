@@ -4,7 +4,7 @@
 > emisoras, sistema híbrido de cuentas de usuario y panel de administración.
 
 🌐 **En producción**: https://radio.gofestivals.eu  
-🇬🇧 **English**: [README.md](./README.md)
+🇬🇧 **English**: [README.en.md](./README.en.md)
 
 ---
 
@@ -41,6 +41,8 @@
 ---
 
 ## Arquitectura
+
+```
 ┌─ apps/web (Next.js 14, App Router)
 │  ├─ Server Components (SSR) para páginas públicas
 │  ├─ Client Components para auth, favoritos, player
@@ -58,6 +60,7 @@
 ├─ Postgres 16 + PostGIS (Docker)
 ├─ Redis 7 (cache + rate limit)
 └─ Traefik (reverse proxy + TLS vía Let's Encrypt)
+```
 
 ---
 
@@ -78,6 +81,8 @@ VPS Hetzner, Postgres 16 (postgis/postgis:16-3.4), Redis 7-alpine
 ---
 
 ## Estructura del repositorio
+
+```
 .
 ├── apps/
 │   ├── api/                    # Backend FastAPI
@@ -102,6 +107,7 @@ VPS Hetzner, Postgres 16 (postgis/postgis:16-3.4), Redis 7-alpine
 ├── docs/                       # Documentación de arquitectura y roadmap
 ├── infra/                      # Docker, scripts de deploy
 └── docker-compose.prod.yml     # Stack de producción
+```
 
 ---
 

@@ -7,7 +7,8 @@ const DEFAULT_LOCALE: (typeof LOCALES)[number] = 'es';
 const PAGE_SIZE = 50;
 const REVALIDATE_SECONDS = 86_400;
 
-export const revalidate = REVALIDATE_SECONDS;
+// Next.js statically analyses this export and requires a literal number.
+export const revalidate = 86_400;
 
 type Station = { slug: string };
 type StationPage = { items: Station[]; pages: number };

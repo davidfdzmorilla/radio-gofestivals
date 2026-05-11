@@ -28,12 +28,15 @@ function localizedEntries(
   changeFrequency?: MetadataRoute.Sitemap[number]['changeFrequency'],
   priority?: number,
 ): MetadataRoute.Sitemap {
+  // Next.js redirects /<locale>/ → /<locale> (308). Sitemap URLs must be
+  // canonical (200 OK), so drop the trailing slash for the home path.
+  const suffix = path === '/' ? '' : path;
   const languages: Record<string, string> = Object.fromEntries(
-    LOCALES.map((l) => [l, `${SITE}/${l}${path}`]),
+    LOCALES.map((l) => [l, `${SITE}/${l}${suffix}`]),
   );
-  languages['x-default'] = `${SITE}/${DEFAULT_LOCALE}${path}`;
+  languages['x-default'] = `${SITE}/${DEFAULT_LOCALE}${suffix}`;
   return LOCALES.map((locale) => ({
-    url: `${SITE}/${locale}${path}`,
+    url: `${SITE}/${locale}${suffix}`,
     changeFrequency,
     priority,
     alternates: { languages },

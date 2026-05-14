@@ -4,6 +4,8 @@ import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server
 import { JetBrains_Mono } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { SITE_URL } from '@/lib/site';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { GlobalPlayer } from '@/components/player/GlobalPlayer';
@@ -69,7 +71,23 @@ export default async function LocaleLayout({
   if (!(routing.locales as readonly string[]).includes(locale)) notFound();
   setRequestLocale(locale);
 
+  const t = await getTranslations({ locale, namespace: 'home' });
   const messages = await getMessages();
+
+  const websiteLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: t('title'),
+    url: `${SITE_URL}/${locale}`,
+    description: t('seoDescription'),
+    inLanguage: locale,
+  };
+  const organizationLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: t('title'),
+    url: SITE_URL,
+  };
 
   return (
     <html lang={locale} className={mono.variable}>
@@ -82,6 +100,8 @@ export default async function LocaleLayout({
         />
       </head>
       <body className="min-h-screen bg-bg-1 text-fg-1 font-body antialiased">
+        <JsonLd data={websiteLd} />
+        <JsonLd data={organizationLd} />
         <NextIntlClientProvider messages={messages}>
           <AuthProvider>
             <ToastProvider>

@@ -6,6 +6,8 @@ import { getGenresTree, listStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { SidebarFilters } from '@/components/layout/SidebarFilters';
 import { PublicPagination } from '@/components/PublicPagination';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { SITE_URL } from '@/lib/site';
 import type { Genre } from '@/lib/types';
 
 export const revalidate = 300;
@@ -97,6 +99,43 @@ export default async function GenrePage({
     return `/${locale}/genres/${slug}${qs ? `?${qs}` : ''}`;
   };
 
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: tNav('home'),
+        item: `${SITE_URL}/${locale}`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: tGenres('title'),
+        item: `${SITE_URL}/${locale}/genres`,
+      },
+      { '@type': 'ListItem', position: 3, name: genre.name },
+    ],
+  };
+  const collectionLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: tGenres('exploreTitle', { name: genre.name }),
+    url: `${SITE_URL}/${locale}/genres/${slug}`,
+    inLanguage: locale,
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: stationsPage.total,
+      itemListElement: stationsPage.items.map((s, i) => ({
+        '@type': 'ListItem',
+        position: i + 1,
+        name: s.name,
+        url: `${SITE_URL}/${locale}/stations/${s.slug}`,
+      })),
+    },
+  };
+
   return (
     <div className="space-y-8">
       {/* Breadcrumb */}
@@ -166,6 +205,9 @@ export default async function GenrePage({
           />
         </div>
       </div>
+
+      <JsonLd data={breadcrumbLd} />
+      <JsonLd data={collectionLd} />
     </div>
   );
 }

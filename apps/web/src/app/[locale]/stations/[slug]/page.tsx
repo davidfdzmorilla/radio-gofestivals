@@ -8,7 +8,9 @@ import { NowPlaying } from '@/components/player/NowPlaying';
 import { HeartButton } from '@/components/auth/HeartButton';
 import { LikeButton } from '@/components/auth/LikeButton';
 import { Badge } from '@/components/ui/badge';
+import { JsonLd } from '@/components/seo/JsonLd';
 import { initials } from '@/lib/utils';
+import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 60;
 
@@ -59,6 +61,43 @@ export default async function StationPage({
     genres: station.genres.map((g) => g.slug),
     is_favorite: station.is_favorite ?? null,
     user_voted: station.user_voted ?? null,
+  };
+
+  const stationUrl = `${SITE_URL}/${locale}/stations/${station.slug}`;
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: tNav('home'),
+        item: `${SITE_URL}/${locale}`,
+      },
+      { '@type': 'ListItem', position: 2, name: station.name },
+    ],
+  };
+  const radioStationLd = {
+    '@context': 'https://schema.org',
+    '@type': 'RadioStation',
+    name: station.name,
+    url: stationUrl,
+    description: [station.name, station.city, station.country_code]
+      .filter(Boolean)
+      .join(' · '),
+    ...(station.homepage_url ? { sameAs: station.homepage_url } : {}),
+    ...(station.city || station.country_code
+      ? {
+          address: {
+            '@type': 'PostalAddress',
+            ...(station.city ? { addressLocality: station.city } : {}),
+            ...(station.country_code
+              ? { addressCountry: station.country_code }
+              : {}),
+          },
+        }
+      : {}),
+    ...(station.language ? { inLanguage: station.language } : {}),
   };
 
   return (
@@ -168,6 +207,9 @@ export default async function StationPage({
           </ul>
         </section>
       )}
+
+      <JsonLd data={breadcrumbLd} />
+      <JsonLd data={radioStationLd} />
     </div>
   );
 }

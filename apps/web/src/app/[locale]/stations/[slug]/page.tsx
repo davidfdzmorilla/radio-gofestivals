@@ -77,6 +77,13 @@ export default async function StationPage({
       { '@type': 'ListItem', position: 2, name: station.name },
     ],
   };
+  // Radio-Browser stores `language` as a free-text, comma-joined string
+  // (e.g. "english,română"). Split it so inLanguage is a proper list
+  // instead of one invalid blob.
+  const languages = (station.language ?? '')
+    .split(',')
+    .map((l) => l.trim())
+    .filter(Boolean);
   const radioStationLd = {
     '@context': 'https://schema.org',
     '@type': 'RadioStation',
@@ -97,7 +104,9 @@ export default async function StationPage({
           },
         }
       : {}),
-    ...(station.language ? { inLanguage: station.language } : {}),
+    ...(languages.length
+      ? { inLanguage: languages.length === 1 ? languages[0] : languages }
+      : {}),
   };
 
   return (

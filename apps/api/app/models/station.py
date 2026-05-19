@@ -67,6 +67,9 @@ class Station(Base):
     )
     language: Mapped[str | None] = mapped_column(Text, nullable=True)
     curated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    hidden: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false",
+    )
     quality_score: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=50)
     status: Mapped[str] = mapped_column(station_status_enum, nullable=False, default="pending")
     failed_checks: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=0)

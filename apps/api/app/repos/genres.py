@@ -28,7 +28,10 @@ async def fetch_genres_with_counts(session: AsyncSession) -> list[GenreRow]:
             g.color_hex,
             g.parent_id,
             g.sort_order,
-            COALESCE(SUM(CASE WHEN s.status = 'active' THEN 1 ELSE 0 END), 0)::int AS station_count
+            COALESCE(
+                SUM(CASE WHEN s.status = 'active' AND s.hidden = false THEN 1 ELSE 0 END),
+                0
+            )::int AS station_count
         FROM genres g
         LEFT JOIN station_genres sg ON sg.genre_id = g.id
         LEFT JOIN stations s ON s.id = sg.station_id

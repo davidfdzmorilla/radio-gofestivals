@@ -38,7 +38,10 @@ async def list_active_stations(
     page: int,
     size: int,
 ) -> tuple[list[Station], int]:
-    base = select(Station).where(Station.status == "active")
+    base = select(Station).where(
+        Station.status == "active",
+        Station.hidden.is_(False),
+    )
 
     if genre is not None:
         genre_stations = (
@@ -116,6 +119,7 @@ async def find_nearby(
         LEFT JOIN station_streams ss
                ON ss.station_id = s.id AND ss.is_primary = true
         WHERE s.status = 'active'
+          AND s.hidden = false
           AND s.geo IS NOT NULL
           AND ST_DWithin(
               s.geo,

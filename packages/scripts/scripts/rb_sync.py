@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -66,6 +67,47 @@ class SyncStats:
             "errors": self.errors,
             "tag_counts": self.tag_counts,
         }
+
+
+_SPAM_PREFIX_RE = re.compile(r"^[#*>\-]\s")
+
+
+def is_likely_spam(name: str, stream_url: str | None) -> bool:
+    """Aggressive rule applied ONLY to brand-new INSERTs.
+
+    Mirrors the worst of the editorial-spam pattern observed on Radio-Browser
+    (Rautemusik-style chart radios, double-underscore brand prefixes,
+    keyword-stuffed station names). Stricter than the initial human-reviewed
+    sweep because false positives here only affect freshly ingested rows,
+    which by definition have no curation yet to protect.
+
+    Existing rows are never re-evaluated against this rule — see the
+    ``upsert_station`` UPDATE branch.
+    """
+    if not name:
+        return False
+    url = stream_url or ""
+    name_upper = name.upper()
+    if _SPAM_PREFIX_RE.match(name):
+        return True
+    if name.startswith("__"):
+        return True
+    if ">>" in name or "<<" in name:
+        return True
+    if len(name) > 80:  # noqa: PLR2004
+        return True
+    if "TOP 100" in name_upper or "TOP100" in name_upper:
+        return True
+    if "NON-STOP" in name_upper or "NONSTOP" in name_upper:
+        return True
+    # The CHARTS+@ combo is near-exclusive to Rautemusik-spam patterns;
+    # CHARTS alone catches legitimate "music charts" stations, @ alone is
+    # noisy. Together they are reliable.
+    if "CHARTS" in name_upper and "@" in name:
+        return True
+    if "?ref=radiobrowser-" in url or "?ref=rb-" in url:
+        return True
+    return False
 
 
 def is_valid_stream_url(url: str) -> bool:
@@ -261,6 +303,7 @@ async def upsert_station(
             if has_geo
             else "NULL"
         )
+        hidden_flag = is_likely_spam(name, stream_url)
         params: dict[str, Any] = {
             "rb": str(rb_uuid),
             "slug": final_slug,
@@ -273,6 +316,7 @@ async def upsert_station(
             "votes": votes,
             "last_changeuuid": str(last_changeuuid) if last_changeuuid else None,
             "last_local_checktime": last_local_checktime,
+            "hidden": hidden_flag,
             "now": datetime.now(tz=UTC),
         }
         if has_geo:
@@ -284,12 +328,12 @@ async def upsert_station(
                 rb_uuid, slug, name, country_code, city, language,
                 quality_score, clickcount, votes,
                 last_changeuuid, last_local_checktime,
-                source, last_sync_at, geo
+                source, last_sync_at, hidden, geo
             ) VALUES (
                 :rb, :slug, :name, :country_code, :city, :language,
                 :quality_score, :clickcount, :votes,
                 CAST(:last_changeuuid AS uuid), :last_local_checktime,
-                'radio-browser', :now, {geo_expr}
+                'radio-browser', :now, :hidden, {geo_expr}
             )
             RETURNING id
             """,  # noqa: S608
@@ -312,6 +356,17 @@ async def upsert_station(
     station_id = uuid.UUID(str(row[0]))
     existing_status = str(row[2]) if row[2] is not None else "active"
     existing_fails = int(row[3]) if row[3] is not None else 0
+    # Existing rows are NEVER auto-flipped to hidden, even if they now match
+    # the spam rules — that would silently override curated rows or
+    # editorial decisions. Surface the case as a warning so an operator can
+    # decide manually.
+    if is_likely_spam(name, stream_url):
+        log.warning(
+            "existing_station_matches_spam_rule",
+            station_id=str(station_id),
+            slug=row[1],
+            name=name,
+        )
     update_quality = compute_quality_score({
         "bitrate": bitrate,
         "codec": codec,

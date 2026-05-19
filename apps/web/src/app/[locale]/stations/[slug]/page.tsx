@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { initials } from '@/lib/utils';
 import { SITE_URL } from '@/lib/site';
+import { buildAlternates } from '@/lib/seo';
 
 export const revalidate = 60;
 
@@ -19,14 +20,44 @@ export async function generateMetadata({
 }: {
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  const alternates = buildAlternates(locale, `/stations/${slug}`);
+  const tHome = await getTranslations({ locale, namespace: 'home' });
+  const tStation = await getTranslations({ locale, namespace: 'station' });
   const station = await getStation(slug);
-  if (!station) return {};
+  if (!station) return { alternates };
+  const url = `${SITE_URL}/${locale}/stations/${slug}`;
+  const genreName = station.genres[0]?.name;
+  const place =
+    station.city && station.country_code
+      ? tStation('location', {
+          city: station.city,
+          country: station.country_code,
+        })
+      : (station.city ?? station.country_code ?? '');
+  const details = [genreName, place].filter(Boolean).join(' · ');
+  const description = tStation('metaDescription', {
+    name: station.name,
+    details: details || '—',
+    hasDetails: details ? 'yes' : 'no',
+  });
   return {
     title: station.name,
-    description: [station.name, station.city, station.country_code]
-      .filter(Boolean)
-      .join(' · '),
+    description,
+    alternates,
+    openGraph: {
+      type: 'website',
+      title: station.name,
+      description,
+      url,
+      locale,
+      siteName: tHome('title'),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: station.name,
+      description,
+    },
   };
 }
 

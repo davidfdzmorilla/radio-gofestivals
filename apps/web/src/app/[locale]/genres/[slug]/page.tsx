@@ -8,6 +8,7 @@ import { SidebarFilters } from '@/components/layout/SidebarFilters';
 import { PublicPagination } from '@/components/PublicPagination';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { SITE_URL } from '@/lib/site';
+import { buildAlternates } from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
 export const revalidate = 300;
@@ -29,16 +30,42 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const t = await getTranslations({ locale, namespace: 'genres' });
+  const tGenres = await getTranslations({ locale, namespace: 'genres' });
+  const tHome = await getTranslations({ locale, namespace: 'home' });
+  const alternates = buildAlternates(locale, `/genres/${slug}`);
+  const url = `${SITE_URL}/${locale}/genres/${slug}`;
   try {
     const genres = await getGenresTree();
     const genre = genres.find((g) => g.slug === slug);
-    if (!genre) return {};
+    if (!genre) return { alternates };
+    const title = tGenres('metaTitle', {
+      name: genre.name,
+      count: genre.station_count,
+    });
+    const description = tGenres('metaDescription', {
+      name: genre.name,
+      count: genre.station_count,
+    });
     return {
-      title: t('exploreTitle', { name: genre.name }),
+      title,
+      description,
+      alternates,
+      openGraph: {
+        type: 'website',
+        title,
+        description,
+        url,
+        locale,
+        siteName: tHome('title'),
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+      },
     };
   } catch {
-    return {};
+    return { alternates };
   }
 }
 

@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { SITE_URL } from '@/lib/site';
+import { buildAlternates } from '@/lib/seo';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { GlobalPlayer } from '@/components/player/GlobalPlayer';
@@ -37,17 +38,12 @@ export async function generateMetadata({
       template: `%s · ${t('title')}`,
     },
     description: t('seoDescription'),
-    alternates: {
-      canonical: `/${locale}`,
-      languages: {
-        en: '/en',
-        es: '/es',
-      },
-    },
+    alternates: buildAlternates(locale, ''),
     openGraph: {
       type: 'website',
       title: t('title'),
       description: t('seoDescription'),
+      url: `${SITE_URL}/${locale}`,
       locale,
       siteName: t('title'),
     },

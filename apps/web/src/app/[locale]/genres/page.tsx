@@ -1,8 +1,38 @@
+import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { getGenresTree } from '@/lib/api';
+import { buildAlternates } from '@/lib/seo';
+import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 300;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const tGenres = await getTranslations({ locale, namespace: 'genres' });
+  const tHome = await getTranslations({ locale, namespace: 'home' });
+  const title = tGenres('indexTitle');
+  const description = tGenres('indexDescription');
+  const url = `${SITE_URL}/${locale}/genres`;
+  return {
+    title,
+    description,
+    alternates: buildAlternates(locale, '/genres'),
+    openGraph: {
+      type: 'website',
+      title,
+      description,
+      url,
+      locale,
+      siteName: tHome('title'),
+    },
+    twitter: { card: 'summary_large_image', title, description },
+  };
+}
 
 export default async function GenresIndexPage({
   params,

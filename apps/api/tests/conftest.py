@@ -146,16 +146,33 @@ async def create_station(db_session: AsyncSession):  # type: ignore[no-untyped-d
         stmt = text(
             f"""
             INSERT INTO stations (
-                slug, name, stream_url, country_code, city, codec, bitrate,
+                slug, name, country_code, city,
                 curated, quality_score, status, geo
             ) VALUES (
-                :slug, :name, :stream_url, :country_code, :city, :codec, :bitrate,
+                :slug, :name, :country_code, :city,
                 :curated, :quality_score, CAST(:status AS station_status), {geo_sql}
             ) RETURNING id
             """,  # noqa: S608
         )
         result = await db_session.execute(stmt, params)
         station_id = uuid.UUID(str(result.scalar_one()))
+
+        await db_session.execute(
+            text(
+                """
+                INSERT INTO station_streams
+                    (station_id, stream_url, codec, bitrate, format, is_primary, status)
+                VALUES
+                    (:sid, :stream_url, :codec, :bitrate, :codec, true, 'active')
+                """,
+            ),
+            {
+                "sid": station_id,
+                "stream_url": params["stream_url"],
+                "codec": params["codec"],
+                "bitrate": params["bitrate"],
+            },
+        )
 
         if genre_slugs:
             await db_session.execute(

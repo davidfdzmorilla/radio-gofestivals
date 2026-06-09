@@ -20,6 +20,7 @@ import {
   type FavoritesProvider,
   LocalStorageFavorites,
 } from './favorites';
+import { clearClientId, mergeAnonymousPlays } from '../plays';
 import type { User } from './types';
 
 interface AuthContextValue {
@@ -113,6 +114,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Non-fatal: keep the local cache as-is so the user can retry.
         }
         LocalStorageFavorites.clear();
+      }
+
+      // Reassign anonymous plays from this device to the freshly
+      // logged-in user. The client_id can be cleared once merged: the
+      // server will key future plays on user_id.
+      try {
+        const result = await mergeAnonymousPlays();
+        if (result !== null) clearClientId();
+      } catch {
+        // Non-fatal: leaves client_id in place for a retry next session.
       }
 
       await backendProvider.hydrate();

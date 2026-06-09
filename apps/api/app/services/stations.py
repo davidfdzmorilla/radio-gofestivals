@@ -5,6 +5,7 @@ import math
 import uuid
 from typing import TYPE_CHECKING
 
+from app.repos import station_plays as plays_repo
 from app.repos import stations as stations_repo
 from app.repos import user_favorites as fav_repo
 from app.repos import user_votes as votes_repo
@@ -204,6 +205,39 @@ async def get_station_detail(
             },
         )
     return detail
+
+
+async def register_play_for_slug(
+    session: AsyncSession,
+    *,
+    slug: str,
+    user_id: uuid.UUID | None,
+    client_id: uuid.UUID | None,
+) -> tuple[bool, bool]:
+    """Look up a station by slug and register a play event.
+
+    Returns (station_found, was_new_play). Both flags False means the
+    slug didn't resolve; (True, False) means the same identity already
+    played this station today and we treated it as a no-op.
+    """
+    from sqlalchemy import text
+
+    row = (
+        await session.execute(
+            text("SELECT id FROM stations WHERE slug = :slug"),
+            {"slug": slug},
+        )
+    ).first()
+    if row is None:
+        return False, False
+    sid = uuid.UUID(str(row[0]))
+    inserted = await plays_repo.register_play(
+        session,
+        station_id=sid,
+        user_id=user_id,
+        client_id=client_id,
+    )
+    return True, inserted
 
 
 async def get_stream_url(session: AsyncSession, slug: str) -> tuple[str, str] | None:

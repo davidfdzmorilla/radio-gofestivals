@@ -1,0 +1,34 @@
+{
+  "lastUpdated": "2026-06-09",
+  "sections": [
+    {
+      "heading": "What browser storage is",
+      "paragraphs": [
+        "This page lists what we store in your browser and why. We use traditional cookies for the consent banner, and localStorage for the opaque play identifier.",
+        "We do not use third-party cookies, advertising, retargeting, or external analytics tools (Google Analytics, etc.)."
+      ]
+    },
+    {
+      "heading": "Inventory",
+      "paragraphs": [
+        "rgf_consent (cookie, 180 days): stores whether you accepted or rejected play tracking. It is strictly necessary and is set from JavaScript when you press one of the two banner buttons. If you delete it manually, the banner will appear again.",
+        "rgf_client_id (localStorage, no expiry): opaque UUID v4 generated in your browser the first time you play after consenting. It lets us group your plays on the same device without linking them to a personal identity. It is only created if your consent is \"accepted\".",
+        "rgf_session_played (sessionStorage, until tab close): internal list of stations already counted as plays in this session, to avoid double-counting.",
+        "Authentication JWT (httpOnly cookie, only if you register and sign in): keeps your session alive. Unrelated to play analytics."
+      ]
+    },
+    {
+      "heading": "How to change your decision",
+      "paragraphs": [
+        "If you want to change your choice, go to Settings (coming soon) or delete the rgf_consent cookie from your browser settings. The next page load will show the banner again.",
+        "To also clear the opaque identifier and the rest of the storage, use the \"Clear site data\" option your browser offers for this domain."
+      ]
+    },
+    {
+      "heading": "More detail",
+      "paragraphs": [
+        "For the full legal context, see the Privacy policy."
+      ]
+    }
+  ]
+}

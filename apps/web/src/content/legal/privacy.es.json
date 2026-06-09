@@ -1,0 +1,62 @@
+{
+  "lastUpdated": "2026-06-09",
+  "sections": [
+    {
+      "heading": "Quiénes somos",
+      "paragraphs": [
+        "radio.gofestivals.eu (en adelante, «el Servicio») es una plataforma de radio online curada para música electrónica, parte del ecosistema gofestivals.",
+        "Responsable del tratamiento: [Razón social pendiente]. Domicilio: [Dirección pendiente]. Jurisdicción: [País pendiente]. Contacto: [Email de privacidad pendiente]."
+      ]
+    },
+    {
+      "heading": "Qué datos recogemos y por qué",
+      "paragraphs": [
+        "Solo recogemos datos de reproducciones cuando das tu consentimiento explícito a través del banner que aparece en tu primera visita.",
+        "Si no estás registrado en el Servicio, asociamos cada reproducción a un identificador opaco (UUID) almacenado en tu navegador. Ese identificador no contiene información personal ni se cruza con otros servicios.",
+        "Si estás registrado y has iniciado sesión, las reproducciones quedan asociadas a tu cuenta. Si te registras tras haber escuchado de forma anónima, los plays previos en el mismo dispositivo se transfieren automáticamente a tu cuenta.",
+        "Para cada reproducción guardamos: identificador de la estación, marca de tiempo, e identificador (UUID anónimo o ID de cuenta).",
+        "El propósito de este tratamiento es mejorar la curaduría editorial de la página principal con datos reales de uso. No usamos estos datos para publicidad ni los compartimos con terceros."
+      ]
+    },
+    {
+      "heading": "Base legal",
+      "paragraphs": [
+        "Tratamos tus datos en base a tu consentimiento (art. 6.1.a del RGPD), que puedes retirar en cualquier momento."
+      ]
+    },
+    {
+      "heading": "Cuánto tiempo conservamos los datos",
+      "paragraphs": [
+        "Conservamos el registro detallado de cada reproducción durante 90 días. Pasado ese plazo, agregamos los datos por día y estación, y borramos el detalle individual.",
+        "Los datos agregados anónimos pueden conservarse de forma indefinida con fines estadísticos.",
+        "Si cierras tu cuenta o retiras tu consentimiento, eliminamos tus datos asociados según se describe en la sección «Tus derechos»."
+      ]
+    },
+    {
+      "heading": "Tus derechos",
+      "paragraphs": [
+        "Conforme al Reglamento General de Protección de Datos, tienes derecho a:",
+        "Acceso: solicitar copia de los datos que tenemos sobre ti.",
+        "Rectificación: corregir datos inexactos.",
+        "Supresión: pedir que borremos tus datos («derecho al olvido»).",
+        "Limitación: pedir que dejemos de tratarlos sin borrarlos.",
+        "Portabilidad: recibirlos en un formato estructurado.",
+        "Oposición: oponerte al tratamiento.",
+        "Para ejercer cualquiera de estos derechos, escribe a [Email de privacidad pendiente]. Te responderemos en un máximo de 30 días.",
+        "Si consideras que no hemos atendido correctamente tu solicitud, puedes presentar reclamación ante la autoridad de control competente (en España, la AEPD: www.aepd.es)."
+      ]
+    },
+    {
+      "heading": "Cookies y almacenamiento del navegador",
+      "paragraphs": [
+        "Usamos almacenamiento del navegador para recordar tu decisión sobre el consentimiento y para identificarte de forma opaca cuando reproduces. Encontrarás el detalle en la página de Cookies."
+      ]
+    },
+    {
+      "heading": "Cambios a esta política",
+      "paragraphs": [
+        "Si cambiamos esta política de manera significativa, te avisaremos en el sitio y, si estás registrado, por email. Los cambios menores (redacción, formato) se reflejarán aquí actualizando la fecha."
+      ]
+    }
+  ]
+}

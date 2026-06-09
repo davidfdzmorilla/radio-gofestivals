@@ -1,0 +1,62 @@
+{
+  "lastUpdated": "2026-06-09",
+  "sections": [
+    {
+      "heading": "Who we are",
+      "paragraphs": [
+        "radio.gofestivals.eu (the \"Service\") is a curated online radio platform for electronic music, part of the gofestivals ecosystem.",
+        "Data controller: [Legal entity pending]. Address: [Address pending]. Jurisdiction: [Country pending]. Contact: [Privacy email pending]."
+      ]
+    },
+    {
+      "heading": "What we collect and why",
+      "paragraphs": [
+        "We only collect play data when you give explicit consent through the banner shown on your first visit.",
+        "If you are not registered, each play is linked to an opaque identifier (UUID) stored in your browser. That identifier contains no personal information and is not cross-referenced with other services.",
+        "If you are registered and signed in, plays are linked to your account. If you register after having listened anonymously, the previous plays from the same device are automatically transferred to your account.",
+        "For each play we store: station id, timestamp, and identifier (anonymous UUID or account id).",
+        "The purpose of this processing is to improve the editorial curation of the home page with real usage data. We do not use this data for advertising and do not share it with third parties."
+      ]
+    },
+    {
+      "heading": "Legal basis",
+      "paragraphs": [
+        "We process your data based on your consent (Art. 6.1.a GDPR), which you can withdraw at any time."
+      ]
+    },
+    {
+      "heading": "How long we keep your data",
+      "paragraphs": [
+        "We keep the detailed record of each play for 90 days. After that, we aggregate the data by day and station, and delete the individual detail.",
+        "Aggregated anonymous data may be kept indefinitely for statistical purposes.",
+        "If you close your account or withdraw consent, we delete your associated data as described in the \"Your rights\" section."
+      ]
+    },
+    {
+      "heading": "Your rights",
+      "paragraphs": [
+        "Under the General Data Protection Regulation, you have the right to:",
+        "Access: request a copy of the data we hold about you.",
+        "Rectification: correct inaccurate data.",
+        "Erasure: ask us to delete your data (\"right to be forgotten\").",
+        "Restriction: ask us to stop processing without deleting.",
+        "Portability: receive your data in a structured format.",
+        "Objection: object to the processing.",
+        "To exercise any of these rights, write to [Privacy email pending]. We will respond within a maximum of 30 days.",
+        "If you believe we have not properly addressed your request, you can lodge a complaint with the competent supervisory authority (in Spain, the AEPD: www.aepd.es)."
+      ]
+    },
+    {
+      "heading": "Cookies and browser storage",
+      "paragraphs": [
+        "We use browser storage to remember your consent decision and to identify you opaquely when you play. Details are on the Cookies page."
+      ]
+    },
+    {
+      "heading": "Changes to this policy",
+      "paragraphs": [
+        "If we change this policy materially, we will notify you on the site and, if you are registered, by email. Minor changes (wording, formatting) will be reflected here by updating the date."
+      ]
+    }
+  ]
+}

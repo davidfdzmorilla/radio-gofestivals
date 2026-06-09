@@ -58,6 +58,14 @@ async def nearby_stations(
     )
 
 
+@router.get("/featured", response_model=StationsPage)
+async def list_featured(
+    session: SessionDep,
+    size: Annotated[int, Query(ge=1, le=24)] = 12,
+) -> StationsPage:
+    return await stations_service.list_featured_stations(session, size=size)
+
+
 @router.get("/{slug}", response_model=StationDetail)
 async def station_detail(
     slug: str,

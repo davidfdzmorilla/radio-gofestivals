@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, TypeVar
 
 from sqlalchemy import bindparam, func, select, text
 
@@ -11,6 +11,37 @@ if TYPE_CHECKING:
     import uuid
 
     from sqlalchemy.ext.asyncio import AsyncSession
+
+
+T = TypeVar("T")
+
+
+def apply_genre_cap(
+    candidates: list[tuple[T, int | None]],
+    *,
+    size: int,
+    cap: int,
+) -> list[T]:
+    """Pick at most ``size`` items, respecting a per-bucket cap.
+
+    ``candidates`` is an ordered list of (item, bucket_id). The function walks
+    it in order, keeping items whose bucket has < ``cap`` picks so far.
+    Items with ``bucket_id is None`` are skipped — they have no group to
+    diversify against, and "featured" implies a classifiable signal.
+    """
+    selected: list[T] = []
+    by_bucket: dict[int, int] = {}
+    for item, bucket_id in candidates:
+        if bucket_id is None:
+            continue
+        used = by_bucket.get(bucket_id, 0)
+        if used >= cap:
+            continue
+        selected.append(item)
+        by_bucket[bucket_id] = used + 1
+        if len(selected) >= size:
+            break
+    return selected
 
 
 class NearbyRow(NamedTuple):
@@ -68,6 +99,63 @@ async def list_active_stations(
     result = await session.execute(page_stmt)
     items = list(result.scalars().unique().all())
     return items, int(total)
+
+
+async def list_featured_diverse_stations(
+    session: AsyncSession,
+    *,
+    size: int,
+    genre_cap: int = 2,
+    pool_size: int = 60,
+) -> list[Station]:
+    """Top ``size`` curated active visible stations with a per-primary-genre cap.
+
+    The pool is the first ``pool_size`` curated rows ordered by
+    ``quality_score DESC, name ASC`` — same ranking as ``list_active_stations``
+    so the slot ordering still reflects quality. Each station's primary genre
+    is the ``station_genres`` row with the highest confidence (genre.sort_order
+    as tiebreaker). ``apply_genre_cap`` then trims the pool down to ``size``
+    rows enforcing ``genre_cap`` per primary genre. Stations with no genres
+    attached are skipped — featured implies a classifiable sound.
+    """
+    base = (
+        select(Station)
+        .where(
+            Station.status == "active",
+            Station.hidden.is_(False),
+            Station.curated.is_(True),
+        )
+        .order_by(Station.quality_score.desc(), Station.name.asc())
+        .limit(pool_size)
+    )
+    pool = list((await session.execute(base)).scalars().unique().all())
+    if not pool:
+        return []
+
+    station_ids = [s.id for s in pool]
+    primary_rows = (
+        await session.execute(
+            text(
+                """
+                SELECT DISTINCT ON (sg.station_id)
+                    sg.station_id, sg.genre_id
+                FROM station_genres sg
+                JOIN genres g ON g.id = sg.genre_id
+                WHERE sg.station_id = ANY(CAST(:ids AS uuid[]))
+                ORDER BY sg.station_id, sg.confidence DESC, g.sort_order ASC
+                """,
+            ),
+            {"ids": [str(i) for i in station_ids]},
+        )
+    ).all()
+    primary_by_station: dict[str, int] = {
+        str(r[0]): int(r[1]) for r in primary_rows
+    }
+
+    candidates: list[tuple[Station, int | None]] = [
+        (s, primary_by_station.get(str(s.id))) for s in pool
+    ]
+    return apply_genre_cap(candidates, size=size, cap=genre_cap)
 
 
 async def get_active_station_by_slug(session: AsyncSession, slug: str) -> Station | None:

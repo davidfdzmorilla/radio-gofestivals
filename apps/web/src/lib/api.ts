@@ -83,6 +83,23 @@ export async function listStations(params: ListStationsParams = {}): Promise<Sta
   });
 }
 
+interface ListFeaturedStationsParams {
+  size?: number;
+  revalidate?: number;
+}
+
+export async function listFeaturedStations(
+  params: ListFeaturedStationsParams = {},
+): Promise<StationsPage> {
+  const qs = new URLSearchParams();
+  if (params.size) qs.set('size', String(params.size));
+  const path = `/api/v1/stations/featured${qs.toString() ? `?${qs}` : ''}`;
+  return apiFetch(path, {
+    schema: StationsPageSchema,
+    revalidate: params.revalidate ?? 300,
+  });
+}
+
 export async function getStation(
   slug: string,
   revalidate = 60,

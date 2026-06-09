@@ -1,5 +1,5 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { getGenresTree, listStations } from '@/lib/api';
+import { getGenresTree, listFeaturedStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { GenreTree } from '@/components/genres/GenreTree';
 import type { Genre } from '@/lib/types';
@@ -31,7 +31,7 @@ export default async function HomePage({
 
   const [genres, stationsPage] = await Promise.all([
     getGenresTree(),
-    listStations({ curated: true, size: 12, revalidate: 300 }),
+    listFeaturedStations({ size: 12, revalidate: 300 }),
   ]);
 
   const genresBySlug = indexBySlug(genres);

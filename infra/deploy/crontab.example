@@ -24,6 +24,9 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Cleanup mensual de history (día 1 de cada mes, 04:45 UTC)
 45 4 1 * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts cleanup-clickcount-history >> /var/log/radio/cleanup.log 2>&1
 
+# Retención de plays: agrega a daily lo > 90d y borra el detalle (03:45 UTC, justo después del backup de Postgres)
+45 3 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts retain-plays >> /var/log/radio/retain_plays.log 2>&1
+
 # Health-check de streams cada 6 horas
 0 */6 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts rb_sync health-check >> /var/log/radio/health.log 2>&1
 

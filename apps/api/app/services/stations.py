@@ -104,6 +104,31 @@ async def list_stations(
     )
 
 
+async def list_featured_stations(
+    session: AsyncSession,
+    *,
+    size: int,
+) -> StationsPage:
+    """Diverse curated picks for the home featured section.
+
+    Wraps ``list_featured_diverse_stations`` with the same summary shape as
+    ``list_stations`` so the frontend can reuse the existing card components.
+    Pagination fields are present for type compatibility but always describe
+    a single page — the home does not paginate featured.
+    """
+    items = await stations_repo.list_featured_diverse_stations(
+        session, size=size,
+    )
+    summaries = [_to_summary(s) for s in items]
+    return StationsPage(
+        items=summaries,
+        total=len(summaries),
+        page=1,
+        size=len(summaries),
+        pages=1 if summaries else 0,
+    )
+
+
 def _detail_cache_key(slug: str) -> str:
     # v3 = adds votes_local; bumped to invalidate stale v2 blobs that
     # don't carry the new field.

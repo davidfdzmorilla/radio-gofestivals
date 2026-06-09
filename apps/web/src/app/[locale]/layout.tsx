@@ -10,6 +10,7 @@ import { buildAlternates } from '@/lib/seo';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { GlobalPlayer } from '@/components/player/GlobalPlayer';
+import { ConsentBanner } from '@/components/consent/ConsentBanner';
 import { ToastProvider } from '@/components/auth/ToastContext';
 import { AuthProvider } from '@/lib/users/AuthContext';
 import '../globals.css';
@@ -105,8 +106,9 @@ export default async function LocaleLayout({
               <main className="mx-auto max-w-6xl px-4 py-10 pb-32">
                 {children}
               </main>
-              <Footer />
+              <Footer locale={locale as 'es' | 'en'} />
               <GlobalPlayer />
+              <ConsentBanner locale={locale as 'es' | 'en'} />
             </ToastProvider>
           </AuthProvider>
         </NextIntlClientProvider>

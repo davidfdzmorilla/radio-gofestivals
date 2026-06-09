@@ -1,0 +1,34 @@
+{
+  "lastUpdated": "2026-06-09",
+  "sections": [
+    {
+      "heading": "Qué es el almacenamiento del navegador",
+      "paragraphs": [
+        "Esta página explica qué guardamos en tu navegador y para qué. Usamos cookies tradicionales para el banner de consentimiento, y localStorage para el identificador opaco de reproducciones.",
+        "No usamos cookies de terceros, publicidad, retargeting, ni herramientas de analítica externas (Google Analytics, etc.)."
+      ]
+    },
+    {
+      "heading": "Inventario",
+      "paragraphs": [
+        "rgf_consent (cookie, 180 días): guarda si has aceptado o rechazado el tratamiento de plays. Es estrictamente necesaria y se establece desde JavaScript al pulsar uno de los dos botones del banner. Si la borras manualmente, volverá a aparecer el banner.",
+        "rgf_client_id (localStorage, sin caducidad): identificador opaco UUID v4 generado en tu navegador la primera vez que reproduces tras dar consentimiento. Permite agrupar tus plays en el mismo dispositivo sin asociarlos a una identidad personal. Solo se crea si tu consentimiento es «aceptado».",
+        "rgf_session_played (sessionStorage, hasta cerrar pestaña): lista interna de estaciones que ya hemos contado como play en esta sesión, para evitar duplicar el conteo.",
+        "JWT de autenticación (cookie httpOnly, si te registras y haces login): mantiene tu sesión iniciada. No tiene relación con la analítica de plays."
+      ]
+    },
+    {
+      "heading": "Cómo cambiar tu decisión",
+      "paragraphs": [
+        "Si quieres rectificar tu elección, ve a Ajustes (próximamente) o borra la cookie rgf_consent desde la configuración del navegador. La próxima carga del sitio te mostrará el banner de nuevo.",
+        "Para borrar también el identificador opaco y el resto del almacenamiento, usa la opción «Borrar datos del sitio» que ofrece tu navegador para este dominio."
+      ]
+    },
+    {
+      "heading": "Más detalle",
+      "paragraphs": [
+        "Para el contexto legal completo, consulta la Política de privacidad."
+      ]
+    }
+  ]
+}

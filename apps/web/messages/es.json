@@ -105,5 +105,19 @@
     "vote": "Me gusta",
     "voted": "Te gusta",
     "signInToVote": "Inicia sesión para votar"
+  },
+  "consent": {
+    "title": "Tu privacidad",
+    "body": "Usamos almacenamiento del navegador para contar reproducciones de forma anónima o asociadas a tu cuenta. Sin tu consentimiento, no registramos nada.",
+    "accept": "Aceptar",
+    "reject": "Rechazar",
+    "moreInfo": "Más info"
+  },
+  "legal": {
+    "privacyTitle": "Política de privacidad",
+    "cookiesTitle": "Cookies y almacenamiento",
+    "lastUpdated": "Última actualización: {date}",
+    "privacyLink": "Política de privacidad",
+    "cookiesLink": "Cookies"
   }
 }

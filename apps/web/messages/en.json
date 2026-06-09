@@ -105,5 +105,19 @@
     "vote": "Like",
     "voted": "Liked",
     "signInToVote": "Sign in to vote"
+  },
+  "consent": {
+    "title": "Your privacy",
+    "body": "We use browser storage to count plays, anonymously or linked to your account. Without your consent we record nothing.",
+    "accept": "Accept",
+    "reject": "Reject",
+    "moreInfo": "More info"
+  },
+  "legal": {
+    "privacyTitle": "Privacy policy",
+    "cookiesTitle": "Cookies and storage",
+    "lastUpdated": "Last updated: {date}",
+    "privacyLink": "Privacy policy",
+    "cookiesLink": "Cookies"
   }
 }

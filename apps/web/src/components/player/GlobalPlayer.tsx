@@ -6,8 +6,11 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { cn, initials } from '@/lib/utils';
 import { usePlayerStore } from '@/lib/player-store';
+import { recordPlay } from '@/lib/plays';
 import { NowPlaying } from './NowPlaying';
 import { SpectrumAnalyzer } from './SpectrumAnalyzer';
+
+const PLAY_TRIGGER_MS = 30_000;
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
@@ -84,6 +87,23 @@ export function GlobalPlayer() {
       cancelled = true;
     };
   }, [station, isPlaying, pause]);
+
+  // 30s play-counting trigger. Fire-and-forget POST when audio plays
+  // continuously for 30s with no pause, no station change, no error.
+  // Consent, identity resolution, dedup and rate limit are handled in
+  // recordPlay. We deliberately depend on station?.slug rather than the
+  // full station object so quality changes (primary_stream swap) don't
+  // restart the timer.
+  useEffect(() => {
+    if (!station || !isPlaying || error) return;
+    const slug = station.slug;
+    const timer = setTimeout(() => {
+      void recordPlay(slug).catch(() => {
+        // Losing a play event must not affect the listening session.
+      });
+    }, PLAY_TRIGGER_MS);
+    return () => clearTimeout(timer);
+  }, [station?.slug, isPlaying, error, station]);
 
   if (!station) return null;
 

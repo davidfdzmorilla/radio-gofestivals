@@ -1,9 +1,10 @@
 # radio.gofestivals 🎛️
 
-> Plataforma de radios online de música electrónica curada con 1300+ 
-> emisoras, sistema híbrido de cuentas de usuario y panel de administración.
+> Plataforma de radios online de música electrónica curada con 1300+
+> emisoras, recomendaciones personalizadas, sistema híbrido de cuentas
+> de usuario y panel de administración.
 
-🌐 **En producción**: https://radio.gofestivals.eu  
+🌐 **En producción**: https://radio.gofestivals.eu
 🇬🇧 **English**: [README.en.md](./README.en.md)
 
 ---
@@ -12,10 +13,12 @@
 
 ### Para oyentes
 
-- 🎵 **1300+ emisoras activas** en 12 géneros (House, Techno, Trance, 
-  Drum & Bass, Ambient, Dubstep, Hardstyle, Breakbeat, Electronic, 
-  Chill Out, Dance, EDM)
-- 🔀 **Multi-stream con auto-fallback** — recuperación automática si 
+- 🎵 **1300+ emisoras activas** en una taxonomía propia de 20 géneros
+  jerárquicos (House, Techno, Trance, Drum & Bass, Ambient, …)
+- 🎯 **Recomendaciones personalizadas** — módulo «Para ti» en la home y
+  «Emisoras similares» en cada ficha, por afinidad de géneros y
+  co-escucha ([diseño](./docs/recommendations-plan.md))
+- 🔀 **Multi-stream con auto-fallback** — recuperación automática si
   un stream falla
 - 📊 **Analizador de espectro en tiempo real** en el reproductor global
 - 🌍 **Interfaz bilingüe** (Inglés / Español) vía next-intl
@@ -28,7 +31,8 @@
 - 🔄 **Migración automática** de localStorage al backend al registrarse
 - 👍 **Sistema de votos/likes** que afecta el ranking público
 - 📧 **Reset de contraseña por email** vía Resend (sin SMTP propio)
-- 🔒 **Cumple GDPR** con soft delete y rotación de email
+- 🔒 **Cumple GDPR**: soft delete, export y borrado del historial de
+  escucha, tracking solo tras consentimiento
 
 ### Panel de administración
 
@@ -36,29 +40,33 @@
 - 🛠️ CRUD completo de emisoras y géneros con audit log
 - 🚀 Sistema de jobs async (worker en Postgres, ejecutado por cron)
 - 🔁 Operaciones de streams (promover primary, cambios masivos de status)
-- 🔍 Score de calidad + tendencias de clicks + health checks (cron nocturno)
+- 🔍 Score de calidad + tendencias de clicks + similitud entre emisoras
+  + health checks (pipeline nocturno por cron)
 
 ---
 
 ## Arquitectura
 
 ```
-┌─ apps/web (Next.js 14, App Router)
-│  ├─ Server Components (SSR) para páginas públicas
-│  ├─ Client Components para auth, favoritos, player
-│  └─ next-intl (en + es)
+┌─ apps/web (Next.js 16, App Router, Turbopack)
+│  ├─ Server Components (SSR/ISR) para páginas públicas
+│  ├─ Client Components para auth, favoritos, player, «Para ti»
+│  └─ next-intl 4 (en + es)
 │
 ├─ apps/api (FastAPI + SQLAlchemy + Alembic)
-│  ├─ API REST pública (/api/v1/stations, /genres, etc)
-│  ├─ Auth de usuarios (JWT, bcrypt, rate limiting)
+│  ├─ API REST pública (/api/v1/stations, /genres, /recommended, …)
+│  ├─ Auth de usuarios (JWT, bcrypt, rate limiting en Redis)
 │  ├─ Auth de admin (JWT con audience separado)
-│  └─ Worker async de jobs (ejecutado por cron)
+│  └─ Recomendaciones: blend on-the-fly sobre similitud precomputada
 │
-├─ apps/icy-worker (Polling de metadata ICY)
-│  └─ Datos "ahora sonando" por emisora
+├─ packages/icy-worker (Polling de metadata ICY)
+│  └─ Datos «ahora sonando» por emisora (on-demand + ambient)
+│
+├─ packages/scripts (CLI de sync y mantenimiento)
+│  └─ rb_sync, quality scores, click trends, similitud, retención
 │
 ├─ Postgres 16 + PostGIS (Docker)
-├─ Redis 7 (cache + rate limit)
+├─ Redis 7 (cache + rate limit + pub/sub)
 └─ Traefik (reverse proxy + TLS vía Let's Encrypt)
 ```
 
@@ -66,16 +74,19 @@
 
 ## Stack
 
-**Backend**: Python 3.12, FastAPI, SQLAlchemy 2.0 (async), Alembic, 
-Pydantic v2, asyncpg, bcrypt, passlib, slowapi (rate limit), httpx
+**Backend**: Python 3.12, FastAPI, SQLAlchemy 2.0 (async), Alembic,
+Pydantic v2, asyncpg, redis-py, bcrypt, httpx, structlog · gestionado
+con `uv`
 
-**Frontend**: TypeScript, Next.js 14 (App Router), React 18, Tailwind CSS, 
-Zod, lucide-react, next-intl
+**Frontend**: TypeScript 6, Next.js 16 (App Router), React 19,
+Tailwind CSS 4, Zod 4, Zustand 5, next-intl 4, lucide-react · tests
+con Vitest 4 y Playwright · gestionado con `pnpm`
 
-**Infraestructura**: Docker Compose, Traefik (TLS vía Let's Encrypt), 
-VPS Hetzner, Postgres 16 (postgis/postgis:16-3.4), Redis 7-alpine
+**Infraestructura**: Docker Compose (imágenes `python:3.12-slim` y
+`node:22-alpine`), Traefik (TLS vía Let's Encrypt), VPS Hetzner,
+Postgres 16 (postgis/postgis:16-3.4), Redis 7-alpine
 
-**Servicios externos**: Resend (email transaccional), Radio-Browser API 
+**Servicios externos**: Resend (email transaccional), Radio-Browser API
 (descubrimiento de emisoras)
 
 ---
@@ -95,17 +106,19 @@ VPS Hetzner, Postgres 16 (postgis/postgis:16-3.4), Redis 7-alpine
 │   │   ├── alembic/versions/   # Migraciones de DB
 │   │   └── tests/              # Tests de integración
 │   │
-│   ├── web/                    # Frontend Next.js 14
-│   │   ├── src/app/[locale]/   # Páginas públicas (i18n)
-│   │   ├── src/app/admin/      # Panel de admin
-│   │   ├── src/components/     # auth, layout, player, stations
-│   │   ├── src/lib/            # Clientes api, users, admin
-│   │   └── messages/           # Claves i18n (en, es)
-│   │
-│   └── icy-worker/             # Polling de metadata ICY
+│   └── web/                    # Frontend Next.js 16
+│       ├── src/app/[locale]/   # Páginas públicas (i18n)
+│       ├── src/app/admin/      # Panel de admin
+│       ├── src/components/     # auth, layout, player, stations
+│       ├── src/lib/            # Clientes api, users, admin, recs
+│       └── messages/           # Claves i18n (en, es)
 │
-├── docs/                       # Documentación de arquitectura y roadmap
-├── infra/                      # Docker, scripts de deploy
+├── packages/
+│   ├── icy-worker/             # Polling de metadata ICY
+│   └── scripts/                # rb_sync, quality, similitud, retención
+│
+├── docs/                       # Diseños, roadmap y ADRs (docs/adr/)
+├── infra/                      # Traefik, deploy, crontab
 └── docker-compose.prod.yml     # Stack de producción
 ```
 
@@ -113,15 +126,18 @@ VPS Hetzner, Postgres 16 (postgis/postgis:16-3.4), Redis 7-alpine
 
 ## Desarrollo local
 
-Requiere: Docker, Node 20+, Python 3.12, pnpm.
+Requiere: Docker, Node 22+, pnpm, Python 3.12 y [uv](https://docs.astral.sh/uv/).
 
 ### Backend
 
 ```bash
+cp .env.example .env
+docker compose up -d postgres redis
+
 cd apps/api
-pip install -e ".[dev]"
-alembic upgrade head
-uvicorn app.main:app --reload
+uv sync
+uv run alembic upgrade head
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 ### Frontend
@@ -132,20 +148,21 @@ pnpm install
 pnpm dev
 ```
 
-### Todos los servicios (Docker)
+### Tests
 
 ```bash
-docker compose up
+cd apps/api && uv run pytest          # backend (requiere postgres+redis)
+cd apps/web && pnpm test              # frontend (Vitest)
 ```
 
 ---
 
 ## Autor
 
-Construido por [@davidfdzmorilla](https://github.com/davidfdzmorilla) — 
+Construido por [@davidfdzmorilla](https://github.com/davidfdzmorilla) —
 full-stack developer en España.
 
-Parte del ecosistema **gofestivals** que cubre festivales y radio de 
+Parte del ecosistema **gofestivals** que cubre festivales y radio de
 música electrónica.
 
 ---
@@ -160,11 +177,17 @@ música electrónica.
 
 🟢 **En producción** en https://radio.gofestivals.eu
 
-Desarrollo activo. Roadmap (ver `docs/`):
+Desarrollo activo. Recién desplegado: **MVP del sistema de
+recomendación** (similitud emisora-emisora nocturna + blend
+personalizado con diversidad y exploración — ver
+[docs/recommendations-plan.md](./docs/recommendations-plan.md) y ADR 004).
 
+Roadmap (ver `docs/`):
+
+- Recomendaciones Fase 2: duración de escucha (heartbeat), GeoIP local,
+  señal de artistas desde now-playing, dashboard de CTR
 - Verificación de email + email de bienvenida
 - Perfiles públicos de usuarios (`/users/{username}`)
 - Listas/colecciones compartidas
-- Comentarios y sistema de follows
 - UI de Trending basada en click_trends
 - Integración de analytics (privacy-first)

@@ -3,7 +3,9 @@ import type { MetadataRoute } from 'next';
 const SITE = 'https://radio.gofestivals.eu';
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 const LOCALES = ['es', 'en'] as const;
-const DEFAULT_LOCALE: (typeof LOCALES)[number] = 'es';
+// Debe coincidir con X_DEFAULT_LOCALE de lib/seo.ts: si el sitemap y las
+// páginas declaran x-default distintos, Google recibe hreflang contradictorio.
+const X_DEFAULT_LOCALE: (typeof LOCALES)[number] = 'en';
 const PAGE_SIZE = 50;
 
 export const SITEMAP_REVALIDATE_SECONDS = 86_400;
@@ -32,7 +34,7 @@ function localizedEntries(
   const languages: Record<string, string> = Object.fromEntries(
     LOCALES.map((l) => [l, `${SITE}/${l}${suffix}`]),
   );
-  languages['x-default'] = `${SITE}/${DEFAULT_LOCALE}${suffix}`;
+  languages['x-default'] = `${SITE}/${X_DEFAULT_LOCALE}${suffix}`;
   return LOCALES.map((locale) => ({
     url: `${SITE}/${locale}${suffix}`,
     changeFrequency,

@@ -90,13 +90,18 @@ else
 fi
 
 # ---------- 3. build -------------------------------------------------------
+# --profile cron: sin él, compose se salta el servicio `scripts` (gateado
+# por profile) y los crons nocturnos siguen corriendo la imagen vieja con
+# el código nuevo — caso real 2026-06-10: compute-station-similarity no
+# existía en el contenedor recién desplegado. Ver CLAUDE.md §13.
 LOG "building images (pull base layers)"
-$COMPOSE build --pull
+$COMPOSE --profile cron build --pull
 
-# Tag imágenes con el sha y latest
+# Tag imágenes con el sha y latest. Sin || true: si una imagen esperada
+# no se construyó, mejor fallar ruidoso aquí que descubrirlo en el cron.
 for svc in api web icy-worker scripts; do
   img="radio-gofestivals/${svc}:${GIT_SHA}"
-  docker image tag "$img" "radio-gofestivals/${svc}:latest" 2>/dev/null || true
+  docker image tag "$img" "radio-gofestivals/${svc}:latest"
 done
 
 # ---------- 4. migrations --------------------------------------------------

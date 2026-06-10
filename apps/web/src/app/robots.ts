@@ -17,6 +17,7 @@ export default function robots(): MetadataRoute.Robots {
           '/*/reset-password',
           '/*/profile',
           '/*/favorites',
+          '/*/verify-email',
         ],
       },
     ],

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, NamedTuple
 
-from sqlalchemy import bindparam, func, select, text
+from sqlalchemy import ColumnElement, bindparam, func, select, text
 
 from app.models.genre import Genre
 from app.models.station import NowPlaying, Station, StationGenre
@@ -39,6 +39,11 @@ def apply_genre_cap[T](
         if len(selected) >= size:
             break
     return selected
+
+
+class CountryFacet(NamedTuple):
+    code: str
+    station_count: int
 
 
 class NearbyRow(NamedTuple):
@@ -151,6 +156,88 @@ async def list_featured_diverse_stations(
         (s, primary_by_station.get(str(s.id))) for s in pool
     ]
     return apply_genre_cap(candidates, size=size, cap=genre_cap)
+
+
+def _genre_filter(genre: str) -> ColumnElement[bool]:
+    return Station.id.in_(
+        select(StationGenre.station_id)
+        .join(Genre, Genre.id == StationGenre.genre_id)
+        .where(Genre.slug == genre),
+    )
+
+
+async def count_active_stations_by_country(
+    session: AsyncSession,
+    *,
+    genre: str | None = None,
+) -> list[CountryFacet]:
+    """Distinct country codes of the active visible catalog with counts.
+
+    Feeds the programmatic country pages and their sitemap entries — both
+    must gate on the same counts so they never diverge.
+    """
+    stmt = select(Station.country_code, func.count()).where(
+        Station.status == "active",
+        Station.hidden.is_(False),
+        Station.country_code.is_not(None),
+    )
+    if genre is not None:
+        stmt = stmt.where(_genre_filter(genre))
+    stmt = stmt.group_by(Station.country_code).order_by(
+        func.count().desc(),
+        Station.country_code.asc(),
+    )
+    rows = (await session.execute(stmt)).all()
+    return [CountryFacet(code=str(r[0]), station_count=int(r[1])) for r in rows]
+
+
+async def list_trending_stations(
+    session: AsyncSession,
+    *,
+    genre: str | None = None,
+    limit: int = 50,
+) -> list[Station]:
+    """Active visible stations ranked by click_trend (nightly 7-day log-ratio).
+
+    Stations with no signal yet (click_trend <= 0) are excluded — an honest
+    trending list beats padding it with quality-score filler.
+    """
+    stmt = (
+        select(Station)
+        .where(
+            Station.status == "active",
+            Station.hidden.is_(False),
+            Station.click_trend > 0,
+        )
+        .order_by(
+            Station.click_trend.desc(),
+            Station.quality_score.desc(),
+            Station.name.asc(),
+        )
+        .limit(limit)
+    )
+    if genre is not None:
+        stmt = stmt.where(_genre_filter(genre))
+    result = await session.execute(stmt)
+    return list(result.scalars().unique().all())
+
+
+async def list_newest_stations(
+    session: AsyncSession,
+    *,
+    limit: int = 50,
+) -> list[Station]:
+    stmt = (
+        select(Station)
+        .where(
+            Station.status == "active",
+            Station.hidden.is_(False),
+        )
+        .order_by(Station.created_at.desc(), Station.name.asc())
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().unique().all())
 
 
 async def get_active_station_by_slug(session: AsyncSession, slug: str) -> Station | None:

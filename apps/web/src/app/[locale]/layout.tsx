@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { JetBrains_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -19,6 +20,27 @@ const mono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500'],
   variable: '--font-mono',
+  display: 'swap',
+});
+
+// Chillax y Satoshi self-hosted (descargadas de Fontshare): sin conexión a
+// CDN de terceros y con preload automático — la fuente es el LCP del sitio.
+const chillax = localFont({
+  src: [
+    { path: '../../fonts/chillax-500.woff2', weight: '500' },
+    { path: '../../fonts/chillax-600.woff2', weight: '600' },
+    { path: '../../fonts/chillax-700.woff2', weight: '700' },
+  ],
+  variable: '--font-chillax',
+  display: 'swap',
+});
+
+const satoshi = localFont({
+  src: [
+    { path: '../../fonts/satoshi-400.woff2', weight: '400' },
+    { path: '../../fonts/satoshi-500.woff2', weight: '500' },
+  ],
+  variable: '--font-satoshi',
   display: 'swap',
 });
 
@@ -87,15 +109,10 @@ export default async function LocaleLayout({
   };
 
   return (
-    <html lang={locale} className={mono.variable}>
-      <head>
-        <link rel="preconnect" href="https://api.fontshare.com" />
-        <link rel="preconnect" href="https://cdn.fontshare.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://api.fontshare.com/v2/css?f[]=chillax@500,600,700&f[]=satoshi@400,500&display=swap"
-        />
-      </head>
+    <html
+      lang={locale}
+      className={`${mono.variable} ${chillax.variable} ${satoshi.variable}`}
+    >
       <body className="min-h-screen bg-bg-1 text-fg-1 font-body antialiased">
         <JsonLd data={websiteLd} />
         <JsonLd data={organizationLd} />

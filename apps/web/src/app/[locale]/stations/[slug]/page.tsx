@@ -122,7 +122,7 @@ export default async function StationPage({
         name: tNav('home'),
         item: `${SITE_URL}/${locale}`,
       },
-      { '@type': 'ListItem', position: 2, name: station.name },
+      { '@type': 'ListItem', position: 2, name: station.name, item: stationUrl },
     ],
   };
   // Radio-Browser stores `language` as a free-text, comma-joined string

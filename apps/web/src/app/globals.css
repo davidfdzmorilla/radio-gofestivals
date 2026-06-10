@@ -23,8 +23,8 @@
   --color-warm: var(--accent-warm);
   --color-ink: var(--bg-1);
 
-  --font-display: Chillax, ui-sans-serif, system-ui, sans-serif;
-  --font-body: Satoshi, Chillax, ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-chillax), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-satoshi), var(--font-chillax), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-mono), JetBrains Mono, ui-monospace, monospace;
 
   --rotate-1: 1deg;
@@ -90,7 +90,7 @@ html,
 body {
   background-color: var(--bg-1);
   color: var(--fg-1);
-  font-family: var(--font-body), 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }

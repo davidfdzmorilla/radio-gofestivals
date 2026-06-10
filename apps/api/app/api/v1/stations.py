@@ -14,6 +14,7 @@ from app.api.deps import (
 )
 from app.core.logging import get_logger
 from app.schemas.station import (
+    CountryFacet,
     NearbyStation,
     StationDetail,
     StationsPage,
@@ -90,6 +91,42 @@ async def list_featured(
     size: Annotated[int, Query(ge=1, le=24)] = 12,
 ) -> StationsPage:
     return await stations_service.list_featured_stations(session, size=size)
+
+
+@router.get("/facets/countries", response_model=list[CountryFacet])
+async def country_facets(
+    session: SessionDep,
+    genre: Annotated[str | None, Query(max_length=100)] = None,
+) -> list[CountryFacet]:
+    """Países del catálogo activo con conteo de emisoras.
+
+    Alimenta las páginas programáticas de país y el sitemap: ambos deben
+    aplicar el gate de publicación sobre estos mismos conteos.
+    """
+    return await stations_service.list_country_facets(session, genre=genre)
+
+
+@router.get("/trending", response_model=StationsPage)
+async def list_trending(
+    session: SessionDep,
+    genre: Annotated[str | None, Query(max_length=100)] = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 50,
+) -> StationsPage:
+    """Emisoras con click_trend positivo, ordenadas por tendencia."""
+    return await stations_service.list_trending_stations(
+        session,
+        genre=genre,
+        limit=limit,
+    )
+
+
+@router.get("/new", response_model=StationsPage)
+async def list_new(
+    session: SessionDep,
+    limit: Annotated[int, Query(ge=1, le=50)] = 50,
+) -> StationsPage:
+    """Últimas emisoras incorporadas al catálogo activo."""
+    return await stations_service.list_new_stations(session, limit=limit)
 
 
 @router.get("/recommended", response_model=StationsPage)

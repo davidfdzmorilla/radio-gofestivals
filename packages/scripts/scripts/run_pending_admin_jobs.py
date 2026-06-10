@@ -58,6 +58,10 @@ _ALLOWED_COMMANDS: dict[str, dict[str, Any]] = {
         "argv_base": ["compute-click-trends"],
         "timeout": 120,
     },
+    "compute_station_similarity": {
+        "argv_base": ["compute-station-similarity"],
+        "timeout": 300,
+    },
 }
 
 

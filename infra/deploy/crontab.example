@@ -21,6 +21,9 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Recalcular quality scores tras sync, a las 04:30 UTC
 30 4 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts compute-quality-scores >> /var/log/radio/quality.log 2>&1
 
+# Similitud emisora-emisora para recomendaciones (tras quality, 04:40 UTC)
+40 4 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts compute-station-similarity >> /var/log/radio/similarity.log 2>&1
+
 # Cleanup mensual de history (día 1 de cada mes, 04:45 UTC)
 45 4 1 * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts cleanup-clickcount-history >> /var/log/radio/cleanup.log 2>&1
 

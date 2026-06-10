@@ -42,10 +42,12 @@ function localizedEntries(
 }
 
 async function fetchAllStations(): Promise<Station[]> {
+  // Tolerante a API caída (p. ej. `next build` en CI sin backend): el
+  // sitemap degrada a rutas estáticas y se rellena al revalidar.
   const first = await fetch(`${API}/api/v1/stations?size=${PAGE_SIZE}&page=1`, {
     next: { revalidate: SITEMAP_REVALIDATE_SECONDS },
-  });
-  if (!first.ok) return [];
+  }).catch(() => null);
+  if (!first?.ok) return [];
   const firstPage = (await first.json()) as StationPage;
   const out: Station[] = [...firstPage.items];
 
@@ -65,8 +67,8 @@ async function fetchAllStations(): Promise<Station[]> {
 async function fetchAllGenres(): Promise<Genre[]> {
   const res = await fetch(`${API}/api/v1/genres`, {
     next: { revalidate: SITEMAP_REVALIDATE_SECONDS },
-  });
-  if (!res.ok) return [];
+  }).catch(() => null);
+  if (!res?.ok) return [];
   return flattenGenres((await res.json()) as Genre[]);
 }
 

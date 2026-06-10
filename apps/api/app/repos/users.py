@@ -62,6 +62,17 @@ async def update_password(
     )
 
 
+async def set_email_verified(
+    session: AsyncSession,
+    user_id: uuid.UUID,
+) -> None:
+    await session.execute(
+        update(User)
+        .where(User.id == user_id, User.deleted_at.is_(None))
+        .values(email_verified_at=datetime.now(tz=UTC)),
+    )
+
+
 async def soft_delete(
     session: AsyncSession,
     user_id: uuid.UUID,

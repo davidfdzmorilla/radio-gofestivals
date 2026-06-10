@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException, Request, Response, status
@@ -13,6 +14,7 @@ from app.schemas.user import (
     RegisterRequest,
     UserOut,
 )
+from app.services import email_verification as verification_service
 from app.services import user_auth as auth_service
 from app.services.rate_limit import check_rate_limit
 from app.services.user_auth import (
@@ -63,6 +65,7 @@ def _to_user_out(user: User) -> UserOut:
         bio=user.bio,
         avatar_url=user.avatar_url,
         is_public=user.is_public,
+        email_verified=user.email_verified_at is not None,
         created_at=user.created_at,
     )
 
@@ -113,6 +116,15 @@ async def register(
     )
     await session.commit()
     _set_refresh_cookie(response, raw_refresh, settings)
+    # Email de verificación best-effort: su fallo no rompe el registro.
+    try:
+        await verification_service.request_verification(
+            session,
+            user,
+            base_url=os.getenv("PUBLIC_BASE_URL", "https://radio.gofestivals.eu"),
+        )
+    except Exception:  # noqa: BLE001 — registro nunca debe fallar por el email
+        log.warning("verification_request_failed", user_id=str(user.id))
     log.info("user_registered", user_id=str(user.id), email=user.email)
     return AuthResponse(
         user=_to_user_out(user),

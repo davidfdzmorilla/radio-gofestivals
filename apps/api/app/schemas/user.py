@@ -24,6 +24,7 @@ class UserOut(BaseModel):
     bio: str | None
     avatar_url: str | None
     is_public: bool
+    email_verified: bool = False
     created_at: datetime
 
 
@@ -45,6 +46,10 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: uuid.UUID
     new_password: str = Field(min_length=8, max_length=200)
+
+
+class VerifyEmailRequest(BaseModel):
+    token: uuid.UUID
 
 
 class FavoriteStreamRef(BaseModel):

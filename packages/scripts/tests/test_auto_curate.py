@@ -46,10 +46,10 @@ async def _make_station(
         text(
             """
             INSERT INTO stations (
-                slug, name, stream_url, country_code, status, quality_score, curated
+                slug, name, country_code, status, quality_score, curated
             )
             VALUES (
-                :slug, :slug, 'https://x/y.mp3', :c,
+                :slug, :slug, :c,
                 CAST(:st AS station_status), :q, :cur
             )
             RETURNING id

@@ -23,7 +23,7 @@ export class ApiError extends Error {
 }
 
 interface FetchOpts<T> {
-  schema?: z.ZodType<T, z.ZodTypeDef, unknown>;
+  schema?: z.ZodType<T, unknown>;
   revalidate?: number;
   signal?: AbortSignal;
 }
@@ -47,11 +47,7 @@ export async function apiFetch<T>(path: string, opts: FetchOpts<T> = {}): Promis
   return data as T;
 }
 
-const GenresArraySchema = z.array(GenreSchema) as unknown as z.ZodType<
-  Genre[],
-  z.ZodTypeDef,
-  unknown
->;
+const GenresArraySchema = z.array(GenreSchema) as unknown as z.ZodType<Genre[], unknown>;
 
 export async function getGenresTree(revalidate = 300): Promise<Genre[]> {
   return apiFetch<Genre[]>('/api/v1/genres', {

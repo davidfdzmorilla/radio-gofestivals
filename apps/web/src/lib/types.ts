@@ -10,7 +10,7 @@ export interface Genre {
   children: Genre[];
 }
 
-export const GenreSchema: z.ZodType<Genre, z.ZodTypeDef, unknown> = z.lazy(() =>
+export const GenreSchema: z.ZodType<Genre, unknown> = z.lazy(() =>
   z
     .object({
       id: z.number(),

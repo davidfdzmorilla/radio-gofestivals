@@ -83,7 +83,7 @@ LOG "deploying sha=$GIT_SHA domain=$DOMAIN"
 LOG "backing up postgres before deploy"
 BACKUP_PATH=""
 if $COMPOSE ps postgres --status running 2>/dev/null | grep -q postgres; then
-  BACKUP_PATH=$("$SCRIPT_DIR/backup-postgres.sh" | awk -F'"file":' '/backup_done/ {print $2}' | tr -d '", }' || true)
+  BACKUP_PATH=$("$SCRIPT_DIR/backup-postgres.sh" | grep -o '"file":"[^"]*"' | cut -d'"' -f4 || true)
   LOG "backup path: ${BACKUP_PATH:-<none>}"
 else
   LOG "postgres not running, skipping pre-deploy backup"
@@ -108,12 +108,15 @@ fi
 
 # ---------- 5. rolling up --------------------------------------------------
 LOG "rolling up services"
-PREV_API_IMG=$(docker inspect --format='{{.Config.Image}}' radio-api-prod 2>/dev/null || echo "")
-PREV_WEB_IMG=$(docker inspect --format='{{.Config.Image}}' radio-web-prod 2>/dev/null || echo "")
+# IDs de imagen (sha256:...), no nombres de tag: el build nuevo ya ha pisado
+# :latest llegados aquí, así que retaggear por nombre sería un no-op.
+PREV_API_IMG=$(docker inspect --format='{{.Image}}' radio-api-prod 2>/dev/null || echo "")
+PREV_WEB_IMG=$(docker inspect --format='{{.Image}}' radio-web-prod 2>/dev/null || echo "")
+PREV_ICY_IMG=$(docker inspect --format='{{.Image}}' radio-icy-worker-prod 2>/dev/null || echo "")
 
 if ! $COMPOSE up -d --wait --wait-timeout 120; then
   ERR "compose up failed — invoking rollback"
-  "$SCRIPT_DIR/rollback.sh" "${BACKUP_PATH:-}" "${PREV_API_IMG}" "${PREV_WEB_IMG}" || true
+  "$SCRIPT_DIR/rollback.sh" "${BACKUP_PATH:-}" "${PREV_API_IMG}" "${PREV_WEB_IMG}" "${PREV_ICY_IMG}" || true
   exit 1
 fi
 
@@ -122,7 +125,15 @@ if [[ "${SKIP_SMOKE:-0}" != "1" ]]; then
   LOG "smoke tests against https://$DOMAIN"
   ok=1
   for path in "/" "/api/v1/genres" "/api/v1/_health"; do
-    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$DOMAIN$path" || echo "000")
+    # -L: / responde 307 -> /es (localePrefix 'always'); el destino es lo
+    # que debe dar 200. Reintentos: Traefik tarda unos segundos en registrar
+    # el router tras recrear contenedores (404 transitorio, visto 2026-06-10).
+    code="000"
+    for _attempt in 1 2 3; do
+      code=$(curl -sL -o /dev/null -w '%{http_code}' --max-time 10 "https://$DOMAIN$path" || echo "000")
+      [[ "$code" == "200" ]] && break
+      sleep 5
+    done
     if [[ "$code" != "200" ]]; then
       ERR "smoke FAIL: GET $path -> $code"
       ok=0
@@ -134,7 +145,7 @@ if [[ "${SKIP_SMOKE:-0}" != "1" ]]; then
   LOG "tls line: $tls_info"
   if [[ "$ok" != "1" ]]; then
     ERR "smoke tests failed — invoking rollback"
-    "$SCRIPT_DIR/rollback.sh" "${BACKUP_PATH:-}" "${PREV_API_IMG}" "${PREV_WEB_IMG}" || true
+    "$SCRIPT_DIR/rollback.sh" "${BACKUP_PATH:-}" "${PREV_API_IMG}" "${PREV_WEB_IMG}" "${PREV_ICY_IMG}" || true
     exit 1
   fi
 fi

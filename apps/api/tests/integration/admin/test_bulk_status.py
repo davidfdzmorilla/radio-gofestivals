@@ -54,7 +54,8 @@ async def test_422_when_status_not_inactive(
 
 
 async def test_bulk_inactivates_and_audits(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid_a = await _seed_station(db_session, slug="b-a", status="broken")
     sid_b = await _seed_station(db_session, slug="b-b", status="broken")
@@ -112,7 +113,8 @@ async def test_bulk_inactivates_and_audits(
 
 
 async def test_bulk_skips_already_inactive(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     a = await _seed_station(db_session, slug="sk-a", status="inactive")
     b = await _seed_station(db_session, slug="sk-b", status="active")
@@ -132,7 +134,8 @@ async def test_bulk_skips_already_inactive(
 
 
 async def test_bulk_zero_affected_when_all_already_inactive(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     a = await _seed_station(db_session, slug="z-a", status="inactive")
     resp = await logged_in_client.post(

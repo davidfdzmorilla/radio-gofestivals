@@ -104,7 +104,8 @@ async def test_401_without_auth(client: AsyncClient) -> None:
 
 
 async def test_lists_all_paginated(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     await _seed_station(db_session, slug="a", status="active")
     await _seed_station(db_session, slug="b", status="active")
@@ -118,14 +119,16 @@ async def test_lists_all_paginated(
 
 
 async def test_filter_by_status(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     await _seed_station(db_session, slug="act-1", status="active")
     await _seed_station(db_session, slug="bro-1", status="broken")
     await _seed_station(db_session, slug="bro-2", status="broken")
 
     resp = await logged_in_client.get(
-        "/api/v1/admin/stations", params={"status": "broken"},
+        "/api/v1/admin/stations",
+        params={"status": "broken"},
     )
     assert resp.status_code == 200
     body = resp.json()
@@ -134,14 +137,16 @@ async def test_filter_by_status(
 
 
 async def test_filter_by_curated(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     await _seed_station(db_session, slug="cur-1", curated=True)
     await _seed_station(db_session, slug="cur-2", curated=True)
     await _seed_station(db_session, slug="not-cur", curated=False)
 
     resp = await logged_in_client.get(
-        "/api/v1/admin/stations", params={"curated": "true"},
+        "/api/v1/admin/stations",
+        params={"curated": "true"},
     )
     assert resp.status_code == 200
     body = resp.json()
@@ -150,31 +155,36 @@ async def test_filter_by_curated(
 
 
 async def test_search_matches_name_or_slug(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     await _seed_station(db_session, slug="yammat-fm", name="Yammat FM")
     await _seed_station(db_session, slug="other", name="Different")
 
     by_name = await logged_in_client.get(
-        "/api/v1/admin/stations", params={"search": "yammat"},
+        "/api/v1/admin/stations",
+        params={"search": "yammat"},
     )
     assert by_name.status_code == 200
     assert {it["slug"] for it in by_name.json()["items"]} == {"yammat-fm"}
 
     by_slug = await logged_in_client.get(
-        "/api/v1/admin/stations", params={"search": "OTHE"},  # ILIKE
+        "/api/v1/admin/stations",
+        params={"search": "OTHE"},  # ILIKE
     )
     assert {it["slug"] for it in by_slug.json()["items"]} == {"other"}
 
 
 async def test_pagination(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     for i in range(5):
         await _seed_station(db_session, slug=f"p-{i}")
 
     resp = await logged_in_client.get(
-        "/api/v1/admin/stations", params={"page": 2, "size": 2},
+        "/api/v1/admin/stations",
+        params={"page": 2, "size": 2},
     )
     assert resp.status_code == 200
     body = resp.json()
@@ -186,7 +196,8 @@ async def test_pagination(
 
 
 async def test_includes_primary_stream_and_counts(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     techno = (
         await db_session.execute(text("SELECT id FROM genres WHERE slug='techno'"))
@@ -202,7 +213,8 @@ async def test_includes_primary_stream_and_counts(
     )
 
     resp = await logged_in_client.get(
-        "/api/v1/admin/stations", params={"search": "full"},
+        "/api/v1/admin/stations",
+        params={"search": "full"},
     )
     body = resp.json()
     assert body["total"] == 1

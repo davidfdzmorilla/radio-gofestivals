@@ -31,7 +31,9 @@ async def test_combined_filters(client: AsyncClient, create_station) -> None:  #
     await create_station(slug="es-tek", country_code="ES", curated=True, genre_slugs=["techno"])
     await create_station(slug="fr-tek", country_code="FR", curated=True, genre_slugs=["techno"])
     await create_station(slug="es-house", country_code="ES", curated=True, genre_slugs=["house"])
-    await create_station(slug="es-tek-unc", country_code="ES", curated=False, genre_slugs=["techno"])
+    await create_station(
+        slug="es-tek-unc", country_code="ES", curated=False, genre_slugs=["techno"]
+    )
 
     r = await client.get(
         "/api/v1/stations",

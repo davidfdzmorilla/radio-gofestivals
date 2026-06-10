@@ -63,7 +63,8 @@ async def test_reject_transitions_to_rejected(
     assert resp.status_code == 200
     status_val = (
         await db_session.execute(
-            text("SELECT status::text FROM stations WHERE id = :id"), {"id": str(sid)},
+            text("SELECT status::text FROM stations WHERE id = :id"),
+            {"id": str(sid)},
         )
     ).scalar_one()
     assert status_val == "rejected"
@@ -159,7 +160,8 @@ async def test_invalidates_genres_cache(
     assert spy.call_count == 1  # cached
 
     cur = await logged_in_client.put(
-        f"/api/v1/admin/stations/{sid}/curate", json={"decision": "approve"},
+        f"/api/v1/admin/stations/{sid}/curate",
+        json={"decision": "approve"},
     )
     assert cur.status_code == 200
 

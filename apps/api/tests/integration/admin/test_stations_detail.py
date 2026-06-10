@@ -19,7 +19,8 @@ async def test_404_for_missing_station(logged_in_client: AsyncClient) -> None:
 
 
 async def test_detail_returns_streams_and_genres(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     techno = (
         await db_session.execute(text("SELECT id FROM genres WHERE slug='techno'"))
@@ -43,7 +44,8 @@ async def test_detail_returns_streams_and_genres(
 
 
 async def test_detail_includes_audit_history(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(db_session, slug="det-audit", curated=False)
     # PATCH twice so two audit entries exist

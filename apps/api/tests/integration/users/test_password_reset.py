@@ -74,7 +74,8 @@ async def test_reset_password_with_valid_token(
         return_value=True,
     )
     user, _ = await registered_user(
-        email="cv@example.com", password="oldpass123",
+        email="cv@example.com",
+        password="oldpass123",
     )
     await client.post(
         "/api/v1/auth/forgot-password",
@@ -122,8 +123,7 @@ async def test_reset_password_token_already_used_400(
     token = (
         await db_session.execute(
             text(
-                "SELECT token::text FROM password_reset_tokens "
-                "WHERE user_id = CAST(:uid AS uuid)",
+                "SELECT token::text FROM password_reset_tokens WHERE user_id = CAST(:uid AS uuid)",
             ),
             {"uid": user["id"]},
         )

@@ -54,7 +54,8 @@ async def test_me_without_token(client: AsyncClient) -> None:
 
 async def test_me_with_bad_token(client: AsyncClient) -> None:
     resp = await client.get(
-        "/api/v1/admin/auth/me", headers={"Authorization": "Bearer not-a-real-jwt"},
+        "/api/v1/admin/auth/me",
+        headers={"Authorization": "Bearer not-a-real-jwt"},
     )
     assert resp.status_code == 401
 

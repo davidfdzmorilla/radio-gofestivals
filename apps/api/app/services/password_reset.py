@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from app.core.security import hash_password
 from app.repos import password_reset_tokens as tokens_repo
+from app.repos import user_refresh_tokens as refresh_repo
 from app.repos import users as users_repo
 from app.services.email_resend import send_password_reset_email
 
@@ -71,4 +72,7 @@ async def reset_password(
     # Invalidate any other pending reset tokens — a successful reset
     # should make older outstanding emails dead links.
     await tokens_repo.invalidate_user_tokens(session, user_id)
+    # Y cierra todas las sesiones abiertas: si el reset viene de un robo
+    # de cuenta, el atacante pierde sus refresh tokens aquí.
+    await refresh_repo.revoke_all_for_user(session, user_id)
     await session.commit()

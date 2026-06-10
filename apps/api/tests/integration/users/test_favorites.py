@@ -23,7 +23,8 @@ async def test_add_then_list_favorites(
     sid = await _seed_station(db_session, slug="fav-1")
     headers = {"Authorization": f"Bearer {token}"}
     add = await client.post(
-        f"/api/v1/favorites/{sid}", headers=headers,
+        f"/api/v1/favorites/{sid}",
+        headers=headers,
     )
     assert add.status_code == 201
     listing = await client.get("/api/v1/favorites", headers=headers)
@@ -42,10 +43,12 @@ async def test_add_favorite_idempotent(
     sid = await _seed_station(db_session, slug="fav-idem")
     headers = {"Authorization": f"Bearer {token}"}
     r1 = await client.post(
-        f"/api/v1/favorites/{sid}", headers=headers,
+        f"/api/v1/favorites/{sid}",
+        headers=headers,
     )
     r2 = await client.post(
-        f"/api/v1/favorites/{sid}", headers=headers,
+        f"/api/v1/favorites/{sid}",
+        headers=headers,
     )
     assert r1.status_code == 201
     assert r2.status_code == 201
@@ -63,7 +66,8 @@ async def test_remove_favorite(
     headers = {"Authorization": f"Bearer {token}"}
     await client.post(f"/api/v1/favorites/{sid}", headers=headers)
     rm = await client.delete(
-        f"/api/v1/favorites/{sid}", headers=headers,
+        f"/api/v1/favorites/{sid}",
+        headers=headers,
     )
     assert rm.status_code == 204
     listing = await client.get("/api/v1/favorites", headers=headers)

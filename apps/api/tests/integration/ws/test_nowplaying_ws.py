@@ -98,11 +98,7 @@ def test_publishes_subscribe_on_connect_and_release_on_disconnect(
             got_sub = False
             for _ in range(20):
                 m = pubsub.get_message(timeout=0.2)
-                if (
-                    m
-                    and m.get("type") == "message"
-                    and m["channel"] == b"icy:subscribe"
-                ):
+                if m and m.get("type") == "message" and m["channel"] == b"icy:subscribe":
                     assert m["data"] == b"ws-pub"
                     got_sub = True
                     break
@@ -114,11 +110,7 @@ def test_publishes_subscribe_on_connect_and_release_on_disconnect(
         got_rel = False
         for _ in range(50):
             m = pubsub.get_message(timeout=0.2)
-            if (
-                m
-                and m.get("type") == "message"
-                and m["channel"] == b"icy:release"
-            ):
+            if m and m.get("type") == "message" and m["channel"] == b"icy:release":
                 assert m["data"] == b"ws-pub"
                 got_rel = True
                 break

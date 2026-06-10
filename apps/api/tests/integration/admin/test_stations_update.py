@@ -12,21 +12,25 @@ if TYPE_CHECKING:
 
 
 async def test_401_without_auth(
-    client: AsyncClient, db_session: AsyncSession,
+    client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(db_session, slug="u-anon")
     resp = await client.patch(
-        f"/api/v1/admin/stations/{sid}", json={"curated": True},
+        f"/api/v1/admin/stations/{sid}",
+        json={"curated": True},
     )
     assert resp.status_code == 401
 
 
 async def test_toggle_curated_logs_audit(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(db_session, slug="u-cur", curated=False)
     resp = await logged_in_client.patch(
-        f"/api/v1/admin/stations/{sid}", json={"curated": True},
+        f"/api/v1/admin/stations/{sid}",
+        json={"curated": True},
     )
     assert resp.status_code == 200
     assert resp.json()["curated"] is True
@@ -44,11 +48,13 @@ async def test_toggle_curated_logs_audit(
 
 
 async def test_change_status_logs_audit(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(db_session, slug="u-st", status="active")
     resp = await logged_in_client.patch(
-        f"/api/v1/admin/stations/{sid}", json={"status": "inactive"},
+        f"/api/v1/admin/stations/{sid}",
+        json={"status": "inactive"},
     )
     assert resp.status_code == 200
     assert resp.json()["status"] == "inactive"
@@ -66,7 +72,8 @@ async def test_change_status_logs_audit(
 
 
 async def test_edit_metadata_logs_audit(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(db_session, slug="u-meta", name="Old")
     resp = await logged_in_client.patch(
@@ -88,10 +95,15 @@ async def test_edit_metadata_logs_audit(
 
 
 async def test_multiple_changes_log_one_entry_per_kind(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(
-        db_session, slug="u-multi", curated=False, status="active", name="A",
+        db_session,
+        slug="u-multi",
+        curated=False,
+        status="active",
+        name="A",
     )
     resp = await logged_in_client.patch(
         f"/api/v1/admin/stations/{sid}",
@@ -102,8 +114,7 @@ async def test_multiple_changes_log_one_entry_per_kind(
     rows = (
         await db_session.execute(
             text(
-                "SELECT decision::text FROM curation_log "
-                "WHERE station_id = :id ORDER BY id",
+                "SELECT decision::text FROM curation_log WHERE station_id = :id ORDER BY id",
             ),
             {"id": str(sid)},
         )
@@ -114,11 +125,13 @@ async def test_multiple_changes_log_one_entry_per_kind(
 
 
 async def test_no_op_does_not_log(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(db_session, slug="u-noop", curated=True)
     resp = await logged_in_client.patch(
-        f"/api/v1/admin/stations/{sid}", json={"curated": True},
+        f"/api/v1/admin/stations/{sid}",
+        json={"curated": True},
     )
     assert resp.status_code == 200
 
@@ -132,53 +145,57 @@ async def test_no_op_does_not_log(
 
 
 async def test_status_pending_rejected(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(db_session, slug="u-pending", status="active")
     resp = await logged_in_client.patch(
-        f"/api/v1/admin/stations/{sid}", json={"status": "pending"},
+        f"/api/v1/admin/stations/{sid}",
+        json={"status": "pending"},
     )
     assert resp.status_code == 422  # pydantic Literal mismatch
 
 
 async def test_slug_conflict(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     await _seed_station(db_session, slug="taken")
     sid = await _seed_station(db_session, slug="mine")
     resp = await logged_in_client.patch(
-        f"/api/v1/admin/stations/{sid}", json={"slug": "taken"},
+        f"/api/v1/admin/stations/{sid}",
+        json={"slug": "taken"},
     )
     assert resp.status_code == 409
 
 
 async def test_invalid_genre_ids(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(db_session, slug="u-bad-genre")
     resp = await logged_in_client.patch(
-        f"/api/v1/admin/stations/{sid}", json={"genre_ids": [99999]},
+        f"/api/v1/admin/stations/{sid}",
+        json={"genre_ids": [99999]},
     )
     assert resp.status_code == 400
 
 
 async def test_genre_ids_replace_set(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     techno = int(
-        (
-            await db_session.execute(text("SELECT id FROM genres WHERE slug='techno'"))
-        ).scalar_one(),
+        (await db_session.execute(text("SELECT id FROM genres WHERE slug='techno'"))).scalar_one(),
     )
     house = int(
-        (
-            await db_session.execute(text("SELECT id FROM genres WHERE slug='house'"))
-        ).scalar_one(),
+        (await db_session.execute(text("SELECT id FROM genres WHERE slug='house'"))).scalar_one(),
     )
     sid = await _seed_station(db_session, slug="u-genres", genre_ids=[techno])
 
     resp = await logged_in_client.patch(
-        f"/api/v1/admin/stations/{sid}", json={"genre_ids": [house]},
+        f"/api/v1/admin/stations/{sid}",
+        json={"genre_ids": [house]},
     )
     assert resp.status_code == 200
 

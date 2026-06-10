@@ -77,7 +77,9 @@ async def _seed_plays(
 
 
 async def _plays_for(
-    session: AsyncSession, *, user_id: uuid.UUID | None = None,
+    session: AsyncSession,
+    *,
+    user_id: uuid.UUID | None = None,
     client_id: uuid.UUID | None = None,
 ) -> int:
     if user_id is not None:
@@ -167,7 +169,8 @@ async def test_merge_unknown_client_id_is_noop(
 
 async def test_merge_requires_auth(client: AsyncClient) -> None:
     r = await client.post(
-        "/api/v1/me/plays/merge", json={"client_id": str(uuid.uuid4())},
+        "/api/v1/me/plays/merge",
+        json={"client_id": str(uuid.uuid4())},
     )
     assert r.status_code in {401, 403}
 
@@ -179,10 +182,14 @@ async def test_export_returns_user_plays(
     make_token: Callable[[], Awaitable[tuple[uuid.UUID, str]]],
 ) -> None:
     await create_station(
-        slug="exp-a", name="Export A", genre_slugs=["techno"],
+        slug="exp-a",
+        name="Export A",
+        genre_slugs=["techno"],
     )
     await create_station(
-        slug="exp-b", name="Export B", genre_slugs=["house"],
+        slug="exp-b",
+        name="Export B",
+        genre_slugs=["house"],
     )
     user_id, token = await make_token()
     await _seed_plays(db_session, station_slug="exp-a", user_id=user_id)

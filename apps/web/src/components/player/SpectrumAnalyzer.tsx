@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { cn } from '@/lib/utils';
 
 interface SpectrumAnalyzerProps {
-  audioElement: HTMLAudioElement | null;
+  // Ref en vez de elemento: leer ref.current durante el render no es
+  // reactivo y react-hooks v6 lo marca; los efectos leen .current al correr
+  // (los refs se asignan en el commit, antes de cualquier efecto).
+  audioRef: RefObject<HTMLAudioElement | null>;
   isPlaying: boolean;
   barCount?: number;
   className?: string;
@@ -28,7 +31,7 @@ export function groupBars(dataArray: Uint8Array, targetCount: number): number[] 
 }
 
 export function SpectrumAnalyzer({
-  audioElement,
+  audioRef,
   isPlaying,
   barCount = 10,
   className,
@@ -43,6 +46,7 @@ export function SpectrumAnalyzer({
   const silenceFramesRef = useRef(0);
 
   useEffect(() => {
+    const audioElement = audioRef.current;
     if (!audioElement || !isPlaying) return;
     if (audioContextRef.current) {
       // Already wired — resume if the browser suspended it after a tab switch.
@@ -81,9 +85,10 @@ export function SpectrumAnalyzer({
       // reload). Fall back to decorative so the user still sees motion.
       setMode('decorative');
     }
-  }, [audioElement, isPlaying]);
+  }, [audioRef, isPlaying]);
 
   useEffect(() => {
+    const audioElement = audioRef.current;
     if (!audioElement) return;
 
     const handleSrcChange = () => {
@@ -111,7 +116,7 @@ export function SpectrumAnalyzer({
     return () => {
       audioElement.removeEventListener('loadstart', handleSrcChange);
     };
-  }, [audioElement]);
+  }, [audioRef]);
 
   useEffect(() => {
     if (!isPlaying) {

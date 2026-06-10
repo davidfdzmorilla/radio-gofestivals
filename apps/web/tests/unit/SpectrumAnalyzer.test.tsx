@@ -31,20 +31,20 @@ describe('groupBars', () => {
 
 describe('<SpectrumAnalyzer />', () => {
   it('renders the requested number of bars', () => {
-    render(<SpectrumAnalyzer audioElement={null} isPlaying={false} barCount={12} />);
+    render(<SpectrumAnalyzer audioRef={{ current: null }} isPlaying={false} barCount={12} />);
     const wrapper = screen.getByTestId('spectrum-analyzer');
     expect(wrapper.children).toHaveLength(12);
   });
 
   it('starts in idle mode when audioElement is null', () => {
-    render(<SpectrumAnalyzer audioElement={null} isPlaying barCount={6} />);
+    render(<SpectrumAnalyzer audioRef={{ current: null }} isPlaying barCount={6} />);
     const wrapper = screen.getByTestId('spectrum-analyzer');
     expect(wrapper.dataset.mode).toBe('idle');
   });
 
   it('does not run animation frames while paused', () => {
     const raf = vi.spyOn(window, 'requestAnimationFrame');
-    render(<SpectrumAnalyzer audioElement={null} isPlaying={false} barCount={4} />);
+    render(<SpectrumAnalyzer audioRef={{ current: null }} isPlaying={false} barCount={4} />);
     expect(raf).not.toHaveBeenCalled();
   });
 
@@ -77,10 +77,14 @@ describe('<SpectrumAnalyzer />', () => {
     };
     (window as unknown as { AudioContext: unknown }).AudioContext = vi
       .fn()
-      .mockImplementation(() => fakeCtx);
+      // function, no arrow: Vitest 4 ya no envuelve la implementación y
+      // `new` sobre una arrow lanza "not a constructor".
+      .mockImplementation(function (this: unknown) {
+        return fakeCtx;
+      });
 
     const audio = document.createElement('audio');
-    render(<SpectrumAnalyzer audioElement={audio} isPlaying barCount={8} />);
+    render(<SpectrumAnalyzer audioRef={{ current: audio }} isPlaying barCount={8} />);
 
     const wrapper = screen.getByTestId('spectrum-analyzer');
     expect(wrapper.dataset.mode).toBe('real');
@@ -122,11 +126,15 @@ describe('<SpectrumAnalyzer />', () => {
     };
     (window as unknown as { AudioContext: unknown }).AudioContext = vi
       .fn()
-      .mockImplementation(() => fakeCtx);
+      // function, no arrow: Vitest 4 ya no envuelve la implementación y
+      // `new` sobre una arrow lanza "not a constructor".
+      .mockImplementation(function (this: unknown) {
+        return fakeCtx;
+      });
 
     const audio = document.createElement('audio');
     const addSpy = vi.spyOn(audio, 'addEventListener');
-    render(<SpectrumAnalyzer audioElement={audio} isPlaying barCount={8} />);
+    render(<SpectrumAnalyzer audioRef={{ current: audio }} isPlaying barCount={8} />);
 
     const wrapper = screen.getByTestId('spectrum-analyzer');
     expect(wrapper.dataset.mode).toBe('real');
@@ -153,7 +161,7 @@ describe('<SpectrumAnalyzer />', () => {
     const audio = document.createElement('audio');
     const removeSpy = vi.spyOn(audio, 'removeEventListener');
     const { unmount } = render(
-      <SpectrumAnalyzer audioElement={audio} isPlaying={false} barCount={4} />,
+      <SpectrumAnalyzer audioRef={{ current: audio }} isPlaying={false} barCount={4} />,
     );
     unmount();
     expect(removeSpy).toHaveBeenCalledWith('loadstart', expect.any(Function));

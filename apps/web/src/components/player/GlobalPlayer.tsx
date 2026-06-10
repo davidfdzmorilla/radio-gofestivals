@@ -133,7 +133,7 @@ export function GlobalPlayer() {
           )}
         </button>
         <SpectrumAnalyzer
-          audioElement={audioRef.current}
+          audioRef={audioRef}
           isPlaying={isPlaying}
           barCount={10}
           className="hidden sm:flex"

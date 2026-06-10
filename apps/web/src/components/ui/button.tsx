@@ -1,4 +1,4 @@
-import { forwardRef, type ButtonHTMLAttributes } from 'react';
+import { type ButtonHTMLAttributes, type Ref } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
@@ -29,15 +29,16 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+    VariantProps<typeof buttonVariants> {
+  ref?: Ref<HTMLButtonElement>;
+}
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, ...props }, ref) => (
+// React 19: ref es una prop normal; forwardRef queda deprecado.
+export function Button({ className, variant, size, ...props }: ButtonProps) {
+  return (
     <button
-      ref={ref}
       className={cn(buttonVariants({ variant, size }), className)}
       {...props}
     />
-  ),
-);
-Button.displayName = 'Button';
+  );
+}

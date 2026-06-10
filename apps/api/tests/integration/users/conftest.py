@@ -35,7 +35,8 @@ async def registered_user(client: AsyncClient):  # type: ignore[no-untyped-def]
     counter = {"n": 0}
 
     async def _make(
-        email: str | None = None, password: str = "testpass123",
+        email: str | None = None,
+        password: str = "testpass123",
     ) -> tuple[dict, str]:
         if email is None:
             counter["n"] += 1

@@ -12,7 +12,8 @@ if TYPE_CHECKING:
 
 
 async def test_like_without_auth_401(
-    client: AsyncClient, db_session: AsyncSession,
+    client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(db_session, slug="lk-anon")
     resp = await client.post(f"/api/v1/stations/{sid}/like")
@@ -28,7 +29,8 @@ async def test_like_first_time_increments_counter(
     sid = await _seed_station(db_session, slug="lk-1")
     headers = {"Authorization": f"Bearer {token}"}
     resp = await client.post(
-        f"/api/v1/stations/{sid}/like", headers=headers,
+        f"/api/v1/stations/{sid}/like",
+        headers=headers,
     )
     assert resp.status_code == 201
     body = resp.json()
@@ -45,10 +47,12 @@ async def test_like_idempotent(
     sid = await _seed_station(db_session, slug="lk-idem")
     headers = {"Authorization": f"Bearer {token}"}
     r1 = await client.post(
-        f"/api/v1/stations/{sid}/like", headers=headers,
+        f"/api/v1/stations/{sid}/like",
+        headers=headers,
     )
     r2 = await client.post(
-        f"/api/v1/stations/{sid}/like", headers=headers,
+        f"/api/v1/stations/{sid}/like",
+        headers=headers,
     )
     assert r1.json()["votes_local"] == 1
     assert r2.json()["votes_local"] == 1
@@ -64,7 +68,8 @@ async def test_unlike_decrements(
     headers = {"Authorization": f"Bearer {token}"}
     await client.post(f"/api/v1/stations/{sid}/like", headers=headers)
     rm = await client.delete(
-        f"/api/v1/stations/{sid}/like", headers=headers,
+        f"/api/v1/stations/{sid}/like",
+        headers=headers,
     )
     assert rm.status_code == 200
     body = rm.json()
@@ -81,7 +86,8 @@ async def test_unlike_never_voted_is_safe(
     sid = await _seed_station(db_session, slug="lk-never")
     headers = {"Authorization": f"Bearer {token}"}
     rm = await client.delete(
-        f"/api/v1/stations/{sid}/like", headers=headers,
+        f"/api/v1/stations/{sid}/like",
+        headers=headers,
     )
     assert rm.status_code == 200
     assert rm.json()["votes_local"] == 0

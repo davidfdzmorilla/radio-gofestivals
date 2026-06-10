@@ -45,13 +45,25 @@ async def test_kpis_with_seeded_data(
     db_session: AsyncSession,
 ) -> None:
     await _seed_station(
-        db_session, slug="a", status="active", curated=True, quality_score=80,
+        db_session,
+        slug="a",
+        status="active",
+        curated=True,
+        quality_score=80,
     )
     await _seed_station(
-        db_session, slug="b", status="active", curated=False, quality_score=40,
+        db_session,
+        slug="b",
+        status="active",
+        curated=False,
+        quality_score=40,
     )
     await _seed_station(
-        db_session, slug="c", status="broken", curated=False, quality_score=10,
+        db_session,
+        slug="c",
+        status="broken",
+        curated=False,
+        quality_score=10,
     )
 
     resp = await logged_in_client.get("/api/v1/admin/dashboard/stats")
@@ -73,21 +85,26 @@ async def test_quality_distribution_buckets(
 ) -> None:
     # Two in 70-89, one in 30-49
     await _seed_station(
-        db_session, slug="hi-1", status="active", quality_score=80,
+        db_session,
+        slug="hi-1",
+        status="active",
+        quality_score=80,
     )
     await _seed_station(
-        db_session, slug="hi-2", status="active", quality_score=85,
+        db_session,
+        slug="hi-2",
+        status="active",
+        quality_score=85,
     )
     await _seed_station(
-        db_session, slug="mid", status="active", quality_score=45,
+        db_session,
+        slug="mid",
+        status="active",
+        quality_score=45,
     )
 
-    body = (
-        await logged_in_client.get("/api/v1/admin/dashboard/stats")
-    ).json()
-    buckets = {
-        b["bucket"]: b["count"] for b in body["quality_distribution"]
-    }
+    body = (await logged_in_client.get("/api/v1/admin/dashboard/stats")).json()
+    buckets = {b["bucket"]: b["count"] for b in body["quality_distribution"]}
     assert buckets.get("70-89") == 2
     assert buckets.get("30-49") == 1
 
@@ -97,24 +114,32 @@ async def test_top_countries_only_active(
     db_session: AsyncSession,
 ) -> None:
     await _seed_station(
-        db_session, slug="es-1", status="active", country_code="ES",
+        db_session,
+        slug="es-1",
+        status="active",
+        country_code="ES",
     )
     await _seed_station(
-        db_session, slug="es-2", status="active", country_code="ES",
+        db_session,
+        slug="es-2",
+        status="active",
+        country_code="ES",
     )
     await _seed_station(
-        db_session, slug="fr-1", status="active", country_code="FR",
+        db_session,
+        slug="fr-1",
+        status="active",
+        country_code="FR",
     )
     await _seed_station(
-        db_session, slug="br-1", status="broken", country_code="DE",
+        db_session,
+        slug="br-1",
+        status="broken",
+        country_code="DE",
     )
 
-    body = (
-        await logged_in_client.get("/api/v1/admin/dashboard/stats")
-    ).json()
-    countries = {
-        c["country_code"]: c["count"] for c in body["top_countries"]
-    }
+    body = (await logged_in_client.get("/api/v1/admin/dashboard/stats")).json()
+    countries = {c["country_code"]: c["count"] for c in body["top_countries"]}
     assert countries.get("ES") == 2
     assert countries.get("FR") == 1
     assert "DE" not in countries  # broken stations excluded
@@ -162,12 +187,8 @@ async def test_top_genres_curated_only(
         genre_ids=[techno],
     )
 
-    body = (
-        await logged_in_client.get("/api/v1/admin/dashboard/stats")
-    ).json()
-    by_genre = {
-        g["name"]: g["count"] for g in body["top_genres_curated"]
-    }
+    body = (await logged_in_client.get("/api/v1/admin/dashboard/stats")).json()
+    by_genre = {g["name"]: g["count"] for g in body["top_genres_curated"]}
     assert by_genre.get("Techno") == 2
     assert by_genre.get("House") == 1
 
@@ -179,13 +200,12 @@ async def test_recent_activity_returns_curation_log(
     sid = await _seed_station(db_session, slug="act-1", curated=False)
     # Trigger an admin action so curation_log gets one row
     resp = await logged_in_client.patch(
-        f"/api/v1/admin/stations/{sid}", json={"curated": True},
+        f"/api/v1/admin/stations/{sid}",
+        json={"curated": True},
     )
     assert resp.status_code == 200
 
-    body = (
-        await logged_in_client.get("/api/v1/admin/dashboard/stats")
-    ).json()
+    body = (await logged_in_client.get("/api/v1/admin/dashboard/stats")).json()
     activity = body["recent_activity"]
     assert len(activity) >= 1
     first = activity[0]

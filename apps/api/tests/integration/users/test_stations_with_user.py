@@ -10,7 +10,8 @@ if TYPE_CHECKING:
 
 
 async def test_list_anon_omits_personal_fields(
-    client: AsyncClient, db_session: AsyncSession,
+    client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     await _seed_station(db_session, slug="anon-1", status="active")
     resp = await client.get("/api/v1/stations")
@@ -53,7 +54,8 @@ async def test_detail_with_user_personalizes_without_polluting_cache(
 
     # First fetch with user → personalised
     r_user = await client.get(
-        "/api/v1/stations/det-usr", headers=headers,
+        "/api/v1/stations/det-usr",
+        headers=headers,
     )
     assert r_user.status_code == 200
     assert r_user.json()["is_favorite"] is True

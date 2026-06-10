@@ -45,9 +45,7 @@ async def make_token(db_session: AsyncSession):  # type: ignore[no-untyped-def]
 
 
 async def _plays_count(session: AsyncSession) -> int:
-    row = (
-        await session.execute(text("SELECT COUNT(*) FROM station_plays"))
-    ).scalar_one()
+    row = (await session.execute(text("SELECT COUNT(*) FROM station_plays"))).scalar_one()
     return int(row)
 
 
@@ -82,8 +80,7 @@ async def test_play_with_jwt_inserts_row_keyed_by_user_id(
     row = (
         await db_session.execute(
             text(
-                "SELECT user_id, client_id FROM station_plays "
-                "ORDER BY id DESC LIMIT 1",
+                "SELECT user_id, client_id FROM station_plays ORDER BY id DESC LIMIT 1",
             ),
         )
     ).first()
@@ -111,8 +108,7 @@ async def test_play_with_client_id_inserts_anonymous_row(
     row = (
         await db_session.execute(
             text(
-                "SELECT user_id, client_id FROM station_plays "
-                "ORDER BY id DESC LIMIT 1",
+                "SELECT user_id, client_id FROM station_plays ORDER BY id DESC LIMIT 1",
             ),
         )
     ).first()
@@ -141,8 +137,7 @@ async def test_play_jwt_wins_over_client_id_when_both_present(
     row = (
         await db_session.execute(
             text(
-                "SELECT user_id, client_id FROM station_plays "
-                "ORDER BY id DESC LIMIT 1",
+                "SELECT user_id, client_id FROM station_plays ORDER BY id DESC LIMIT 1",
             ),
         )
     ).first()

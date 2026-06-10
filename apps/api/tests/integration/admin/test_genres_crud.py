@@ -49,7 +49,8 @@ async def test_put_partial_update(
     db_session: AsyncSession,
 ) -> None:
     create = await logged_in_client.post(
-        "/api/v1/admin/genres", json={"slug": "uk-garage", "name": "UK Garage"},
+        "/api/v1/admin/genres",
+        json={"slug": "uk-garage", "name": "UK Garage"},
     )
     gid = create.json()["id"]
 
@@ -65,7 +66,8 @@ async def test_put_partial_update(
 
 async def test_put_404_missing(logged_in_client: AsyncClient) -> None:
     resp = await logged_in_client.put(
-        "/api/v1/admin/genres/9999", json={"name": "Nope"},
+        "/api/v1/admin/genres/9999",
+        json={"name": "Nope"},
     )
     assert resp.status_code == 404
 
@@ -89,7 +91,8 @@ async def test_delete_unused_ok(
     db_session: AsyncSession,
 ) -> None:
     create = await logged_in_client.post(
-        "/api/v1/admin/genres", json={"slug": "chiptune", "name": "Chiptune"},
+        "/api/v1/admin/genres",
+        json={"slug": "chiptune", "name": "Chiptune"},
     )
     gid = create.json()["id"]
     resp = await logged_in_client.delete(f"/api/v1/admin/genres/{gid}")
@@ -111,7 +114,8 @@ async def test_crud_invalidates_cache(
     assert spy.call_count == 1
 
     await logged_in_client.post(
-        "/api/v1/admin/genres", json={"slug": "leftfield", "name": "Leftfield"},
+        "/api/v1/admin/genres",
+        json={"slug": "leftfield", "name": "Leftfield"},
     )
 
     await logged_in_client.get("/api/v1/genres")

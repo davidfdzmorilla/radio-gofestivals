@@ -143,14 +143,16 @@ async def test_list_jobs_filter_by_status(
     _ = r2
 
     pending = await logged_in_client.get(
-        "/api/v1/admin/operations/jobs", params={"status": "pending"},
+        "/api/v1/admin/operations/jobs",
+        params={"status": "pending"},
     )
     assert pending.status_code == 200
     items = pending.json()["items"]
     assert all(it["status"] == "pending" for it in items)
 
     succ = await logged_in_client.get(
-        "/api/v1/admin/operations/jobs", params={"status": "success"},
+        "/api/v1/admin/operations/jobs",
+        params={"status": "success"},
     )
     succ_items = succ.json()["items"]
     assert all(it["status"] == "success" for it in succ_items)

@@ -10,9 +10,18 @@ def test_empty_input_returns_empty() -> None:
 def test_simple_cap_2_per_bucket() -> None:
     # 4 items in bucket 1, 4 in bucket 2, 4 in bucket 3 — cap=2 keeps 2 each.
     candidates = [
-        ("a1", 1), ("a2", 1), ("a3", 1), ("a4", 1),
-        ("b1", 2), ("b2", 2), ("b3", 2), ("b4", 2),
-        ("c1", 3), ("c2", 3), ("c3", 3), ("c4", 3),
+        ("a1", 1),
+        ("a2", 1),
+        ("a3", 1),
+        ("a4", 1),
+        ("b1", 2),
+        ("b2", 2),
+        ("b3", 2),
+        ("b4", 2),
+        ("c1", 3),
+        ("c2", 3),
+        ("c3", 3),
+        ("c4", 3),
     ]
     result = apply_genre_cap(candidates, size=12, cap=2)
     assert result == ["a1", "a2", "b1", "b2", "c1", "c2"]
@@ -37,7 +46,8 @@ def test_skips_none_buckets() -> None:
         ("also-with-genre", 2),
     ]
     assert apply_genre_cap(candidates, size=10, cap=2) == [
-        "with-genre", "also-with-genre",
+        "with-genre",
+        "also-with-genre",
     ]
 
 

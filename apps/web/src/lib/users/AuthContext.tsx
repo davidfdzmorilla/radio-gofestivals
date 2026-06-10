@@ -10,11 +10,12 @@ import {
   type ReactNode,
 } from 'react';
 import {
+  clearLegacyStoredToken,
   clearStoredToken,
-  getStoredToken,
   setStoredToken,
+  tryRefreshSession,
 } from './api';
-import { getMe } from './auth';
+import { getMe, logoutUser } from './auth';
 import {
   BackendFavorites,
   type FavoritesProvider,
@@ -52,22 +53,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const backendProvider = useMemo(() => new BackendFavorites(), []);
   const provider: FavoritesProvider = user ? backendProvider : localProvider;
 
-  // Initial bootstrap: hydrate user + favorites depending on token presence.
+  // Initial bootstrap (B3): la sesión vive en la cookie httpOnly de
+  // refresh — se intenta restaurar contra /auth/refresh. Sin cookie (o
+  // revocada) somos anónimos. El JWT legacy de localStorage se purga.
   useEffect(() => {
     let cancelled = false;
-    const token = getStoredToken();
-    if (!token) {
-      if (!cancelled) {
-        setFavoriteIds(new Set(localProvider.ids()));
-        setIsLoading(false);
-      }
-      return () => {
-        cancelled = true;
-      };
-    }
 
     (async () => {
+      clearLegacyStoredToken();
       try {
+        const session = await tryRefreshSession();
+        if (cancelled) return;
+        if (session === null) {
+          setFavoriteIds(new Set(localProvider.ids()));
+          return;
+        }
         const me = await getMe();
         if (cancelled) return;
         setUser(me);
@@ -134,6 +134,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    // Revoca el refresh token en el servidor y limpia la cookie;
+    // best-effort — el estado local se limpia igualmente.
+    void logoutUser();
     clearStoredToken();
     setUser(null);
     // After logout we're anonymous; the local cache may be empty.

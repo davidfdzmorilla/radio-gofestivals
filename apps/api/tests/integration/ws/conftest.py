@@ -13,7 +13,7 @@ from sqlalchemy import create_engine, text
 
 
 @pytest_asyncio.fixture(autouse=True)
-async def _reset_state() -> AsyncIterator[None]:  # noqa: PT004
+async def _reset_state() -> AsyncIterator[None]:
     yield
 
 
@@ -40,4 +40,4 @@ def _sync_reset() -> Iterator[None]:
             ),
         )
     engine.dispose()
-    yield
+    return

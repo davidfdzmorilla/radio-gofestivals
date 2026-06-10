@@ -1,3 +1,4 @@
+import { __resetSessionStateForTests } from '@/lib/users/api';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { HeartButton } from '@/components/auth/HeartButton';
@@ -17,6 +18,7 @@ vi.mock('next/navigation', () => ({
 
 beforeEach(() => {
   window.localStorage.clear();
+  __resetSessionStateForTests();
 });
 
 afterEach(() => {
@@ -45,10 +47,19 @@ describe('<HeartButton />', () => {
   it('reverts when the backend provider call fails', async () => {
     // Authenticated user → BackendFavorites is the active provider; we
     // make /favorites/{id} fail so the optimistic add() throws.
-    window.localStorage.setItem('user_token', 'jwt-1');
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
       const url = String(input);
       const method = (init?.method ?? 'GET').toUpperCase();
+      if (url.endsWith('/api/v1/auth/refresh')) {
+        return new Response(
+          JSON.stringify({
+            access_token: 'jwt-1',
+            expires_at: '2026-06-10T23:59:59Z',
+            user: { id: 'u', email: 'me@x.com' },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
       if (url.endsWith('/api/v1/auth/me')) {
         return new Response(
           JSON.stringify({
@@ -81,6 +92,14 @@ describe('<HeartButton />', () => {
       </TestProviders>,
     );
     const btn = await screen.findByRole('button');
+    // Esperar a que el bootstrap (refresh + me) haya activado el provider
+    // de backend antes de pulsar — si no, el add cae en localStorage.
+    await waitFor(() => {
+      expect(vi.mocked(globalThis.fetch)).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/auth/me'),
+        expect.anything(),
+      );
+    });
     await waitFor(() => {
       expect(btn).toHaveAttribute('aria-pressed', 'false');
     });

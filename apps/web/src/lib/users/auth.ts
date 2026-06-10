@@ -105,3 +105,15 @@ export async function resetPassword(
     throw new Error(mapAuthError(response.status, await readDetail(response)));
   }
 }
+
+/**
+ * Revoca el refresh token en el servidor y limpia la cookie httpOnly.
+ * Best-effort: un fallo de red no debe bloquear el logout local.
+ */
+export async function logoutUser(): Promise<void> {
+  try {
+    await userFetch('/api/v1/auth/logout', { method: 'POST', skipAuth: true });
+  } catch {
+    // best-effort
+  }
+}

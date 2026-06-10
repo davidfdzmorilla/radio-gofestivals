@@ -45,7 +45,8 @@ async def _add_stream(
 
 
 async def test_401_without_auth(
-    client: AsyncClient, db_session: AsyncSession,
+    client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(db_session, slug="auth-1")
     stream_id = await _add_stream(
@@ -69,13 +70,19 @@ async def test_404_for_missing_stream(logged_in_client: AsyncClient) -> None:
 
 
 async def test_400_when_already_primary(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(
-        db_session, slug="alr-1", primary_stream_url=None,
+        db_session,
+        slug="alr-1",
+        primary_stream_url=None,
     )
     primary = await _add_stream(
-        db_session, station_id=sid, url="https://x/p.mp3", is_primary=True,
+        db_session,
+        station_id=sid,
+        url="https://x/p.mp3",
+        is_primary=True,
     )
     resp = await logged_in_client.patch(
         f"/api/v1/admin/streams/{primary}/promote-primary",
@@ -85,18 +92,27 @@ async def test_400_when_already_primary(
 
 
 async def test_promote_swaps_primary_and_audits(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(
-        db_session, slug="prom-1", primary_stream_url=None,
+        db_session,
+        slug="prom-1",
+        primary_stream_url=None,
     )
     old_primary = await _add_stream(
-        db_session, station_id=sid, url="https://x/a.mp3",
-        is_primary=True, bitrate=64,
+        db_session,
+        station_id=sid,
+        url="https://x/a.mp3",
+        is_primary=True,
+        bitrate=64,
     )
     target = await _add_stream(
-        db_session, station_id=sid, url="https://x/b.mp3",
-        is_primary=False, bitrate=192,
+        db_session,
+        station_id=sid,
+        url="https://x/b.mp3",
+        is_primary=False,
+        bitrate=192,
     )
 
     resp = await logged_in_client.patch(
@@ -111,8 +127,7 @@ async def test_promote_swaps_primary_and_audits(
     rows = (
         await db_session.execute(
             text(
-                "SELECT id::text, is_primary FROM station_streams "
-                "WHERE station_id = :sid",
+                "SELECT id::text, is_primary FROM station_streams WHERE station_id = :sid",
             ),
             {"sid": str(sid)},
         )
@@ -136,13 +151,18 @@ async def test_promote_swaps_primary_and_audits(
 
 
 async def test_promote_when_no_previous_primary(
-    logged_in_client: AsyncClient, db_session: AsyncSession,
+    logged_in_client: AsyncClient,
+    db_session: AsyncSession,
 ) -> None:
     sid = await _seed_station(
-        db_session, slug="np-1", primary_stream_url=None,
+        db_session,
+        slug="np-1",
+        primary_stream_url=None,
     )
     target = await _add_stream(
-        db_session, station_id=sid, url="https://x/only.mp3",
+        db_session,
+        station_id=sid,
+        url="https://x/only.mp3",
         is_primary=False,
     )
     resp = await logged_in_client.patch(

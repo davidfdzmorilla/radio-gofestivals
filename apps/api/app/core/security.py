@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -70,19 +72,16 @@ def decode_access_token(token: str, settings: Settings) -> dict[str, Any]:
         raise TokenError(msg) from exc
 
 
-# 30 days for end-user accounts (admin uses 24h via jwt_expire_minutes).
-USER_TOKEN_TTL_DAYS = 30
-
-
 def issue_user_token(
     user_id: uuid.UUID,
     email: str,
     settings: Settings,
 ) -> tuple[str, datetime]:
-    """Mint a 30d JWT for an end user. Audience='user' separates them from
-    admin tokens (which carry no audience claim — verified via DB lookup).
+    """Mint a short-lived access JWT for an end user (B3: la sesión larga
+    vive en el refresh token httpOnly, no aquí). Audience='user' separa
+    estos tokens de los de admin (sin audience, verificados contra DB).
     """
-    expire = datetime.now(tz=UTC) + timedelta(days=USER_TOKEN_TTL_DAYS)
+    expire = datetime.now(tz=UTC) + timedelta(minutes=settings.user_access_token_minutes)
     payload: dict[str, Any] = {
         "sub": str(user_id),
         "email": email,
@@ -114,3 +113,13 @@ def decode_user_token(token: str, settings: Settings) -> dict[str, Any]:
     except jwt.InvalidTokenError as exc:
         msg = "invalid_token"
         raise TokenError(msg) from exc
+
+
+def make_refresh_token() -> tuple[str, str]:
+    """(token en claro para la cookie, sha256 hex para la DB)."""
+    raw = secrets.token_urlsafe(48)
+    return raw, hash_refresh_token(raw)
+
+
+def hash_refresh_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()

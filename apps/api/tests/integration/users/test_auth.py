@@ -75,11 +75,13 @@ async def test_me_without_token_401(client: AsyncClient) -> None:
 
 
 async def test_me_with_token(
-    client: AsyncClient, registered_user,  # type: ignore[no-untyped-def]
+    client: AsyncClient,
+    registered_user,  # type: ignore[no-untyped-def]
 ) -> None:
     user, token = await registered_user(email="me@example.com")
     resp = await client.get(
-        "/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"},
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200
     assert resp.json()["email"] == "me@example.com"
@@ -102,8 +104,7 @@ async def test_delete_me_with_correct_password(
     row = (
         await db_session.execute(
             text(
-                "SELECT email, deleted_at FROM users "
-                "WHERE email LIKE 'deleted_%@deleted.local'",
+                "SELECT email, deleted_at FROM users WHERE email LIKE 'deleted_%@deleted.local'",
             ),
         )
     ).first()
@@ -130,9 +131,10 @@ async def test_admin_token_cannot_act_as_user(
 ) -> None:
     """Cross-audience defense: admin tokens carry no aud='user' so the
     user decoder must reject them outright."""
+    import uuid
+
     from app.core.config import get_settings
     from app.core.security import issue_access_token
-    import uuid
 
     settings = get_settings()
     token, _ = issue_access_token(uuid.uuid4(), "admin@x.com", settings)

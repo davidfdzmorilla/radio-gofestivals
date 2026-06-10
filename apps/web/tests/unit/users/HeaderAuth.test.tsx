@@ -1,3 +1,4 @@
+import { __resetSessionStateForTests } from '@/lib/users/api';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { HeaderAuth } from '@/components/auth/HeaderAuth';
@@ -14,6 +15,7 @@ vi.mock('next/navigation', () => ({
 
 beforeEach(() => {
   window.localStorage.clear();
+  __resetSessionStateForTests();
 });
 
 afterEach(() => {
@@ -35,9 +37,18 @@ describe('<HeaderAuth />', () => {
   });
 
   it('renders the user avatar when /auth/me succeeds', async () => {
-    window.localStorage.setItem('user_token', 'jwt-1');
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = String(input);
+      if (url.endsWith('/api/v1/auth/refresh')) {
+        return new Response(
+          JSON.stringify({
+            access_token: 'jwt-1',
+            expires_at: '2026-06-10T23:59:59Z',
+            user: { id: 'u', email: 'me@x.com' },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
       if (url.endsWith('/api/v1/auth/me')) {
         return new Response(
           JSON.stringify({

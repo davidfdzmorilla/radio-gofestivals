@@ -32,7 +32,9 @@ class Settings(BaseSettings):
 
     jwt_secret: SecretStr = Field(...)
     jwt_algorithm: str = Field(default="HS256")
-    jwt_expire_minutes: int = Field(default=1440)
+    jwt_expire_minutes: int = Field(default=1440)  # admin
+    user_access_token_minutes: int = Field(default=30)
+    refresh_token_days: int = Field(default=30)
 
     rb_user_agent: str = Field(...)
     rb_sync_timeout: int = Field(default=30)

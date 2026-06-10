@@ -57,7 +57,8 @@ async def test_filter_by_country(
     await create_station(slug="fr-p", status="pending", country_code="FR")
 
     resp = await logged_in_client.get(
-        "/api/v1/admin/stations/pending", params={"country": "ES"},
+        "/api/v1/admin/stations/pending",
+        params={"country": "ES"},
     )
     assert resp.status_code == 200
     slugs = [i["slug"] for i in resp.json()["items"]]
@@ -72,7 +73,8 @@ async def test_filter_has_geo(
     await create_station(slug="nogeo", status="pending")
 
     resp = await logged_in_client.get(
-        "/api/v1/admin/stations/pending", params={"has_geo": "true"},
+        "/api/v1/admin/stations/pending",
+        params={"has_geo": "true"},
     )
     slugs = [i["slug"] for i in resp.json()["items"]]
     assert slugs == ["geo"]
@@ -86,7 +88,8 @@ async def test_pagination(
         await create_station(slug=f"p-{i:02d}", status="pending", quality_score=50)
 
     resp = await logged_in_client.get(
-        "/api/v1/admin/stations/pending", params={"size": 10, "page": 2},
+        "/api/v1/admin/stations/pending",
+        params={"size": 10, "page": 2},
     )
     assert resp.status_code == 200
     body = resp.json()

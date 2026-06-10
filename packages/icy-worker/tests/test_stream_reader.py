@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import uuid
 from typing import TYPE_CHECKING
 
@@ -82,7 +83,7 @@ async def _insert_station(db_session: AsyncSession, slug: str) -> uuid.UUID:
 async def _fresh_redis() -> Redis:
     from redis.asyncio import Redis as R
 
-    r: Redis = R.from_url("redis://localhost:6379/15", decode_responses=False)
+    r: Redis = R.from_url(os.environ["REDIS_URL"], decode_responses=False)
     await r.delete(state_key("stream-test"))
     return r
 
@@ -174,8 +175,7 @@ async def test_writes_to_now_playing_table(
     row = (
         await db_session.execute(
             text(
-                "SELECT title, artist, raw_metadata FROM now_playing "
-                "WHERE station_id = :id",
+                "SELECT title, artist, raw_metadata FROM now_playing WHERE station_id = :id",
             ),
             {"id": str(sid)},
         )

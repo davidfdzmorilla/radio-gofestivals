@@ -792,9 +792,14 @@ async def run_health_check(
                 stats["stations_active"] += 1
             else:
                 stats["stations_broken"] += 1
+            # Una estación con stream activo vuelve a failed_checks=0: el
+            # contador alimenta compute_quality_score y dejarlo congelado
+            # penalizaría para siempre a estaciones ya recuperadas.
             await session.execute(
                 text(
-                    "UPDATE stations SET status = CAST(:st AS station_status) "
+                    "UPDATE stations SET status = CAST(:st AS station_status), "
+                    "failed_checks = CASE WHEN CAST(:st AS station_status) = 'active' "
+                    "THEN 0 ELSE failed_checks END "
                     "WHERE id = :sid AND status IN ('active', 'broken', 'pending')",
                 ),
                 {"st": new_station_status, "sid": str(sid)},

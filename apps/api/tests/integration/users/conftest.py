@@ -39,7 +39,7 @@ async def registered_user(client: AsyncClient):  # type: ignore[no-untyped-def]
     ) -> tuple[dict, str]:
         if email is None:
             counter["n"] += 1
-            email = f"user{counter['n']}@test.local"
+            email = f"user{counter['n']}@example.com"
         resp = await client.post(
             "/api/v1/auth/register",
             json={"email": email, "password": password},

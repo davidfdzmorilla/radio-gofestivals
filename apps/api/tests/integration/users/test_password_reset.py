@@ -21,11 +21,11 @@ async def test_forgot_password_user_exists_returns_ok(
         "app.services.password_reset.send_password_reset_email",
         return_value=True,
     )
-    await registered_user(email="rp@test.local")
+    await registered_user(email="rp@example.com")
 
     resp = await client.post(
         "/api/v1/auth/forgot-password",
-        json={"email": "rp@test.local"},
+        json={"email": "rp@example.com"},
     )
     assert resp.status_code == 200
     assert resp.json() == {"ok": True}
@@ -50,7 +50,7 @@ async def test_forgot_password_unknown_email_returns_ok_no_email_sent(
     )
     resp = await client.post(
         "/api/v1/auth/forgot-password",
-        json={"email": "ghost@test.local"},
+        json={"email": "ghost@example.com"},
     )
     assert resp.status_code == 200
     assert resp.json() == {"ok": True}
@@ -74,11 +74,11 @@ async def test_reset_password_with_valid_token(
         return_value=True,
     )
     user, _ = await registered_user(
-        email="cv@test.local", password="oldpass123",
+        email="cv@example.com", password="oldpass123",
     )
     await client.post(
         "/api/v1/auth/forgot-password",
-        json={"email": "cv@test.local"},
+        json={"email": "cv@example.com"},
     )
 
     token = (
@@ -99,7 +99,7 @@ async def test_reset_password_with_valid_token(
 
     login = await client.post(
         "/api/v1/auth/login",
-        json={"email": "cv@test.local", "password": "newpass1234"},
+        json={"email": "cv@example.com", "password": "newpass1234"},
     )
     assert login.status_code == 200
 
@@ -114,10 +114,10 @@ async def test_reset_password_token_already_used_400(
         "app.services.password_reset.send_password_reset_email",
         return_value=True,
     )
-    user, _ = await registered_user(email="re@test.local")
+    user, _ = await registered_user(email="re@example.com")
     await client.post(
         "/api/v1/auth/forgot-password",
-        json={"email": "re@test.local"},
+        json={"email": "re@example.com"},
     )
     token = (
         await db_session.execute(
@@ -145,7 +145,7 @@ async def test_reset_password_expired_token_400(
     db_session: AsyncSession,
     registered_user,  # type: ignore[no-untyped-def]
 ) -> None:
-    user, _ = await registered_user(email="exp@test.local")
+    user, _ = await registered_user(email="exp@example.com")
     expired_token = (
         await db_session.execute(
             text(

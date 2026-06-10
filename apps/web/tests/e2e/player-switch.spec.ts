@@ -30,7 +30,7 @@ test('switch station while previous is playing updates audio src to new station'
   await expect(playA).toBeVisible();
   await playA.click();
 
-  const player = page.locator('.fixed.inset-x-0.bottom-0');
+  const player = page.locator('.fixed.inset-x-0.bottom-0').filter({ has: page.locator('audio') });
   await expect(player).toBeVisible();
 
   await expect

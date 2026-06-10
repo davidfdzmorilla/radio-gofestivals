@@ -16,7 +16,8 @@ export default defineConfig({
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
-    command: 'pnpm dev',
+    // En CI corre el build de producción (next start); en local, dev server.
+    command: process.env.CI ? 'pnpm start' : 'pnpm dev',
     url: 'http://127.0.0.1:3000/es',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -1,0 +1,106 @@
+# E2E nightly · radio.gofestivals
+#
+# Playwright contra el stack completo (api + web + postgres + redis) con un
+# seed mínimo de catálogo. Fuera del gate de PR a propósito: es lento y los
+# flujos cubren integración real (plan de mejoras B5).
+
+name: e2e-nightly
+
+on:
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: radio
+          POSTGRES_PASSWORD: radio_ci
+          POSTGRES_DB: radio
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U radio -d radio"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://radio:radio_ci@localhost:5432/radio
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET: ci_secret_0123456789abcdef0123456789abcdef
+      RB_USER_AGENT: radio.gofestivals/e2e
+      ENV: dev
+      REGISTER_RATE_LIMIT: "100"  # la suite registra cuentas reales
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+
+      - name: API · deps + migraciones + seed
+        working-directory: apps/api
+        run: |
+          uv sync --frozen
+          uv run alembic upgrade head
+          sudo apt-get update -q && sudo apt-get install -y -q postgresql-client
+          PGPASSWORD=radio_ci psql -h localhost -U radio -d radio \
+            -f ../../infra/sql/e2e-seed.sql
+
+      - name: API · arrancar uvicorn
+        working-directory: apps/api
+        run: |
+          nohup uv run uvicorn app.main:app --port 8000 > /tmp/api.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8000/api/v1/_health && break
+            sleep 1
+          done
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Web · build de producción
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:8000
+          NEXT_PUBLIC_WS_URL: ws://127.0.0.1:8000
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+
+      - name: Playwright · navegador
+        working-directory: apps/web
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Playwright · tests
+        working-directory: apps/web
+        env:
+          CI: "true"
+          E2E_API_URL: http://127.0.0.1:8000
+        run: pnpm exec playwright test --project=chromium
+
+      - name: Logs del API si falló
+        if: failure()
+        run: tail -100 /tmp/api.log
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7

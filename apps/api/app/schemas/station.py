@@ -63,6 +63,11 @@ class StationDetail(BaseModel):
     user_voted: bool | None = None
 
 
+class CountryFacet(BaseModel):
+    code: str
+    station_count: int
+
+
 class StationsPage(BaseModel):
     items: list[StationSummary]
     total: int

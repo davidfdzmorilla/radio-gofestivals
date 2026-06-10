@@ -13,6 +13,7 @@ from app.repos import user_favorites as fav_repo
 from app.repos import user_votes as votes_repo
 from app.repos.recommendations import get_stations_by_ids
 from app.schemas.station import (
+    CountryFacet,
     NearbyStation,
     NowPlayingEntry,
     StationDetail,
@@ -159,6 +160,51 @@ async def list_featured_stations(
         size=len(summaries),
         pages=1 if summaries else 0,
     )
+
+
+async def list_country_facets(
+    session: AsyncSession,
+    *,
+    genre: str | None = None,
+) -> list[CountryFacet]:
+    rows = await stations_repo.count_active_stations_by_country(
+        session,
+        genre=genre,
+    )
+    return [CountryFacet(code=r.code, station_count=r.station_count) for r in rows]
+
+
+def _single_page(summaries: list[StationSummary]) -> StationsPage:
+    return StationsPage(
+        items=summaries,
+        total=len(summaries),
+        page=1,
+        size=len(summaries),
+        pages=1 if summaries else 0,
+    )
+
+
+async def list_trending_stations(
+    session: AsyncSession,
+    *,
+    genre: str | None = None,
+    limit: int = 50,
+) -> StationsPage:
+    items = await stations_repo.list_trending_stations(
+        session,
+        genre=genre,
+        limit=limit,
+    )
+    return _single_page([_to_summary(s) for s in items])
+
+
+async def list_new_stations(
+    session: AsyncSession,
+    *,
+    limit: int = 50,
+) -> StationsPage:
+    items = await stations_repo.list_newest_stations(session, limit=limit)
+    return _single_page([_to_summary(s) for s in items])
 
 
 def _detail_cache_key(slug: str) -> str:

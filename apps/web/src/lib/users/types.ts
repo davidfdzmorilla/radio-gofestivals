@@ -8,6 +8,7 @@ export const UserSchema = z.object({
   bio: z.string().nullable(),
   avatar_url: z.string().nullable(),
   is_public: z.boolean(),
+  email_verified: z.boolean().default(false),
   created_at: z.string(),
 });
 export type User = z.infer<typeof UserSchema>;

@@ -132,3 +132,42 @@ async def send_password_reset_email(
   </p>
 </body></html>"""
     return await send_email(to=to, subject=subject, text=text, html=html)
+
+
+async def send_verification_email(
+    *,
+    to: str,
+    token: str,
+    base_url: str,
+) -> bool:
+    verify_url = f"{base_url}/verify-email?token={token}"
+    subject = "Verify your radio.gofestivals email"
+    text = (
+        "Hi,\n\n"
+        "Welcome to radio.gofestivals! Click the link below to verify "
+        "your email address (link expires in 48 hours):\n"
+        f"{verify_url}\n\n"
+        "If you didn't create this account, you can safely ignore this "
+        "email.\n\n"
+        "— radio.gofestivals\n"
+        f"For support: {SUPPORT_URL}"
+    )
+    html = f"""<!doctype html>
+<html><body style="{_BODY_STYLE}">
+  <h2 style="margin:0 0 16px;">Verify your email</h2>
+  <p>Welcome to radio.gofestivals! Confirm your email to finish setting
+  up your account.</p>
+  <p style="margin:24px 0;">
+    <a href="{verify_url}"
+       style="{_BUTTON_STYLE}">
+      Verify email
+    </a>
+  </p>
+  <p style="color:#666;font-size:14px;">Or copy this link: <code>{verify_url}</code></p>
+  <hr style="border:0;border-top:1px solid #eee;margin:24px 0;">
+  <p style="color:#999;font-size:13px;">
+    If you didn't create this account, ignore this email.<br>
+    For support: <a href="{SUPPORT_URL}">GitHub issues</a>
+  </p>
+</body></html>"""
+    return await send_email(to=to, subject=subject, text=text, html=html)

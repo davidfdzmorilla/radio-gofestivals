@@ -56,6 +56,10 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'home' });
   return {
+    // Sin esto, Next resuelve las URLs relativas de metadata (og:image de
+    // los file conventions) contra el host interno del contenedor
+    // (localhost:3000) en vez del dominio público.
+    metadataBase: new URL(SITE_URL),
     title: {
       default: t('title'),
       template: `%s · ${t('title')}`,
@@ -106,6 +110,7 @@ export default async function LocaleLayout({
     '@type': 'Organization',
     name: t('title'),
     url: SITE_URL,
+    logo: `${SITE_URL}/gofestivals-logo.png`,
   };
 
   return (

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import uuid
 from typing import TYPE_CHECKING
 
@@ -12,7 +13,9 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
-async def _seed(db_session: AsyncSession, *, curated: bool, status: str, score: int, slug: str) -> None:
+async def _seed(
+    db_session: AsyncSession, *, curated: bool, status: str, score: int, slug: str
+) -> None:
     sid = (
         await db_session.execute(
             text(
@@ -64,7 +67,7 @@ async def test_ambient_iteration_runs_probes(
 
     from redis.asyncio import Redis
 
-    redis: Redis = Redis.from_url("redis://localhost:6379/15", decode_responses=False)
+    redis: Redis = Redis.from_url(os.environ["REDIS_URL"], decode_responses=False)
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
 
     await run_ambient_loop(
@@ -97,7 +100,7 @@ async def test_ambient_uses_own_semaphore(
 
     from redis.asyncio import Redis
 
-    redis: Redis = Redis.from_url("redis://localhost:6379/15", decode_responses=False)
+    redis: Redis = Redis.from_url(os.environ["REDIS_URL"], decode_responses=False)
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     injected_sem = _asyncio.Semaphore(3)
 
@@ -154,8 +157,11 @@ async def test_ambient_does_not_write_now_playing(
 
     # Simula respuesta con metadata real
     def handler(_req: httpx.Request) -> httpx.Response:
-        body = b"\x55" * 16 + bytes([1]) + b"StreamTitle='X - Y';" + b"\x00" * (
-            16 - len(b"StreamTitle='X - Y';") % 16
+        body = (
+            b"\x55" * 16
+            + bytes([1])
+            + b"StreamTitle='X - Y';"
+            + b"\x00" * (16 - len(b"StreamTitle='X - Y';") % 16)
         )
         return httpx.Response(
             200,
@@ -165,7 +171,7 @@ async def test_ambient_does_not_write_now_playing(
 
     from redis.asyncio import Redis
 
-    redis: Redis = Redis.from_url("redis://localhost:6379/15", decode_responses=False)
+    redis: Redis = Redis.from_url(os.environ["REDIS_URL"], decode_responses=False)
     client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
 
     await run_ambient_loop(

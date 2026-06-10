@@ -7,9 +7,11 @@ stations entirely. The clients in `icy_worker.main` are now configured
 with `follow_redirects=True, max_redirects=3`. These tests assert the
 expected end-to-end behaviour through `read_icy_stream`.
 """
+
 from __future__ import annotations
 
 import json
+import os
 import uuid
 from typing import TYPE_CHECKING
 
@@ -72,7 +74,7 @@ async def _insert_station(db_session: AsyncSession, slug: str) -> uuid.UUID:
 async def _fresh_redis():  # type: ignore[no-untyped-def]
     from redis.asyncio import Redis as R
 
-    r: Redis[bytes] = R.from_url("redis://localhost:6379/15", decode_responses=False)
+    r: Redis[bytes] = R.from_url(os.environ["REDIS_URL"], decode_responses=False)
     await r.delete(state_key("redirect-test"))
     return r
 
@@ -95,7 +97,8 @@ async def test_stream_reader_follows_301(
     def handler(req: httpx.Request) -> httpx.Response:
         if req.url.host == "old.example.com":
             return httpx.Response(
-                301, headers={"location": "https://new.example.com/stream"},
+                301,
+                headers={"location": "https://new.example.com/stream"},
             )
         if req.url.host == "new.example.com":
             return _audio_response("DJ A - Track 1")

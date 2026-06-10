@@ -14,7 +14,7 @@ dependencies = [
     "alembic>=1.13.2",
     "pydantic>=2.8.0",
     "pydantic-settings>=2.4.0",
-    "redis>=5.0.7",
+    "redis>=5.0.7,<8",  # redis-py 8.x sin validar; subir en fase de majors
     "structlog>=24.4.0",
     "httpx>=0.27.0",
     "geoalchemy2>=0.15.0",
@@ -29,7 +29,7 @@ dev = [
     "pytest-asyncio>=0.23.8",
     "pytest-mock>=3.14.0",
     "ruff>=0.6.0",
-    "mypy>=1.11.0",
+    "mypy>=1.11.0,<2",  # mypy 2.x sin validar; subir en fase de majors
     "types-redis>=4.6.0",
 ]
 

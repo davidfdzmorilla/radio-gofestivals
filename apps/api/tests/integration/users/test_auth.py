@@ -14,18 +14,18 @@ async def test_register_returns_201_with_token(
 ) -> None:
     resp = await client.post(
         "/api/v1/auth/register",
-        json={"email": "new@test.local", "password": "supersecret1"},
+        json={"email": "new@example.com", "password": "supersecret1"},
     )
     assert resp.status_code == 201, resp.text
     body = resp.json()
-    assert body["user"]["email"] == "new@test.local"
+    assert body["user"]["email"] == "new@example.com"
     assert len(body["access_token"]) > 20
 
 
 async def test_register_duplicate_email_400(
     client: AsyncClient,
 ) -> None:
-    payload = {"email": "dup@test.local", "password": "supersecret1"}
+    payload = {"email": "dup@example.com", "password": "supersecret1"}
     r1 = await client.post("/api/v1/auth/register", json=payload)
     assert r1.status_code == 201
     r2 = await client.post("/api/v1/auth/register", json=payload)
@@ -38,7 +38,7 @@ async def test_register_password_too_short_422(
 ) -> None:
     resp = await client.post(
         "/api/v1/auth/register",
-        json={"email": "short@test.local", "password": "tiny"},
+        json={"email": "short@example.com", "password": "tiny"},
     )
     assert resp.status_code == 422
 
@@ -46,24 +46,24 @@ async def test_register_password_too_short_422(
 async def test_login_ok(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/auth/register",
-        json={"email": "li@test.local", "password": "supersecret1"},
+        json={"email": "li@example.com", "password": "supersecret1"},
     )
     resp = await client.post(
         "/api/v1/auth/login",
-        json={"email": "li@test.local", "password": "supersecret1"},
+        json={"email": "li@example.com", "password": "supersecret1"},
     )
     assert resp.status_code == 200
-    assert resp.json()["user"]["email"] == "li@test.local"
+    assert resp.json()["user"]["email"] == "li@example.com"
 
 
 async def test_login_wrong_password_401(client: AsyncClient) -> None:
     await client.post(
         "/api/v1/auth/register",
-        json={"email": "wp@test.local", "password": "supersecret1"},
+        json={"email": "wp@example.com", "password": "supersecret1"},
     )
     resp = await client.post(
         "/api/v1/auth/login",
-        json={"email": "wp@test.local", "password": "WRONG"},
+        json={"email": "wp@example.com", "password": "WRONG"},
     )
     assert resp.status_code == 401
     assert resp.json()["detail"] == "invalid_credentials"
@@ -77,12 +77,12 @@ async def test_me_without_token_401(client: AsyncClient) -> None:
 async def test_me_with_token(
     client: AsyncClient, registered_user,  # type: ignore[no-untyped-def]
 ) -> None:
-    user, token = await registered_user(email="me@test.local")
+    user, token = await registered_user(email="me@example.com")
     resp = await client.get(
         "/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"},
     )
     assert resp.status_code == 200
-    assert resp.json()["email"] == "me@test.local"
+    assert resp.json()["email"] == "me@example.com"
 
 
 async def test_delete_me_with_correct_password(
@@ -90,7 +90,7 @@ async def test_delete_me_with_correct_password(
     registered_user,  # type: ignore[no-untyped-def]
     db_session: AsyncSession,
 ) -> None:
-    _, token = await registered_user(email="del@test.local")
+    _, token = await registered_user(email="del@example.com")
     resp = await client.request(
         "DELETE",
         "/api/v1/auth/me",
@@ -115,7 +115,7 @@ async def test_delete_me_wrong_password_401(
     client: AsyncClient,
     registered_user,  # type: ignore[no-untyped-def]
 ) -> None:
-    _, token = await registered_user(email="dw@test.local")
+    _, token = await registered_user(email="dw@example.com")
     resp = await client.request(
         "DELETE",
         "/api/v1/auth/me",

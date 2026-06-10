@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import uuid
 from typing import TYPE_CHECKING
 
@@ -46,7 +47,7 @@ async def _insert_station(db_session: AsyncSession, slug: str) -> uuid.UUID:
 async def _fake_redis():  # type: ignore[no-untyped-def]
     from redis.asyncio import Redis
 
-    return Redis.from_url("redis://localhost:6379/15", decode_responses=False)
+    return Redis.from_url(os.environ["REDIS_URL"], decode_responses=False)
 
 
 def _no_op_transport() -> httpx.MockTransport:
@@ -65,7 +66,11 @@ async def test_subscribe_starts_task(
     redis = await _fake_redis()
     client = httpx.AsyncClient(transport=_no_op_transport())
     pool = OnDemandPool(
-        redis=redis, maker=maker, client=client, user_agent="t", grace_seconds=1,
+        redis=redis,
+        maker=maker,
+        client=client,
+        user_agent="t",
+        grace_seconds=1,
     )
     await pool.subscribe("s1")
     assert "s1" in pool._tasks  # noqa: SLF001
@@ -99,7 +104,11 @@ async def test_release_triggers_grace_period(
     redis = await _fake_redis()
     client = httpx.AsyncClient(transport=_no_op_transport())
     pool = OnDemandPool(
-        redis=redis, maker=maker, client=client, user_agent="t", grace_seconds=1,
+        redis=redis,
+        maker=maker,
+        client=client,
+        user_agent="t",
+        grace_seconds=1,
     )
     await pool.subscribe("s1")
     await pool.release("s1")
@@ -119,7 +128,11 @@ async def test_grace_cancelled_if_resubscribed(
     redis = await _fake_redis()
     client = httpx.AsyncClient(transport=_no_op_transport())
     pool = OnDemandPool(
-        redis=redis, maker=maker, client=client, user_agent="t", grace_seconds=2,
+        redis=redis,
+        maker=maker,
+        client=client,
+        user_agent="t",
+        grace_seconds=2,
     )
     await pool.subscribe("s1")
     await pool.release("s1")
@@ -154,7 +167,11 @@ async def test_concurrency_semaphore(
     redis = await _fake_redis()
     client = httpx.AsyncClient(transport=_no_op_transport())
     pool = OnDemandPool(
-        redis=redis, maker=maker, client=client, user_agent="t", concurrency=2,
+        redis=redis,
+        maker=maker,
+        client=client,
+        user_agent="t",
+        concurrency=2,
     )
     for i in range(5):
         await pool.subscribe(f"cc-{i}")
@@ -176,8 +193,12 @@ async def test_ondemand_semaphore_does_not_affect_ambient(
     redis = await _fake_redis()
     client = httpx.AsyncClient(transport=_no_op_transport())
     pool = OnDemandPool(
-        redis=redis, maker=maker, client=client, user_agent="t",
-        concurrency=2, grace_seconds=5,
+        redis=redis,
+        maker=maker,
+        client=client,
+        user_agent="t",
+        concurrency=2,
+        grace_seconds=5,
     )
     for i in range(2):
         await pool.subscribe(f"sat-{i}")
@@ -199,6 +220,7 @@ async def _install_blocking_reader(monkeypatch):  # type: ignore[no-untyped-def]
 
     Simula un stream real que permanece abierto mientras el refcount > 0.
     """
+
     async def _blocking(*_a, **_kw):  # type: ignore[no-untyped-def]
         await asyncio.Event().wait()
 
@@ -215,8 +237,11 @@ async def test_grace_race_resubscribe_at_last_moment(
     redis = await _fake_redis()
     client = httpx.AsyncClient(transport=_no_op_transport())
     pool = OnDemandPool(
-        redis=redis, maker=maker, client=client,
-        user_agent="t", grace_seconds=0.05,
+        redis=redis,
+        maker=maker,
+        client=client,
+        user_agent="t",
+        grace_seconds=0.05,
     )
 
     await pool.subscribe("race-1")
@@ -254,8 +279,11 @@ async def test_grace_race_release_twice_then_subscribe(
     redis = await _fake_redis()
     client = httpx.AsyncClient(transport=_no_op_transport())
     pool = OnDemandPool(
-        redis=redis, maker=maker, client=client,
-        user_agent="t", grace_seconds=0.1,
+        redis=redis,
+        maker=maker,
+        client=client,
+        user_agent="t",
+        grace_seconds=0.1,
     )
 
     await pool.subscribe("race-2")

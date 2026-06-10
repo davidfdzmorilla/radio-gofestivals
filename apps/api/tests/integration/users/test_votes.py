@@ -92,8 +92,8 @@ async def test_two_users_independent_counter(
     db_session: AsyncSession,
     registered_user,  # type: ignore[no-untyped-def]
 ) -> None:
-    _, token_a = await registered_user(email="a@test.local")
-    _, token_b = await registered_user(email="b@test.local")
+    _, token_a = await registered_user(email="a@example.com")
+    _, token_b = await registered_user(email="b@example.com")
     sid = await _seed_station(db_session, slug="lk-two")
     await client.post(
         f"/api/v1/stations/{sid}/like",

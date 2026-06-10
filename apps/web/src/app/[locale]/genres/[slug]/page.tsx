@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { getGenresTree, listStations } from '@/lib/api';
+import { getCountryFacets, getGenresTree, listStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { SidebarFilters } from '@/components/layout/SidebarFilters';
 import { PublicPagination } from '@/components/PublicPagination';
@@ -26,22 +26,41 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string; slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
+  const sp = await searchParams;
   const tGenres = await getTranslations({ locale, namespace: 'genres' });
   const tHome = await getTranslations({ locale, namespace: 'home' });
-  const alternates = buildAlternates(locale, `/genres/${slug}`);
+  const tPagination = await getTranslations({
+    locale,
+    namespace: 'pagination',
+  });
+  const pageParam = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1;
+  const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
+  const hasFilters = typeof sp.country === 'string' || sp.curated !== undefined;
+  // Paginación limpia: self-canonical con título "página N" (las páginas
+  // profundas listan emisoras que ningún otro sitio enlaza). Con filtros
+  // (?country=…): canonical a la página 1 limpia del género hasta que
+  // existan los combos dedicados país×género.
+  const canonicalPath =
+    !hasFilters && page > 1 ? `/genres/${slug}?page=${page}` : `/genres/${slug}`;
+  const alternates = buildAlternates(locale, canonicalPath);
+  const pageSuffix =
+    !hasFilters && page > 1 ? tPagination('pageSuffix', { page }) : '';
   const url = `${SITE_URL}/${locale}/genres/${slug}`;
   try {
     const genres = await getGenresTree();
     const genre = genres.find((g) => g.slug === slug);
     if (!genre) return { alternates };
-    const title = tGenres('metaTitle', {
-      name: genre.name,
-      count: genre.station_count,
-    });
+    const title =
+      tGenres('metaTitle', {
+        name: genre.name,
+        count: genre.station_count,
+      }) + pageSuffix;
     const description = tGenres('metaDescription', {
       name: genre.name,
       count: genre.station_count,
@@ -106,16 +125,20 @@ export default async function GenrePage({
   const tNav = await getTranslations('nav');
   const tPagination = await getTranslations('pagination');
 
-  const stationsPage = await listStations({
-    genre: genre.slug,
-    country,
-    curated: curatedParam === 'true' ? true : undefined,
-    page: Number.isFinite(page) && page > 0 ? page : 1,
-    size: 20,
-    revalidate: 300,
-  });
+  const [stationsPage, countryFacets] = await Promise.all([
+    listStations({
+      genre: genre.slug,
+      country,
+      curated: curatedParam === 'true' ? true : undefined,
+      page: Number.isFinite(page) && page > 0 ? page : 1,
+      size: 20,
+      revalidate: 300,
+    }),
+    getCountryFacets({ genre: genre.slug }).catch(() => []),
+  ]);
 
-  const countries = ['ES', 'FR', 'DE', 'IT', 'UK', 'US', 'NL', 'BE'];
+  // Países reales del género (antes lista hardcodeada con 'UK' no-ISO).
+  const countries = countryFacets.slice(0, 12).map((f) => f.code);
 
   const buildPageHref = (targetPage: number): string => {
     const params = new URLSearchParams();

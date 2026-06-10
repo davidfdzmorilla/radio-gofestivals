@@ -20,6 +20,31 @@ x-env-file: &env-file
   env_file:
     - .env.production
 
+# Límites de recursos: el VPS es compartido (~15 proyectos) y sin límites
+# una fuga de memoria en un contenedor puede tumbar a los vecinos. Cifras
+# = ~3-4x el consumo observado en reposo (docker stats 2026-06-10:
+# api 236M, postgres 115M, web 72M, icy 56M, redis 5M).
+x-limits-api: &limits-api
+  deploy:
+    resources:
+      limits: { cpus: "2", memory: 768M }
+x-limits-web: &limits-web
+  deploy:
+    resources:
+      limits: { cpus: "1.5", memory: 512M }
+x-limits-worker: &limits-worker
+  deploy:
+    resources:
+      limits: { cpus: "1", memory: 384M }
+x-limits-postgres: &limits-postgres
+  deploy:
+    resources:
+      limits: { cpus: "2", memory: 1536M }
+x-limits-redis: &limits-redis
+  deploy:
+    resources:
+      limits: { cpus: "0.5", memory: 256M }
+
 services:
   # ---------------------------------------------------------------------------
   # Postgres 16 + PostGIS 3.4 · interno, sin puertos al host
@@ -27,7 +52,7 @@ services:
   postgres:
     image: postgis/postgis:16-3.4
     container_name: radio-postgres-prod
-    <<: *env-file
+    <<: [*env-file, *limits-postgres]
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -52,8 +77,15 @@ services:
   redis:
     image: redis:7-alpine
     container_name: radio-redis-prod
-    <<: *env-file
-    command: ["sh", "-c", "redis-server --save 60 1 --requirepass \"$$REDIS_PASSWORD\""]
+    <<: [*env-file, *limits-redis]
+    # maxmemory < límite del contenedor; volatile-lru porque todas nuestras
+    # claves (cache, rate-limit, recs) llevan TTL — pub/sub no usa claves.
+    command:
+      [
+        "sh",
+        "-c",
+        "redis-server --save 60 1 --maxmemory 192mb --maxmemory-policy volatile-lru --requirepass \"$$REDIS_PASSWORD\"",
+      ]
     volumes:
       - radio_redis_data:/data
     networks:
@@ -76,7 +108,7 @@ services:
       dockerfile: Dockerfile
     image: radio-gofestivals/api:${GIT_SHA:-latest}
     container_name: radio-api-prod
-    <<: *env-file
+    <<: [*env-file, *limits-api]
     depends_on:
       postgres: { condition: service_healthy }
       redis:    { condition: service_healthy }
@@ -94,10 +126,19 @@ services:
       - "traefik.http.routers.radio-api.tls.certresolver=myresolver"
       - "traefik.http.routers.radio-api.priority=10"
       - "traefik.http.services.radio-api.loadbalancer.server.port=8000"
-      - "traefik.http.routers.radio-api.middlewares=radio-api-headers"
-      - "traefik.http.middlewares.radio-api-headers.headers.stsSeconds=31536000"
-      - "traefik.http.middlewares.radio-api-headers.headers.stsIncludeSubdomains=true"
-      - "traefik.http.middlewares.radio-api-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
+      # Middleware compartido de security headers (lo referencia también el
+      # router web). CSP en Report-Only durante la primera semana: revisar
+      # violations en la consola del navegador antes de pasar a enforce.
+      # media-src abierto a propósito: los streams de audio viven en hosts
+      # arbitrarios (el endpoint /stream hace 302 al stream real).
+      - "traefik.http.routers.radio-api.middlewares=radio-sec-headers"
+      - "traefik.http.middlewares.radio-sec-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.radio-sec-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.radio-sec-headers.headers.customFrameOptionsValue=DENY"
+      - "traefik.http.middlewares.radio-sec-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+      - "traefik.http.middlewares.radio-sec-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
+      - "traefik.http.middlewares.radio-sec-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(), geolocation=()"
+      - "traefik.http.middlewares.radio-sec-headers.headers.customResponseHeaders.Content-Security-Policy-Report-Only=default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; media-src * data: blob:; connect-src 'self' wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 
   # ---------------------------------------------------------------------------
   # Web Next.js · expuesto vía Traefik (catch-all del dominio)
@@ -113,6 +154,7 @@ services:
         NEXT_PUBLIC_DEFAULT_LOCALE: es
     image: radio-gofestivals/web:${GIT_SHA:-latest}
     container_name: radio-web-prod
+    <<: *limits-web
     environment:
       NEXT_PUBLIC_API_URL: https://${DOMAIN}
       NEXT_PUBLIC_WS_URL: wss://${DOMAIN}
@@ -134,6 +176,8 @@ services:
       - "traefik.http.routers.radio-web.tls.certresolver=myresolver"
       - "traefik.http.routers.radio-web.priority=1"
       - "traefik.http.services.radio-web.loadbalancer.server.port=3000"
+      # Mismos security headers que el API (middleware definido en sus labels)
+      - "traefik.http.routers.radio-web.middlewares=radio-sec-headers"
 
   # ---------------------------------------------------------------------------
   # ICY worker · sin exposición pública
@@ -144,7 +188,7 @@ services:
       dockerfile: Dockerfile
     image: radio-gofestivals/icy-worker:${GIT_SHA:-latest}
     container_name: radio-icy-worker-prod
-    <<: *env-file
+    <<: [*env-file, *limits-worker]
     depends_on:
       postgres: { condition: service_healthy }
       redis:    { condition: service_healthy }

@@ -11,6 +11,7 @@ The whitelist below MUST stay in sync with
 There is no cross-package import — when a new command is added on
 the API side, the same `argv_base` and `timeout` must be added here.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -26,7 +27,7 @@ from scripts.db import make_engine, make_sessionmaker
 from scripts.logging import get_logger
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
 log = get_logger("scripts.run_pending_admin_jobs")
@@ -110,17 +111,12 @@ def _execute(argv: list[str], timeout: int) -> dict[str, Any]:
         if exc.stderr:
             data = exc.stderr
             partial_err = (
-                data.decode("utf-8", errors="replace")
-                if isinstance(data, bytes)
-                else str(data)
+                data.decode("utf-8", errors="replace") if isinstance(data, bytes) else str(data)
             )
         return {
             "status": "timeout",
             "result_json": None,
-            "stderr_tail": (
-                f"Timeout after {timeout}s.\n"
-                f"Last stderr:\n{partial_err[-2000:]}"
-            ),
+            "stderr_tail": (f"Timeout after {timeout}s.\nLast stderr:\n{partial_err[-2000:]}"),
         }
     except Exception as exc:  # noqa: BLE001
         return {

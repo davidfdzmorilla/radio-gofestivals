@@ -7,7 +7,6 @@ import pytest
 
 from scripts.rb_sync import parse_iso_datetime, parse_uuid
 
-
 # --- parse_uuid -------------------------------------------------------------
 
 

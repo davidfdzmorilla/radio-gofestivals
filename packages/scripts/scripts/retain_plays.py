@@ -24,6 +24,7 @@ directly, so this drift does not affect ranking. If a strict all-time
 counter is needed, it should live in a separate column with its own
 maintenance path.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -83,9 +84,7 @@ async def run_retention(
     }
     async with maker() as session:
         candidates = int(
-            (
-                await session.execute(_COUNT_CANDIDATES, {"cutoff": cutoff})
-            ).scalar_one(),
+            (await session.execute(_COUNT_CANDIDATES, {"cutoff": cutoff})).scalar_one(),
         )
         stats["candidate_rows"] = candidates
         if candidates == 0:
@@ -95,14 +94,10 @@ async def run_retention(
             return stats
 
         upserted = len(
-            (
-                await session.execute(_UPSERT_DAILY, {"cutoff": cutoff})
-            ).all(),
+            (await session.execute(_UPSERT_DAILY, {"cutoff": cutoff})).all(),
         )
         deleted = len(
-            (
-                await session.execute(_DELETE_OLD, {"cutoff": cutoff})
-            ).all(),
+            (await session.execute(_DELETE_OLD, {"cutoff": cutoff})).all(),
         )
         stats["aggregated_groups"] = upserted
         stats["deleted_rows"] = deleted
@@ -119,7 +114,9 @@ async def run_retention(
 @app.command("run")
 def cmd_run(
     days: int = typer.Option(
-        90, "--days", help="Retention window in days. Default 90.",
+        90,
+        "--days",
+        help="Retention window in days. Default 90.",
     ),
     dry_run: bool = typer.Option(  # noqa: FBT001, FBT002
         False,  # noqa: FBT003
@@ -133,7 +130,9 @@ def cmd_run(
     async def _main() -> dict[str, object]:
         try:
             return await run_retention(
-                maker, days=days, dry_run=dry_run,
+                maker,
+                days=days,
+                dry_run=dry_run,
             )
         finally:
             await engine.dispose()

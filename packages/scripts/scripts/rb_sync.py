@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-import httpx
 import typer
 from slugify import slugify
 from sqlalchemy import text
@@ -26,6 +25,7 @@ from scripts.taxonomy_mapper import GenreRef, map_rb_tags_to_genre_slugs
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
+    import httpx
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 
@@ -105,9 +105,7 @@ def is_likely_spam(name: str, stream_url: str | None) -> bool:
     # noisy. Together they are reliable.
     if "CHARTS" in name_upper and "@" in name:
         return True
-    if "?ref=radiobrowser-" in url or "?ref=rb-" in url:
-        return True
-    return False
+    return "?ref=radiobrowser-" in url or "?ref=rb-" in url
 
 
 def is_valid_stream_url(url: str) -> bool:
@@ -249,7 +247,7 @@ async def upsert_station(
     last_changeuuid = parse_uuid(item.get("changeuuid"))
     last_local_checktime = parse_iso_datetime(item.get("lastlocalchecktime"))
     # click_trend: not computed yet; requires station_clickcount_history.
-    # TODO(quality_v2): backfill once history table lands.
+    # Pendiente (plan de mejoras, B6c): backfill cuando aterrice la history table.
 
     quality_score = compute_quality_score(
         {
@@ -793,7 +791,7 @@ async def run_health_check(
             ).first()
             if counts is None:
                 continue
-            active_n, broken_n, total_n = int(counts[0]), int(counts[1]), int(counts[2])
+            active_n, _broken_n, total_n = int(counts[0]), int(counts[1]), int(counts[2])
             if total_n == 0:
                 continue
             new_station_status = "active" if active_n > 0 else "broken"

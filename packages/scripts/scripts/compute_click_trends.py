@@ -15,20 +15,16 @@ get click_trend = 0.
 Single SQL UPDATE so we don't loop in Python over ~1400 rows; the
 DISTINCT ON picks the row whose age is closest to exactly 7 days.
 """
+
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
 
 import typer
 from sqlalchemy import text
 
 from scripts.db import make_engine, make_sessionmaker
 from scripts.logging import get_logger
-
-if TYPE_CHECKING:
-    pass
-
 
 log = get_logger("compute_click_trends")
 app = typer.Typer(help="radio.gofestivals · compute 7-day click_trend")

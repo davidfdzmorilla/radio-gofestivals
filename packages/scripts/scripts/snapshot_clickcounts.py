@@ -6,20 +6,16 @@ in place rather than duplicated. Runs over every status (active,
 pending, broken, inactive) so the trend computation later sees the
 full population.
 """
+
 from __future__ import annotations
 
 import asyncio
-from typing import TYPE_CHECKING
 
 import typer
 from sqlalchemy import text
 
 from scripts.db import make_engine, make_sessionmaker
 from scripts.logging import get_logger
-
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
-
 
 log = get_logger("snapshot_clickcounts")
 app = typer.Typer(help="radio.gofestivals · daily clickcount snapshot")

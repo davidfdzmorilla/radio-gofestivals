@@ -5,10 +5,8 @@
 # migraciones alembic antes de los tests — mismo contrato que el
 # entorno local (CLAUDE.md §5).
 #
-# Nota: ruff/format de packages/scripts NO se ejecuta todavía — deuda
-# preexistente (~85 errores); se activa al cerrarla (plan de mejoras A7).
-# Los E2E de Playwright tampoco corren por PR (lentos); irán en un job
-# nightly aparte (plan B5).
+# Los E2E de Playwright no corren por PR (lentos); irán en un job
+# nightly aparte (plan de mejoras B5).
 
 name: ci
 
@@ -148,6 +146,11 @@ jobs:
       - name: Sync dependencies
         working-directory: packages/scripts
         run: uv sync --frozen
+      - name: Ruff
+        working-directory: packages/scripts
+        run: |
+          uv run ruff check scripts tests
+          uv run ruff format --check scripts tests
       - name: Mypy (strict)
         working-directory: packages/scripts
         run: uv run mypy scripts

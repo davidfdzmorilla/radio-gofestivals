@@ -66,16 +66,28 @@ async def test_compute_quality_scores_updates_active_stations(
     db_session: AsyncSession,
 ) -> None:
     high = await _insert(
-        db_session, slug="hi", name="High Q",
-        bitrate=320, codec="opus", failed_checks=0,
+        db_session,
+        slug="hi",
+        name="High Q",
+        bitrate=320,
+        codec="opus",
+        failed_checks=0,
     )
     low = await _insert(
-        db_session, slug="lo", name="Low Q",
-        bitrate=64, codec="mp3", failed_checks=0,
+        db_session,
+        slug="lo",
+        name="Low Q",
+        bitrate=64,
+        codec="mp3",
+        failed_checks=0,
     )
     flaky = await _insert(
-        db_session, slug="fl", name="Flaky",
-        bitrate=192, codec="aac", failed_checks=4,
+        db_session,
+        slug="fl",
+        name="Flaky",
+        bitrate=192,
+        codec="aac",
+        failed_checks=4,
     )
 
     rows = await _fetch_rows(db_session, where_status="active", limit=None)
@@ -88,8 +100,7 @@ async def test_compute_quality_scores_updates_active_stations(
         (
             await db_session.execute(
                 text(
-                    "SELECT id, quality_score FROM stations WHERE id IN "
-                    "(:a, :b, :c)",
+                    "SELECT id, quality_score FROM stations WHERE id IN (:a, :b, :c)",
                 ),
                 {"a": high, "b": low, "c": flaky},
             )
@@ -105,13 +116,21 @@ async def test_compute_quality_scores_zeroes_broken_and_duplicate(
     db_session: AsyncSession,
 ) -> None:
     broken = await _insert(
-        db_session, slug="br", name="Broken",
-        bitrate=320, codec="opus", status="broken",
+        db_session,
+        slug="br",
+        name="Broken",
+        bitrate=320,
+        codec="opus",
+        status="broken",
         starting_quality=80,
     )
     dup = await _insert(
-        db_session, slug="dp", name="Dup",
-        bitrate=320, codec="opus", status="duplicate",
+        db_session,
+        slug="dp",
+        name="Dup",
+        bitrate=320,
+        codec="opus",
+        status="duplicate",
         starting_quality=80,
     )
 
@@ -133,10 +152,20 @@ async def test_compute_quality_scores_zeroes_broken_and_duplicate(
 
 async def test_fetch_rows_respects_status_filter(db_session: AsyncSession) -> None:
     await _insert(
-        db_session, slug="a", name="A", bitrate=128, codec="mp3", status="active",
+        db_session,
+        slug="a",
+        name="A",
+        bitrate=128,
+        codec="mp3",
+        status="active",
     )
     await _insert(
-        db_session, slug="b", name="B", bitrate=128, codec="mp3", status="pending",
+        db_session,
+        slug="b",
+        name="B",
+        bitrate=128,
+        codec="mp3",
+        status="pending",
     )
     active_rows = await _fetch_rows(db_session, where_status="active", limit=None)
     assert len(active_rows) == 1

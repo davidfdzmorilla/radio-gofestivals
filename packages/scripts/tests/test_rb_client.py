@@ -21,7 +21,10 @@ class _FakeSRV:
 def test_srv_resolution(mocker: MockerFixture) -> None:
     mocker.patch(
         "scripts.rb_client.dns_resolver.resolve",
-        return_value=[_FakeSRV("de1.api.radio-browser.info."), _FakeSRV("nl1.api.radio-browser.info.")],
+        return_value=[
+            _FakeSRV("de1.api.radio-browser.info."),
+            _FakeSRV("nl1.api.radio-browser.info."),
+        ],
     )
     hosts = resolve_servers()
     assert hosts == ["de1.api.radio-browser.info", "nl1.api.radio-browser.info"]

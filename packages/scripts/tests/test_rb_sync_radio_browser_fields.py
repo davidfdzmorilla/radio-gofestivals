@@ -57,7 +57,11 @@ async def test_rb_sync_persists_radio_browser_metadata(
     client = RadioBrowserClient(servers=["host-a.example"])
 
     stats = await run_sync(
-        maker, tag="techno", dry_run=False, limit=500, client=client,
+        maker,
+        tag="techno",
+        dry_run=False,
+        limit=500,
+        client=client,
     )
     assert stats.inserted == 2
 

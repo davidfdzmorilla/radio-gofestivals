@@ -9,7 +9,6 @@ from scripts.quality import (
     compute_technical_score,
 )
 
-
 # --- technical_score --------------------------------------------------------
 
 
@@ -81,81 +80,124 @@ def test_reliability_score_stepwise(fails: int | None, expected: int) -> None:
 
 
 def test_quality_top_tier_close_to_100() -> None:
-    s = compute_quality_score({
-        "bitrate": 320, "codec": "opus",
-        "clickcount": 10000, "votes": 1000,
-        "failed_checks": 0, "status": "active",
-    })
+    s = compute_quality_score(
+        {
+            "bitrate": 320,
+            "codec": "opus",
+            "clickcount": 10000,
+            "votes": 1000,
+            "failed_checks": 0,
+            "status": "active",
+        }
+    )
     assert 90 <= s <= 100
 
 
 def test_quality_low_tier_around_30() -> None:
-    s = compute_quality_score({
-        "bitrate": 64, "codec": "mp3",
-        "clickcount": 10, "votes": 0,
-        "failed_checks": 0, "status": "active",
-    })
+    s = compute_quality_score(
+        {
+            "bitrate": 64,
+            "codec": "mp3",
+            "clickcount": 10,
+            "votes": 0,
+            "failed_checks": 0,
+            "status": "active",
+        }
+    )
     assert 25 <= s <= 45
 
 
 def test_quality_mid_tier_around_60() -> None:
-    s = compute_quality_score({
-        "bitrate": 128, "codec": "aac+",
-        "clickcount": 500, "votes": 50,
-        "failed_checks": 0, "status": "active",
-    })
+    s = compute_quality_score(
+        {
+            "bitrate": 128,
+            "codec": "aac+",
+            "clickcount": 500,
+            "votes": 50,
+            "failed_checks": 0,
+            "status": "active",
+        }
+    )
     assert 50 <= s <= 70
 
 
 def test_quality_all_null_yields_only_reliability_floor() -> None:
     # technical=0, popularity=0, reliability=100, weights → 20
-    s = compute_quality_score({
-        "bitrate": None, "codec": None,
-        "clickcount": None, "votes": None,
-        "failed_checks": None, "status": "active",
-    })
+    s = compute_quality_score(
+        {
+            "bitrate": None,
+            "codec": None,
+            "clickcount": None,
+            "votes": None,
+            "failed_checks": None,
+            "status": "active",
+        }
+    )
     assert s == 20
 
 
 def test_quality_high_failed_checks_pulls_score_down() -> None:
-    base = compute_quality_score({
-        "bitrate": 320, "codec": "opus",
-        "clickcount": 1000, "votes": 100,
-        "failed_checks": 0, "status": "active",
-    })
-    broken_streak = compute_quality_score({
-        "bitrate": 320, "codec": "opus",
-        "clickcount": 1000, "votes": 100,
-        "failed_checks": 10, "status": "active",
-    })
+    base = compute_quality_score(
+        {
+            "bitrate": 320,
+            "codec": "opus",
+            "clickcount": 1000,
+            "votes": 100,
+            "failed_checks": 0,
+            "status": "active",
+        }
+    )
+    broken_streak = compute_quality_score(
+        {
+            "bitrate": 320,
+            "codec": "opus",
+            "clickcount": 1000,
+            "votes": 100,
+            "failed_checks": 10,
+            "status": "active",
+        }
+    )
     assert broken_streak < base
     # reliability drops from 100 to 0, that's -20pts of weighted contribution
     assert base - broken_streak >= 18
 
 
 def test_quality_broken_status_is_zero() -> None:
-    s = compute_quality_score({
-        "bitrate": 320, "codec": "opus",
-        "clickcount": 99999, "votes": 9999,
-        "failed_checks": 0, "status": "broken",
-    })
+    s = compute_quality_score(
+        {
+            "bitrate": 320,
+            "codec": "opus",
+            "clickcount": 99999,
+            "votes": 9999,
+            "failed_checks": 0,
+            "status": "broken",
+        }
+    )
     assert s == 0
 
 
 def test_quality_duplicate_status_is_zero() -> None:
-    s = compute_quality_score({
-        "bitrate": 320, "codec": "opus",
-        "clickcount": 99999, "votes": 9999,
-        "failed_checks": 0, "status": "duplicate",
-    })
+    s = compute_quality_score(
+        {
+            "bitrate": 320,
+            "codec": "opus",
+            "clickcount": 99999,
+            "votes": 9999,
+            "failed_checks": 0,
+            "status": "duplicate",
+        }
+    )
     assert s == 0
 
 
 def test_quality_is_deterministic() -> None:
     payload = {
-        "bitrate": 192, "codec": "aac",
-        "clickcount": 250, "votes": 30,
-        "failed_checks": 1, "status": "active",
+        "bitrate": 192,
+        "codec": "aac",
+        "clickcount": 250,
+        "votes": 30,
+        "failed_checks": 1,
+        "status": "active",
     }
     first = compute_quality_score(payload)
     for _ in range(5):
@@ -164,8 +206,14 @@ def test_quality_is_deterministic() -> None:
 
 def test_quality_is_in_valid_range_for_random_inputs() -> None:
     cases = [
-        {"bitrate": b, "codec": c, "clickcount": cc, "votes": v,
-         "failed_checks": f, "status": "active"}
+        {
+            "bitrate": b,
+            "codec": c,
+            "clickcount": cc,
+            "votes": v,
+            "failed_checks": f,
+            "status": "active",
+        }
         for b in (None, 32, 96, 192, 320, 1000)
         for c in (None, "mp3", "aac", "aac+", "opus", "flac")
         for cc in (None, 0, 1, 50, 999, 1_000_000)

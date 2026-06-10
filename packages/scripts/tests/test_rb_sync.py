@@ -83,9 +83,7 @@ async def test_idempotent_two_runs(
     client1 = RadioBrowserClient(servers=["host-a.example"])
     stats1 = await run_sync(maker, tag="techno", dry_run=False, limit=500, client=client1)
 
-    count_after_1 = (
-        await db_session.execute(text("SELECT COUNT(*) FROM stations"))
-    ).scalar_one()
+    count_after_1 = (await db_session.execute(text("SELECT COUNT(*) FROM stations"))).scalar_one()
     sg_after_1 = (
         await db_session.execute(text("SELECT COUNT(*) FROM station_genres"))
     ).scalar_one()
@@ -101,9 +99,7 @@ async def test_idempotent_two_runs(
     client2 = RadioBrowserClient(servers=["host-a.example"])
     stats2 = await run_sync(maker, tag="techno", dry_run=False, limit=500, client=client2)
 
-    count_after_2 = (
-        await db_session.execute(text("SELECT COUNT(*) FROM stations"))
-    ).scalar_one()
+    count_after_2 = (await db_session.execute(text("SELECT COUNT(*) FROM stations"))).scalar_one()
     sg_after_2 = (
         await db_session.execute(text("SELECT COUNT(*) FROM station_genres"))
     ).scalar_one()
@@ -306,8 +302,7 @@ async def test_preserves_manual_station_genres(
     row = (
         await db_session.execute(
             text(
-                "SELECT COUNT(*) FROM station_genres "
-                "WHERE station_id = :sid AND source = 'manual'",
+                "SELECT COUNT(*) FROM station_genres WHERE station_id = :sid AND source = 'manual'",
             ),
             {"sid": str(station_id)},
         )
@@ -400,8 +395,7 @@ async def test_slug_collision_handling(
     assert stats.inserted == 2
     assert stats.slug_collisions == 1
     slugs = sorted(
-        str(r[0])
-        for r in (await db_session.execute(text("SELECT slug FROM stations"))).all()
+        str(r[0]) for r in (await db_session.execute(text("SELECT slug FROM stations"))).all()
     )
     assert slugs == ["tech-tribe", "tech-tribe-2"]
 

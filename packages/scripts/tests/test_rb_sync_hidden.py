@@ -104,8 +104,7 @@ async def test_existing_hidden_false_not_overridden_on_resync(
     hidden_before = (
         await db_session.execute(
             text(
-                "SELECT hidden FROM stations "
-                "WHERE rb_uuid='00000000-0000-0000-0000-0000000000cc'",
+                "SELECT hidden FROM stations WHERE rb_uuid='00000000-0000-0000-0000-0000000000cc'",
             ),
         )
     ).scalar_one()
@@ -127,8 +126,7 @@ async def test_existing_hidden_false_not_overridden_on_resync(
     hidden_after = (
         await db_session.execute(
             text(
-                "SELECT hidden FROM stations "
-                "WHERE rb_uuid='00000000-0000-0000-0000-0000000000cc'",
+                "SELECT hidden FROM stations WHERE rb_uuid='00000000-0000-0000-0000-0000000000cc'",
             ),
         )
     ).scalar_one()
@@ -155,8 +153,7 @@ async def test_existing_hidden_true_stays_hidden_after_rename(
     hidden_before = (
         await db_session.execute(
             text(
-                "SELECT hidden FROM stations "
-                "WHERE rb_uuid='00000000-0000-0000-0000-0000000000dd'",
+                "SELECT hidden FROM stations WHERE rb_uuid='00000000-0000-0000-0000-0000000000dd'",
             ),
         )
     ).scalar_one()
@@ -178,8 +175,7 @@ async def test_existing_hidden_true_stays_hidden_after_rename(
     hidden_after = (
         await db_session.execute(
             text(
-                "SELECT hidden FROM stations "
-                "WHERE rb_uuid='00000000-0000-0000-0000-0000000000dd'",
+                "SELECT hidden FROM stations WHERE rb_uuid='00000000-0000-0000-0000-0000000000dd'",
             ),
         )
     ).scalar_one()

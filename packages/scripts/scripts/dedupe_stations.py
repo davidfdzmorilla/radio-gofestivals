@@ -17,6 +17,7 @@ The "winner" of each group is picked deterministically by:
   3. higher quality_score (proxy for Radio-Browser clickcount)
   4. older created_at (first to land in our DB)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -53,7 +54,7 @@ _CODEC_RANK: dict[str, int] = {
 def normalize_name(name: str) -> str:
     """Lowercase, strip leading punctuation/whitespace, collapse spaces."""
     s = name.lower().strip()
-    while s and s[0] in "-—–_•· \t":
+    while s and s[0] in "-—–_•· \t":  # noqa: RUF001 — guiones unicode intencionales
         s = s[1:].lstrip()
     return " ".join(s.split())
 
@@ -73,7 +74,7 @@ class StationRow:
     bitrate: int | None
     codec: str | None
     quality_score: int
-    created_at: "datetime"
+    created_at: datetime
     status: str
 
 

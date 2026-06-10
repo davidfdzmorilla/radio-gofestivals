@@ -41,8 +41,12 @@ async def _insert_play(
             "INSERT INTO station_plays (station_id, client_id, user_id, played_at) "
             "VALUES (:sid, :cid, :uid, :pa)",
         ),
-        {"sid": station_id, "cid": cid if user_id is None else None,
-         "uid": user_id, "pa": played_at},
+        {
+            "sid": station_id,
+            "cid": cid if user_id is None else None,
+            "uid": user_id,
+            "pa": played_at,
+        },
     )
     await session.commit()
 
@@ -54,13 +58,14 @@ async def _count(session: AsyncSession, table: str) -> int:
 
 
 async def _daily_row(
-    session: AsyncSession, station_id: uuid.UUID, day: date,
+    session: AsyncSession,
+    station_id: uuid.UUID,
+    day: date,
 ) -> int | None:
     row = (
         await session.execute(
             text(
-                "SELECT plays FROM station_plays_daily "
-                "WHERE station_id = :sid AND day = :d",
+                "SELECT plays FROM station_plays_daily WHERE station_id = :sid AND day = :d",
             ),
             {"sid": station_id, "d": day},
         )
@@ -69,11 +74,13 @@ async def _daily_row(
 
 
 async def test_noop_when_nothing_old(
-    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession,
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
 ) -> None:
     sid = await _make_station(db_session, "fresh")
     await _insert_play(
-        db_session, station_id=sid,
+        db_session,
+        station_id=sid,
         played_at=datetime.now(tz=UTC) - timedelta(days=10),
     )
 
@@ -87,7 +94,8 @@ async def test_noop_when_nothing_old(
 
 
 async def test_old_rows_aggregate_and_delete(
-    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession,
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
 ) -> None:
     sid = await _make_station(db_session, "old")
     base = datetime.now(tz=UTC) - timedelta(days=100)
@@ -95,7 +103,9 @@ async def test_old_rows_aggregate_and_delete(
     for _ in range(3):
         await _insert_play(db_session, station_id=sid, played_at=base)
     await _insert_play(
-        db_session, station_id=sid, played_at=base + timedelta(days=1),
+        db_session,
+        station_id=sid,
+        played_at=base + timedelta(days=1),
     )
 
     stats = await run_retention(maker, days=90, dry_run=False)
@@ -112,7 +122,8 @@ async def test_old_rows_aggregate_and_delete(
 
 
 async def test_recent_rows_untouched(
-    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession,
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
 ) -> None:
     sid = await _make_station(db_session, "mixed")
     old = datetime.now(tz=UTC) - timedelta(days=100)
@@ -129,12 +140,14 @@ async def test_recent_rows_untouched(
 
 
 async def test_dry_run_rolls_back(
-    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession,
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
 ) -> None:
     sid = await _make_station(db_session, "dry")
     for _ in range(5):
         await _insert_play(
-            db_session, station_id=sid,
+            db_session,
+            station_id=sid,
             played_at=datetime.now(tz=UTC) - timedelta(days=100),
         )
 
@@ -149,7 +162,8 @@ async def test_dry_run_rolls_back(
 
 
 async def test_idempotent_second_run_is_noop(
-    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession,
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
 ) -> None:
     sid = await _make_station(db_session, "twice")
     base = datetime.now(tz=UTC) - timedelta(days=100)
@@ -168,7 +182,8 @@ async def test_idempotent_second_run_is_noop(
 
 
 async def test_upsert_accumulates_across_runs(
-    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession,
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
 ) -> None:
     """If new plays from the same (station, day) appear after the first
     retention pass (e.g. retroactive backfill), the next pass adds them
@@ -190,7 +205,8 @@ async def test_upsert_accumulates_across_runs(
 
 
 async def test_decrements_local_plays_total_via_trigger(
-    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession,
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
 ) -> None:
     """B2's DELETE trigger fires on retention deletes, so the
     denormalized counter reflects "plays still in the retention window".
@@ -198,7 +214,8 @@ async def test_decrements_local_plays_total_via_trigger(
     """
     sid = await _make_station(db_session, "counter")
     await _insert_play(
-        db_session, station_id=sid,
+        db_session,
+        station_id=sid,
         played_at=datetime.now(tz=UTC) - timedelta(days=100),
     )
     counter_before = (

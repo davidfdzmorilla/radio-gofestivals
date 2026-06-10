@@ -38,6 +38,7 @@ PLAY_RATE_WINDOW = 60
 async def list_stations(
     session: SessionDep,
     user: OptionalUserDep,
+    ids: Annotated[str | None, Query(max_length=2000)] = None,
     genre: Annotated[str | None, Query()] = None,
     country: Annotated[str | None, Query(min_length=2, max_length=2)] = None,
     curated: Annotated[bool | None, Query()] = None,
@@ -45,6 +46,16 @@ async def list_stations(
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> StationsPage:
+    if ids is not None:
+        # Lookup por ids (favoritos anónimos): ignora el resto de filtros.
+        try:
+            parsed = [uuid.UUID(part) for part in ids.split(",") if part][:50]
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="invalid_ids",
+            ) from exc
+        return await stations_service.list_stations_by_ids(session, parsed)
     return await stations_service.list_stations(
         session,
         genre=genre,

@@ -11,6 +11,7 @@ from app.repos import station_plays as plays_repo
 from app.repos import stations as stations_repo
 from app.repos import user_favorites as fav_repo
 from app.repos import user_votes as votes_repo
+from app.repos.recommendations import get_stations_by_ids
 from app.schemas.station import (
     NearbyStation,
     NowPlayingEntry,
@@ -108,6 +109,29 @@ async def list_stations(
         page=page,
         size=size,
         pages=max(1, math.ceil(total / size)) if total else 0,
+    )
+
+
+async def list_stations_by_ids(
+    session: AsyncSession,
+    station_ids: list[uuid.UUID],
+) -> StationsPage:
+    """Hidrata un conjunto de ids (favoritos anónimos de localStorage).
+
+    Solo emisoras activas y visibles; el orden de entrada se preserva.
+    """
+    by_id = await get_stations_by_ids(session, station_ids)
+    summaries = [
+        _to_summary(by_id[sid])
+        for sid in station_ids
+        if sid in by_id and by_id[sid].status == "active" and not by_id[sid].hidden
+    ]
+    return StationsPage(
+        items=summaries,
+        total=len(summaries),
+        page=1,
+        size=len(summaries),
+        pages=1 if summaries else 0,
     )
 
 

@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256")
     jwt_expire_minutes: int = Field(default=1440)  # admin
     user_access_token_minutes: int = Field(default=30)
+    # Knob para E2E/staging: el default de prod es deliberadamente bajo.
+    register_rate_limit: int = Field(default=3)
     refresh_token_days: int = Field(default=30)
 
     rb_user_agent: str = Field(...)

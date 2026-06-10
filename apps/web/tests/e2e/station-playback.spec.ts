@@ -14,6 +14,6 @@ test('home → station card → detail → play shows GlobalPlayer', async ({ pa
   await expect(playBtn).toBeVisible();
   await playBtn.click();
 
-  const player = page.locator('.fixed.inset-x-0.bottom-0');
+  const player = page.locator('.fixed.inset-x-0.bottom-0').filter({ has: page.locator('audio') });
   await expect(player).toBeVisible();
 });

@@ -104,26 +104,21 @@ export class LocalStorageFavorites implements FavoritesProvider {
 }
 
 async function enrichLocalIds(ids: string[]): Promise<FavoriteOut[]> {
-  // Best effort: hit the public stations endpoint per id. For the MVP
-  // an anonymous favorites list with N items issues N requests in
-  // parallel — N is bounded by realistic user behavior (usually <20).
-  const results = await Promise.all(
-    ids.map(async (id) => {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/v1/stations?size=1&q=${id}`,
-        );
-        if (!res.ok) return null;
-        const body = (await res.json()) as { items: unknown[] };
-        const item = body.items?.[0];
-        if (!item) return null;
-        return mapStationItemToFavorite(item);
-      } catch {
-        return null;
-      }
-    }),
-  );
-  return results.filter((x): x is FavoriteOut => x !== null);
+  // Una sola llamada batched: el endpoint público acepta ?ids=a,b,c.
+  // (Antes se buscaba cada UUID con ?q=<uuid> — búsqueda por nombre que
+  // nunca matcheaba: la página de favoritas anónima salía siempre vacía.)
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL ?? ''}/api/v1/stations?ids=${ids.join(',')}`,
+    );
+    if (!res.ok) return [];
+    const body = (await res.json()) as { items: unknown[] };
+    return (body.items ?? [])
+      .map((item) => mapStationItemToFavorite(item))
+      .filter((x): x is FavoriteOut => x !== null);
+  } catch {
+    return [];
+  }
 }
 
 function mapStationItemToFavorite(raw: unknown): FavoriteOut | null {

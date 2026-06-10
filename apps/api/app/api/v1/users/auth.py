@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 router = APIRouter(prefix="/auth", tags=["user-auth"])
 log = get_logger("app.user.auth")
 
-REGISTER_LIMIT, REGISTER_WINDOW = 3, 60 * 60
+REGISTER_WINDOW = 60 * 60  # límite por settings.register_rate_limit
 LOGIN_LIMIT, LOGIN_WINDOW = 5, 60
 REFRESH_LIMIT, REFRESH_WINDOW = 30, 60
 
@@ -87,7 +87,7 @@ async def register(
     allowed, _ = await check_rate_limit(
         redis,
         f"user_register:{ip}",
-        limit=REGISTER_LIMIT,
+        limit=settings.register_rate_limit,
         window_seconds=REGISTER_WINDOW,
     )
     if not allowed:

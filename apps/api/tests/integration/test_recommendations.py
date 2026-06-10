@@ -251,3 +251,20 @@ async def test_rec_events_inserted_and_identity_required(
         },
     )
     assert no_identity.status_code == 400
+
+
+async def test_stations_by_ids_lookup(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    """?ids= hidrata favoritos anónimos (bug del lookup por q=<uuid>)."""
+    a = await _seed_station(db_session, slug="ids-a")
+    b = await _seed_station(db_session, slug="ids-b", genre_slug="house")
+
+    resp = await client.get(f"/api/v1/stations?ids={a},{b}")
+    assert resp.status_code == 200
+    slugs = [s["slug"] for s in resp.json()["items"]]
+    assert slugs == ["ids-a", "ids-b"]  # orden de entrada preservado
+
+    bad = await client.get("/api/v1/stations?ids=no-es-uuid")
+    assert bad.status_code == 422

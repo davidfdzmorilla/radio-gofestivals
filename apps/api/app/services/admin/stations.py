@@ -495,14 +495,19 @@ async def update_station(
 
     current_genre_ids: set[int] = set()
     if payload.genre_ids is not None:
-        # Validate every supplied genre id
-        valid_rows = (
-            await session.execute(
-                text("SELECT id FROM genres WHERE id = ANY(:ids)"),
-                {"ids": payload.genre_ids},
-            )
-        ).all()
-        valid_ids = {int(r[0]) for r in valid_rows}
+        # Validate every supplied genre id. Los ids fuera del rango smallint
+        # (PK de genres) se filtran antes de la query: asyncpg bindea :ids
+        # como int2[] y lanzaría OverflowError en lugar de devolver 400.
+        queryable = [gid for gid in payload.genre_ids if -(2**15) <= gid < 2**15]
+        valid_ids: set[int] = set()
+        if queryable:
+            valid_rows = (
+                await session.execute(
+                    text("SELECT id FROM genres WHERE id = ANY(:ids)"),
+                    {"ids": queryable},
+                )
+            ).all()
+            valid_ids = {int(r[0]) for r in valid_rows}
         invalid = [gid for gid in payload.genre_ids if gid not in valid_ids]
         if invalid:
             raise HTTPException(

@@ -57,7 +57,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] overflow-y-auto bg-bg-0/85 backdrop-blur"
+      className="fixed inset-0 z-100 overflow-y-auto bg-bg-0/85 backdrop-blur-sm"
       onClick={(e) => {
         if (dismissable && e.target === e.currentTarget) onClose();
       }}

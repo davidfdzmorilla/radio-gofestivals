@@ -7,6 +7,9 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
   useSearchParams: () => new URLSearchParams(''),
   usePathname: () => '/',
+  // next-intl 4 (createNavigation) importa también los redirects del módulo
+  redirect: vi.fn(),
+  permanentRedirect: vi.fn(),
 }));
 
 beforeEach(() => {

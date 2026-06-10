@@ -251,22 +251,23 @@ async def upsert_station(
     # click_trend: not computed yet; requires station_clickcount_history.
     # TODO(quality_v2): backfill once history table lands.
 
-    quality_score = compute_quality_score({
-        "bitrate": bitrate,
-        "codec": codec,
-        "clickcount": clickcount,
-        "votes": votes,
-        "failed_checks": 0,
-        "status": "active",
-    })
+    quality_score = compute_quality_score(
+        {
+            "bitrate": bitrate,
+            "codec": codec,
+            "clickcount": clickcount,
+            "votes": votes,
+            "failed_checks": 0,
+            "status": "active",
+        }
+    )
 
     # Lookup order: rb_uuid → dedupe brand. Both keep re-sync idempotent
     # while letting multiple RB rows of the same logical station collapse
     # onto a single brand (with one stream each).
     existing = await session.execute(
         text(
-            "SELECT id, slug, status, failed_checks "
-            "FROM stations WHERE rb_uuid = :rb",
+            "SELECT id, slug, status, failed_checks FROM stations WHERE rb_uuid = :rb",
         ),
         {"rb": str(rb_uuid)},
     )
@@ -298,11 +299,7 @@ async def upsert_station(
         final_slug, collided = await reserve_slug(session, base_slug)
         if collided:
             stats.slug_collisions += 1
-        geo_expr = (
-            "ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography"
-            if has_geo
-            else "NULL"
-        )
+        geo_expr = "ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography" if has_geo else "NULL"
         hidden_flag = is_likely_spam(name, stream_url)
         params: dict[str, Any] = {
             "rb": str(rb_uuid),
@@ -353,6 +350,9 @@ async def upsert_station(
         stats.updated += 1
         return station_id
 
+    if row is None:  # inalcanzable: las dos ramas anteriores agotan row None
+        raise RuntimeError("unreachable_upsert_state")
+
     station_id = uuid.UUID(str(row[0]))
     existing_status = str(row[2]) if row[2] is not None else "active"
     existing_fails = int(row[3]) if row[3] is not None else 0
@@ -367,14 +367,16 @@ async def upsert_station(
             slug=row[1],
             name=name,
         )
-    update_quality = compute_quality_score({
-        "bitrate": bitrate,
-        "codec": codec,
-        "clickcount": clickcount,
-        "votes": votes,
-        "failed_checks": existing_fails,
-        "status": existing_status,
-    })
+    update_quality = compute_quality_score(
+        {
+            "bitrate": bitrate,
+            "codec": codec,
+            "clickcount": clickcount,
+            "votes": votes,
+            "failed_checks": existing_fails,
+            "status": existing_status,
+        }
+    )
     params = {
         "id": str(station_id),
         "name": name,
@@ -482,8 +484,7 @@ async def _reassign_primary_stream(
     )
     await session.execute(
         text(
-            "UPDATE station_streams SET is_primary = true "
-            "WHERE id = CAST(:wid AS uuid)",
+            "UPDATE station_streams SET is_primary = true WHERE id = CAST(:wid AS uuid)",
         ),
         {"wid": winner_id},
     )
@@ -574,7 +575,13 @@ async def run_sync(
         for t in tags:
             try:
                 await sync_tag(
-                    session, rb, t, limit=limit, seen=seen, genres=genres, stats=stats,
+                    session,
+                    rb,
+                    t,
+                    limit=limit,
+                    seen=seen,
+                    genres=genres,
+                    stats=stats,
                 )
             except Exception:
                 stats.errors += 1
@@ -677,7 +684,9 @@ async def run_health_check(
         ) -> None:
             async with sem:
                 result = await check_stream_alive(
-                    url, timeout_s=timeout, client=client,
+                    url,
+                    timeout_s=timeout,
+                    client=client,
                 )
             touched_stations.add(station_id)
             if result.alive:

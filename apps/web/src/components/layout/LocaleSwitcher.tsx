@@ -18,7 +18,7 @@ export function LocaleSwitcher() {
       <select
         aria-label={t('language')}
         value={locale}
-        className="bg-transparent text-fg-0 outline-none"
+        className="bg-transparent text-fg-0 outline-hidden"
         onChange={(e) => {
           const next = e.target.value as (typeof routing.locales)[number];
           router.replace(pathname, { locale: next });

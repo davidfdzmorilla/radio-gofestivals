@@ -228,7 +228,7 @@ export default function OperationsPage() {
             onChange={(e) =>
               setStatusFilter(e.target.value as JobStatus | '')
             }
-            className="border-fg-3 bg-bg-1 text-fg-1 rounded-md border px-2 py-1 text-xs focus:outline-none"
+            className="border-fg-3 bg-bg-1 text-fg-1 rounded-md border px-2 py-1 text-xs focus:outline-hidden"
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>

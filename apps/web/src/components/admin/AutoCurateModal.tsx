@@ -61,7 +61,7 @@ export function AutoCurateModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg-0/80 p-4 backdrop-blur"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg-0/80 p-4 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget && !submitting) onClose();
       }}
@@ -108,7 +108,7 @@ export function AutoCurateModal({
                 value={minQuality}
                 onChange={(e) => setMinQuality(Number(e.target.value))}
                 disabled={submitting}
-                className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+                className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
               />
             </Field>
             <Field label="Limit (1-500)" htmlFor="ac-limit">
@@ -120,7 +120,7 @@ export function AutoCurateModal({
                 value={limit}
                 onChange={(e) => setLimit(Number(e.target.value))}
                 disabled={submitting}
-                className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+                className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
               />
             </Field>
           </div>
@@ -138,7 +138,7 @@ export function AutoCurateModal({
               value={country}
               onChange={(e) => setCountry(e.target.value.toUpperCase())}
               disabled={submitting}
-              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 font-mono text-sm uppercase focus:outline-none disabled:opacity-50"
+              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 font-mono text-sm uppercase focus:outline-hidden disabled:opacity-50"
             />
           </Field>
 

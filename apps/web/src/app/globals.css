@@ -1,6 +1,60 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  --color-bg-0: var(--bg-0);
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+
+  --color-fg-0: var(--fg-0);
+  --color-fg-1: var(--fg-1);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+
+  --color-magenta: var(--magenta);
+  --color-magenta-soft: var(--magenta-soft);
+
+  --color-cyan: var(--cyan);
+  --color-cyan-soft: var(--cyan-soft);
+
+  --color-wave: var(--wave);
+  --color-wave-soft: var(--wave-soft);
+
+  --color-warm: var(--accent-warm);
+  --color-ink: var(--bg-1);
+
+  --font-display: Chillax, ui-sans-serif, system-ui, sans-serif;
+  --font-body: Satoshi, Chillax, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), JetBrains Mono, ui-monospace, monospace;
+
+  --rotate-1: 1deg;
+  --rotate-0_5: 0.5deg;
+  --rotate-1_5: 1.5deg;
+
+  --shadow-sticker-sm: var(--sticker-shadow-sm);
+  --shadow-sticker: var(--sticker-shadow-md);
+  --shadow-sticker-lg: var(--sticker-shadow-lg);
+  --shadow-sticker-magenta: var(--sticker-shadow-magenta);
+  --shadow-sticker-cyan: var(--sticker-shadow-cyan);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 :root {
   /* Backgrounds */

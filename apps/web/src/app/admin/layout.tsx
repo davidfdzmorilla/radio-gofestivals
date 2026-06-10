@@ -78,7 +78,7 @@ export default function AdminLayout({
 
   return (
     <div className="bg-bg-1 text-fg-1 flex min-h-screen flex-col">
-      <header className="border-fg-3/40 bg-bg-0/95 flex items-center justify-between gap-6 border-b-2 px-6 py-4 backdrop-blur">
+      <header className="border-fg-3/40 bg-bg-0/95 flex items-center justify-between gap-6 border-b-2 px-6 py-4 backdrop-blur-sm">
         <div className="flex items-center gap-6">
           <h1 className="font-display text-fg-0 text-lg font-semibold">
             radio.gofestivals <span className="text-magenta">admin</span>

@@ -190,7 +190,7 @@ export default function StationEditPage() {
               setForm({ ...form, status: coerceStatus(e.target.value) })
             }
             disabled={saving}
-            className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+            className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
           >
             <option value="active">Active</option>
             <option value="broken">Broken</option>
@@ -211,7 +211,7 @@ export default function StationEditPage() {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             disabled={saving}
-            className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+            className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
           />
         </Field>
 
@@ -226,7 +226,7 @@ export default function StationEditPage() {
             value={form.slug}
             onChange={(e) => setForm({ ...form, slug: e.target.value })}
             disabled={saving}
-            className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 font-mono text-sm focus:outline-none disabled:opacity-50"
+            className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 font-mono text-sm focus:outline-hidden disabled:opacity-50"
           />
           <p className="text-fg-2 mt-1 text-xs">
             Solo lowercase, números y guiones. Debe ser único.
@@ -255,7 +255,7 @@ export default function StationEditPage() {
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             disabled={saving}
-            className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+            className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
           />
         </Field>
 

@@ -106,7 +106,7 @@ export function AuthModal({
             type="button"
             onClick={() => setTab('signin')}
             className={cn(
-              'flex-1 rounded-sm py-1.5 font-mono uppercase tracking-widest transition-colors',
+              'flex-1 rounded-xs py-1.5 font-mono uppercase tracking-widest transition-colors',
               tab === 'signin'
                 ? 'bg-bg-3 text-fg-0'
                 : 'text-fg-2 hover:text-fg-0',
@@ -118,7 +118,7 @@ export function AuthModal({
             type="button"
             onClick={() => setTab('signup')}
             className={cn(
-              'flex-1 rounded-sm py-1.5 font-mono uppercase tracking-widest transition-colors',
+              'flex-1 rounded-xs py-1.5 font-mono uppercase tracking-widest transition-colors',
               tab === 'signup'
                 ? 'bg-bg-3 text-fg-0'
                 : 'text-fg-2 hover:text-fg-0',
@@ -144,7 +144,7 @@ export function AuthModal({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={submitting}
-              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
             />
           </div>
 
@@ -167,7 +167,7 @@ export function AuthModal({
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={submitting}
-                className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 pr-10 text-sm focus:outline-none disabled:opacity-50"
+                className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 pr-10 text-sm focus:outline-hidden disabled:opacity-50"
               />
               <button
                 type="button"
@@ -199,7 +199,7 @@ export function AuthModal({
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={submitting}
-                className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+                className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
               />
             </div>
           ) : null}

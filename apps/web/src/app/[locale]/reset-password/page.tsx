@@ -83,7 +83,7 @@ function ResetInner() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           disabled={submitting}
-          className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+          className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
         />
         <input
           type="password"
@@ -93,7 +93,7 @@ function ResetInner() {
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
           disabled={submitting}
-          className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+          className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
         />
         {error ? (
           <div

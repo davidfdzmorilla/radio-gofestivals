@@ -2,8 +2,10 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { getStation } from '@/lib/api';
+import { getGenresTree, getStation } from '@/lib/api';
+import { getSimilarStations } from '@/lib/recs';
 import { StationPlayerControls } from '@/components/stations/StationPlayerControls';
+import { TrackedStationGrid } from '@/components/stations/TrackedStationGrid';
 import { NowPlaying } from '@/components/player/NowPlaying';
 import { HeartButton } from '@/components/auth/HeartButton';
 import { LikeButton } from '@/components/auth/LikeButton';
@@ -75,6 +77,21 @@ export default async function StationPage({
   const tStation = await getTranslations('station');
   const tCommon = await getTranslations('common');
   const tNav = await getTranslations('nav');
+
+  // No personalizado → puede ir en el ISR. La tabla de similitud se
+  // regenera de noche; si aún no existe para esta emisora, sección fuera.
+  const [similar, genresTree] = await Promise.all([
+    getSimilarStations(slug, { size: 6, revalidate: 3600 }).catch(() => []),
+    getGenresTree().catch(() => []),
+  ]);
+  const genresBySlug: Record<string, (typeof genresTree)[number]> = {};
+  const walkGenres = (list: typeof genresTree) => {
+    for (const g of list) {
+      genresBySlug[g.slug] = g;
+      walkGenres(g.children);
+    }
+  };
+  walkGenres(genresTree);
 
   const primaryColor = station.genres[0]?.color_hex ?? '#8B4EE8';
 
@@ -245,6 +262,19 @@ export default async function StationPage({
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {similar.length > 0 && (
+        <section className="space-y-5">
+          <h2 className="font-display text-xl font-semibold text-fg-0">
+            {tStation('similarTitle')}
+          </h2>
+          <TrackedStationGrid
+            stations={similar}
+            genresBySlug={genresBySlug}
+            surface="station_similar"
+          />
         </section>
       )}
 

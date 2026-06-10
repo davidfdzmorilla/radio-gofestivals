@@ -15,7 +15,8 @@
     "tagline": "Electronic music, curated.",
     "seoDescription": "Discover hand-picked electronic music radio stations. Techno, house, trance, drum & bass and more, streaming live from across the world, connected to the gofestivals ecosystem.",
     "featured": "Featured",
-    "featuredEmpty": "No curated stations yet. Stay tuned."
+    "featuredEmpty": "No curated stations yet. Stay tuned.",
+    "forYou": "For you"
   },
   "genres": {
     "title": "Genres",
@@ -32,7 +33,8 @@
     "recentTracks": "Recent tracks",
     "location": "{city}, {country}",
     "notFound": "Station not found",
-    "metaDescription": "{hasDetails, select, no {Listen to {name} live. Free streaming on radio.gofestivals.} other {Listen to {name} live. {details}. Free streaming on radio.gofestivals.}}"
+    "metaDescription": "{hasDetails, select, no {Listen to {name} live. Free streaming on radio.gofestivals.} other {Listen to {name} live. {details}. Free streaming on radio.gofestivals.}}",
+    "similarTitle": "Similar stations"
   },
   "player": {
     "buffering": "Connecting…",

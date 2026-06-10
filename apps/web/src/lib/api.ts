@@ -4,12 +4,14 @@ import {
   GenreFacetSchema,
   GenreSchema,
   StationDetailSchema,
+  StationSuggestionSchema,
   StationSummarySchema,
   StationsPageSchema,
   type CountryFacet,
   type Genre,
   type GenreFacet,
   type StationDetail,
+  type StationSuggestion,
   type StationSummary,
   type StationsPage,
 } from './types';
@@ -152,6 +154,20 @@ export async function listNewStations(
   return apiFetch(path, {
     schema: StationsPageSchema,
     revalidate: params.revalidate ?? 300,
+  });
+}
+
+const StationSuggestionsSchema = z.array(StationSuggestionSchema);
+
+export async function suggestStations(
+  q: string,
+  opts: { limit?: number; signal?: AbortSignal } = {},
+): Promise<StationSuggestion[]> {
+  const qs = new URLSearchParams({ q });
+  if (opts.limit) qs.set('limit', String(opts.limit));
+  return apiFetch(`/api/v1/stations/suggest?${qs}`, {
+    schema: StationSuggestionsSchema,
+    signal: opts.signal,
   });
 }
 

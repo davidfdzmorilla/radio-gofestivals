@@ -4,7 +4,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.api.deps import AdminDep, SessionDep
+from app.api.deps import AdminDep, RedisDep, SessionDep
 from app.core.logging import get_logger
 from app.schemas.admin_streams import (
     BulkStatusChangeRequest,
@@ -16,10 +16,29 @@ from app.services.admin.stream_ops import (
     AlreadyPrimaryError,
     StreamNotFoundError,
 )
+from app.services.rate_limit import check_rate_limit
 
 streams_router = APIRouter(prefix="/streams", tags=["admin-streams"])
 bulk_router = APIRouter(prefix="/stations", tags=["admin-streams"])
 log = get_logger("app.admin.streams")
+
+# Mutaciones admin con efecto masivo: límite por admin, generoso para
+# trabajo manual pero corta un script descontrolado o un token robado.
+ADMIN_OPS_LIMIT, ADMIN_OPS_WINDOW = 30, 60
+
+
+async def _ensure_within_limit(redis: RedisDep, admin_id: uuid.UUID) -> None:
+    allowed, _ = await check_rate_limit(
+        redis,
+        f"admin_stream_ops:{admin_id}",
+        limit=ADMIN_OPS_LIMIT,
+        window_seconds=ADMIN_OPS_WINDOW,
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="rate_limit_exceeded",
+        )
 
 
 @streams_router.patch(
@@ -30,7 +49,9 @@ async def promote_primary(
     stream_id: uuid.UUID,
     admin: AdminDep,
     session: SessionDep,
+    redis: RedisDep,
 ) -> PromotePrimaryResponse:
+    await _ensure_within_limit(redis, admin.id)
     try:
         result = await stream_ops.promote_stream_to_primary(
             session,
@@ -66,7 +87,9 @@ async def bulk_status_change(
     body: BulkStatusChangeRequest,
     admin: AdminDep,
     session: SessionDep,
+    redis: RedisDep,
 ) -> BulkStatusChangeResponse:
+    await _ensure_within_limit(redis, admin.id)
     try:
         result = await stream_ops.bulk_change_status(
             session,

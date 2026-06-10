@@ -1,7 +1,10 @@
 import { buildSitemapEntries } from '@/lib/sitemap-data';
 
-// Next.js statically analyses this export and requires a literal number.
-export const revalidate = 86_400;
+// force-dynamic: este handler existe para servir una URL SIEMPRE fresca a
+// GSC; prerenderizarlo en build además exige la API viva durante `next
+// build` (rompía el CI, donde no hay backend). La caché la gobierna el
+// Cache-Control de la respuesta.
+export const dynamic = 'force-dynamic';
 
 function xmlEscape(value: string): string {
   return value

@@ -46,6 +46,13 @@ class CountryFacet(NamedTuple):
     station_count: int
 
 
+class GenreFacet(NamedTuple):
+    slug: str
+    name: str
+    color_hex: str
+    station_count: int
+
+
 class NearbyRow(NamedTuple):
     id: uuid.UUID
     slug: str
@@ -189,6 +196,42 @@ async def count_active_stations_by_country(
     )
     rows = (await session.execute(stmt)).all()
     return [CountryFacet(code=str(r[0]), station_count=int(r[1])) for r in rows]
+
+
+async def count_active_stations_by_genre(
+    session: AsyncSession,
+    *,
+    country: str | None = None,
+) -> list[GenreFacet]:
+    """Genres of the active visible catalog with counts, optionally per country.
+
+    Powers the data-driven intro and the genre section of the country hubs.
+    """
+    stmt = (
+        select(Genre.slug, Genre.name, Genre.color_hex, func.count())
+        .join(StationGenre, StationGenre.genre_id == Genre.id)
+        .join(Station, Station.id == StationGenre.station_id)
+        .where(
+            Station.status == "active",
+            Station.hidden.is_(False),
+        )
+    )
+    if country is not None:
+        stmt = stmt.where(Station.country_code == country.upper())
+    stmt = stmt.group_by(Genre.slug, Genre.name, Genre.color_hex).order_by(
+        func.count().desc(),
+        Genre.slug.asc(),
+    )
+    rows = (await session.execute(stmt)).all()
+    return [
+        GenreFacet(
+            slug=str(r[0]),
+            name=str(r[1]),
+            color_hex=str(r[2]),
+            station_count=int(r[3]),
+        )
+        for r in rows
+    ]
 
 
 async def list_trending_stations(

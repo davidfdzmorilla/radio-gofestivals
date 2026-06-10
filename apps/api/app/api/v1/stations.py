@@ -15,6 +15,7 @@ from app.api.deps import (
 from app.core.logging import get_logger
 from app.schemas.station import (
     CountryFacet,
+    GenreFacet,
     NearbyStation,
     StationDetail,
     StationsPage,
@@ -104,6 +105,15 @@ async def country_facets(
     aplicar el gate de publicación sobre estos mismos conteos.
     """
     return await stations_service.list_country_facets(session, genre=genre)
+
+
+@router.get("/facets/genres", response_model=list[GenreFacet])
+async def genre_facets(
+    session: SessionDep,
+    country: Annotated[str | None, Query(min_length=2, max_length=2)] = None,
+) -> list[GenreFacet]:
+    """Géneros del catálogo activo con conteos, opcionalmente por país."""
+    return await stations_service.list_genre_facets(session, country=country)
 
 
 @router.get("/trending", response_model=StationsPage)

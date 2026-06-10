@@ -135,26 +135,38 @@ async def _insert_station(
         text(
             """
             INSERT INTO stations
-                (name, slug, stream_url, homepage_url, country_code,
-                 bitrate, codec, quality_score, status, source)
+                (name, slug, homepage_url, country_code,
+                 quality_score, status, source)
             VALUES
-                (:name, :slug, :stream, :hp, :cc,
-                 :br, :codec, :q, 'active', 'radio-browser')
+                (:name, :slug, :hp, :cc, :q, 'active', 'radio-browser')
             RETURNING id
             """,
         ),
         {
             "name": name,
             "slug": slug,
-            "stream": f"https://stream/{slug}.mp3",
             "hp": homepage,
             "cc": country,
-            "br": bitrate,
-            "codec": codec,
             "q": quality,
         },
     )
     sid = result.scalar_one()
+    # bitrate/codec viven en station_streams desde la migración 0007
+    await session.execute(
+        text(
+            """
+            INSERT INTO station_streams
+                (station_id, stream_url, codec, bitrate, is_primary, status)
+            VALUES (:sid, :stream, :codec, :br, true, 'active')
+            """,
+        ),
+        {
+            "sid": sid,
+            "stream": f"https://stream/{slug}.mp3",
+            "codec": codec,
+            "br": bitrate,
+        },
+    )
     await session.commit()
     return sid
 

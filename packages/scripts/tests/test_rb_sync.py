@@ -136,10 +136,9 @@ async def test_preserves_broken_status(
         text(
             """
             INSERT INTO stations (
-                rb_uuid, slug, name, stream_url, status, failed_checks
+                rb_uuid, slug, name, status, failed_checks
             ) VALUES (
-                :rb, 'techno-tribe', 'Techno Tribe',
-                'https://stream.example.com/tt.mp3', 'broken', 5
+                :rb, 'techno-tribe', 'Techno Tribe', 'broken', 5
             )
             """,
         ),
@@ -265,7 +264,10 @@ async def test_preserves_curated_flag_and_status(
     ).first()
     assert row is not None
     assert row[0] is True
-    assert row[1] == 99
+    # quality_score se recomputa en cada sync desde 7bf2927 (señales de
+    # bitrate/popularidad/fiabilidad); curated ya no congela el valor manual.
+    assert isinstance(row[1], int)
+    assert 0 <= row[1] <= 100
     assert row[2] == "active"
 
 
@@ -371,6 +373,45 @@ async def test_slug_collision_handling(
     maker: async_sessionmaker[AsyncSession],
     db_session: AsyncSession,
 ) -> None:
+    # Países distintos: el dedupe por marca NO los colapsa (la marca exige
+    # mismo country_code), pero ambos slugifican a "tech-tribe" → colisión.
+    items = [
+        {
+            "stationuuid": str(uuid.uuid4()),
+            "name": "Tech Tribe",
+            "url": "https://s.example.com/a.mp3",
+            "url_resolved": "https://s.example.com/a.mp3",
+            "tags": "techno",
+            "countrycode": "ES",
+        },
+        {
+            "stationuuid": str(uuid.uuid4()),
+            "name": "Tech Tribe",
+            "url": "https://s.example.com/b.mp3",
+            "url_resolved": "https://s.example.com/b.mp3",
+            "tags": "techno",
+            "countrycode": "DE",
+        },
+    ]
+    respx.get(url__regex=r"https://host-a\.example/.*").respond(json=items)
+    client = RadioBrowserClient(servers=["host-a.example"])
+    stats = await run_sync(maker, tag="techno", dry_run=False, limit=500, client=client)
+
+    assert stats.inserted == 2
+    assert stats.slug_collisions == 1
+    slugs = sorted(
+        str(r[0])
+        for r in (await db_session.execute(text("SELECT slug FROM stations"))).all()
+    )
+    assert slugs == ["tech-tribe", "tech-tribe-2"]
+
+
+@respx.mock
+async def test_same_brand_collapses_into_streams(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    """Mismo nombre normalizado y mismo país → una estación con dos streams."""
     items = [
         {
             "stationuuid": str(uuid.uuid4()),
@@ -391,13 +432,19 @@ async def test_slug_collision_handling(
     client = RadioBrowserClient(servers=["host-a.example"])
     stats = await run_sync(maker, tag="techno", dry_run=False, limit=500, client=client)
 
-    assert stats.inserted == 2
-    assert stats.slug_collisions == 1
-    slugs = sorted(
-        str(r[0])
-        for r in (await db_session.execute(text("SELECT slug FROM stations"))).all()
-    )
-    assert slugs == ["tech-tribe", "tech-tribe-2"]
+    assert stats.inserted == 1
+    assert stats.updated == 1
+    assert stats.slug_collisions == 0
+    rows = (
+        await db_session.execute(
+            text(
+                "SELECT s.slug, COUNT(ss.id) FROM stations s "
+                "JOIN station_streams ss ON ss.station_id = s.id "
+                "GROUP BY s.slug",
+            ),
+        )
+    ).all()
+    assert [(str(r[0]), int(r[1])) for r in rows] == [("tech-tribe", 2)]
 
 
 @respx.mock

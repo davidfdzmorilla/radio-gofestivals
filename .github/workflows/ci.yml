@@ -1,0 +1,209 @@
+# CI · radio.gofestivals
+#
+# Cuatro jobs paralelos, uno por paquete. Los tres de Python levantan
+# postgres (postgis) + redis como service containers y aplican las
+# migraciones alembic antes de los tests — mismo contrato que el
+# entorno local (CLAUDE.md §5).
+#
+# Nota: ruff/format de packages/scripts NO se ejecuta todavía — deuda
+# preexistente (~85 errores); se activa al cerrarla (plan de mejoras A7).
+# Los E2E de Playwright tampoco corren por PR (lentos); irán en un job
+# nightly aparte (plan B5).
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TEST_DB_URL: postgresql+asyncpg://radio:radio_ci@localhost:5432/radio
+  TEST_REDIS: redis://localhost:6379/15
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: radio
+          POSTGRES_PASSWORD: radio_ci
+          POSTGRES_DB: radio
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U radio -d radio"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+      - name: Sync dependencies
+        run: uv sync --frozen
+      - name: Ruff
+        run: |
+          uv run ruff check app
+          uv run ruff format --check app
+      - name: Mypy (strict)
+        run: uv run mypy app --strict
+      - name: Alembic migrations (upgrade + downgrade -1 + upgrade)
+        env:
+          DATABASE_URL: ${{ env.TEST_DB_URL }}
+          REDIS_URL: ${{ env.TEST_REDIS }}
+          JWT_SECRET: ci_secret_0123456789abcdef0123456789abcdef
+          RB_USER_AGENT: radio.gofestivals/ci
+          ENV: dev
+        run: |
+          uv run alembic upgrade head
+          uv run alembic downgrade -1
+          uv run alembic upgrade head
+      - name: Pytest
+        env:
+          TEST_DATABASE_URL: ${{ env.TEST_DB_URL }}
+          TEST_REDIS_URL: ${{ env.TEST_REDIS }}
+        run: uv run pytest -q
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: ESLint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Vitest
+        run: pnpm test
+      - name: Build
+        run: pnpm build
+
+  scripts:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: radio
+          POSTGRES_PASSWORD: radio_ci
+          POSTGRES_DB: radio
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U radio -d radio"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            packages/scripts/uv.lock
+            apps/api/uv.lock
+      - name: Apply schema (alembic desde apps/api)
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ env.TEST_DB_URL }}
+          REDIS_URL: ${{ env.TEST_REDIS }}
+          JWT_SECRET: ci_secret_0123456789abcdef0123456789abcdef
+          RB_USER_AGENT: radio.gofestivals/ci
+          ENV: dev
+        run: |
+          uv sync --frozen
+          uv run alembic upgrade head
+      - name: Sync dependencies
+        working-directory: packages/scripts
+        run: uv sync --frozen
+      - name: Mypy (strict)
+        working-directory: packages/scripts
+        run: uv run mypy scripts
+      - name: Pytest
+        working-directory: packages/scripts
+        env:
+          TEST_DATABASE_URL: ${{ env.TEST_DB_URL }}
+        run: uv run pytest -q
+
+  icy-worker:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: radio
+          POSTGRES_PASSWORD: radio_ci
+          POSTGRES_DB: radio
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U radio -d radio"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: |
+            packages/icy-worker/uv.lock
+            apps/api/uv.lock
+      - name: Apply schema (alembic desde apps/api)
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ env.TEST_DB_URL }}
+          REDIS_URL: ${{ env.TEST_REDIS }}
+          JWT_SECRET: ci_secret_0123456789abcdef0123456789abcdef
+          RB_USER_AGENT: radio.gofestivals/ci
+          ENV: dev
+        run: |
+          uv sync --frozen
+          uv run alembic upgrade head
+      - name: Sync dependencies
+        working-directory: packages/icy-worker
+        run: uv sync --frozen
+      - name: Ruff
+        working-directory: packages/icy-worker
+        run: uv run ruff check icy_worker
+      - name: Mypy (strict)
+        working-directory: packages/icy-worker
+        run: uv run mypy icy_worker
+      - name: Pytest
+        working-directory: packages/icy-worker
+        env:
+          DATABASE_URL: ${{ env.TEST_DB_URL }}
+          REDIS_URL: ${{ env.TEST_REDIS }}
+        run: uv run pytest -q

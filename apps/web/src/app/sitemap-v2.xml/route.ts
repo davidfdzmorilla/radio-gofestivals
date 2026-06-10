@@ -34,6 +34,13 @@ export async function GET(): Promise<Response> {
         `    <xhtml:link rel="alternate" hreflang="${xmlEscape(hreflang)}" href="${xmlEscape(String(href))}" />`,
       );
     }
+    if (entry.lastModified) {
+      const iso =
+        entry.lastModified instanceof Date
+          ? entry.lastModified.toISOString()
+          : String(entry.lastModified);
+      lines.push(`    <lastmod>${xmlEscape(iso)}</lastmod>`);
+    }
     if (entry.changeFrequency) {
       lines.push(`    <changefreq>${entry.changeFrequency}</changefreq>`);
     }

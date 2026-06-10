@@ -21,6 +21,7 @@ from app.schemas.station import (
     StationGenreRef,
     StationsPage,
     StationStreamRef,
+    StationSuggestion,
     StationSummary,
 )
 
@@ -227,6 +228,50 @@ async def list_new_stations(
 ) -> StationsPage:
     items = await stations_repo.list_newest_stations(session, limit=limit)
     return _single_page([_to_summary(s) for s in items])
+
+
+def _normalize_suggest_query(q: str) -> str:
+    # trim + colapsa espacios + lower: "  Techno " y "techno" comparten
+    # resultados y entrada de caché. ILIKE y los trigrams ya son
+    # case-insensitive, así que esto no cambia los matches.
+    return " ".join(q.split()).lower()
+
+
+def _suggest_cache_key(q: str, limit: int) -> str:
+    return f"stations:suggest:{q}:{limit}:v1"
+
+
+async def suggest_stations(
+    session: AsyncSession,
+    redis: Redis[str],
+    q: str,
+    *,
+    limit: int,
+    ttl: int,
+) -> list[StationSuggestion]:
+    norm = _normalize_suggest_query(q)
+    if not norm:
+        return []
+    cache_key = _suggest_cache_key(norm, limit)
+    cached = await redis.get(cache_key)
+    if cached is not None:
+        return [StationSuggestion.model_validate(item) for item in json.loads(cached)]
+    stations = await stations_repo.suggest_active_stations(session, q=norm, limit=limit)
+    suggestions = [
+        StationSuggestion(
+            slug=s.slug,
+            name=s.name,
+            country_code=s.country_code,
+            genres=[g.slug for g in s.genres],
+        )
+        for s in stations
+    ]
+    await redis.set(
+        cache_key,
+        json.dumps([s.model_dump() for s in suggestions]),
+        ex=ttl,
+    )
+    return suggestions
 
 
 def _detail_cache_key(slug: str) -> str:

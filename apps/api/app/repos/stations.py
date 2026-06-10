@@ -110,6 +110,53 @@ async def list_active_stations(
     return items, int(total)
 
 
+def _escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+async def suggest_active_stations(
+    session: AsyncSession,
+    *,
+    q: str,
+    limit: int,
+) -> list[Station]:
+    """Typeahead matches over station names.
+
+    The ``%`` trigram operator alone misses short prefixes ("te" vs
+    "Techno Beats" scores below pg_trgm's 0.3 threshold), so the filter is
+    an OR of prefix ILIKE, infix ILIKE and trigram fuzzy. Ranking uses
+    GREATEST(similarity, word_similarity, 0.85 prefix boost): short-prefix
+    matches tie at 0.85 and fall through to quality_score, while long
+    queries are dominated by the real similarity.
+    """
+    pattern = _escape_like(q)
+    stmt = (
+        select(Station)
+        .where(
+            Station.status == "active",
+            Station.hidden.is_(False),
+            text(
+                "(name ILIKE :prefix ESCAPE '\\' OR name ILIKE :infix ESCAPE '\\' OR name % :q)",
+            ).bindparams(
+                bindparam("prefix", pattern + "%"),
+                bindparam("infix", "%" + pattern + "%"),
+                bindparam("q", q),
+            ),
+        )
+        .order_by(
+            text(
+                "GREATEST(similarity(name, :q), word_similarity(:q, name), "
+                "CASE WHEN name ILIKE :prefix ESCAPE '\\' THEN 0.85 ELSE 0 END) DESC",
+            ).bindparams(bindparam("q", q), bindparam("prefix", pattern + "%")),
+            Station.quality_score.desc(),
+            Station.name.asc(),
+        )
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().unique().all())
+
+
 async def list_featured_diverse_stations(
     session: AsyncSession,
     *,

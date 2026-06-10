@@ -19,6 +19,7 @@ from app.schemas.station import (
     NearbyStation,
     StationDetail,
     StationsPage,
+    StationSuggestion,
     StationSummary,
 )
 from app.schemas.station_play import PlayRegisterRequest, PlayRegisterResponse
@@ -34,6 +35,11 @@ STREAM_RATE_WINDOW = 60
 
 PLAY_RATE_LIMIT = 100
 PLAY_RATE_WINDOW = 60
+
+# Cada tecla (tras debounce de ~300ms) es una request: un usuario legítimo
+# genera ~3 req/s en ráfagas cortas; 120/min da margen sin permitir scraping.
+SUGGEST_RATE_LIMIT = 120
+SUGGEST_RATE_WINDOW = 60
 
 
 @router.get("", response_model=StationsPage)
@@ -162,6 +168,39 @@ async def list_recommended(
         client_id=effective_client,
         locale=locale,
         size=size,
+    )
+
+
+# Declarada antes de "/{slug}": FastAPI matchea en orden de declaración y
+# de otro modo "suggest" se resolvería como slug.
+@router.get("/suggest", response_model=list[StationSuggestion])
+async def suggest_stations(
+    request: Request,
+    session: SessionDep,
+    redis: RedisDep,
+    settings: SettingsDep,
+    q: Annotated[str, Query(min_length=1, max_length=100)],
+    limit: Annotated[int, Query(ge=1, le=10)] = 8,
+) -> list[StationSuggestion]:
+    """Coincidencias de emisora para el typeahead del buscador."""
+    client_ip = request.client.host if request.client else "unknown"
+    allowed, _count = await check_rate_limit(
+        redis,
+        f"suggest:{client_ip}",
+        limit=SUGGEST_RATE_LIMIT,
+        window_seconds=SUGGEST_RATE_WINDOW,
+    )
+    if not allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="rate_limit_exceeded",
+        )
+    return await stations_service.suggest_stations(
+        session,
+        redis,
+        q,
+        limit=limit,
+        ttl=settings.redis_cache_ttl,
     )
 
 

@@ -65,6 +65,15 @@ class StationDetail(BaseModel):
     user_voted: bool | None = None
 
 
+class StationSuggestion(BaseModel):
+    """Payload mínimo para el typeahead: pintar nombre + país + género y navegar."""
+
+    slug: str
+    name: str
+    country_code: str | None
+    genres: list[str] = Field(default_factory=list)
+
+
 class CountryFacet(BaseModel):
     code: str
     station_count: int

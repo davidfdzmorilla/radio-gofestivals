@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { Play, Pause, X, Volume2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { cn, initials } from '@/lib/utils';
 import { usePlayerStore } from '@/lib/player-store';
@@ -139,9 +140,12 @@ export function GlobalPlayer() {
           className="hidden sm:flex"
         />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-mono text-[11px] uppercase tracking-wide text-fg-2">
+          <Link
+            href={`/stations/${station.slug}`}
+            className="block truncate font-mono text-[11px] uppercase tracking-wide text-fg-2 underline decoration-transparent decoration-2 underline-offset-2 transition-colors hover:text-fg-0 hover:decoration-magenta"
+          >
             {station.name}
-          </p>
+          </Link>
           {error ? (
             <p className="flex items-center gap-2 font-display text-sm italic text-fg-2">
               <span>{t('streamUnavailable')}</span>

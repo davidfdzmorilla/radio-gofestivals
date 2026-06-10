@@ -11,6 +11,32 @@ const X_DEFAULT_LOCALE: (typeof LOCALES)[number] = 'en';
  * shallow-merge leaks the layout's home alternates onto every child route —
  * which silently dedupes them all to the home in Google's index.
  */
+/**
+ * Publication gate for programmatic country pages: below this station count
+ * the page is neither generated nor listed in the sitemap (thin content).
+ * Both consumers MUST read the same constant so they never diverge.
+ */
+export const COUNTRY_GATE_MIN_STATIONS = 3;
+
+/**
+ * Same idea for per-genre trending pages: /trending/{genre} only exists
+ * (page + sitemap) for root genres with at least this many stations.
+ */
+export const TRENDING_GENRE_GATE_MIN = 10;
+
+/** Localized country name from its ISO code, falling back to the code. */
+export function regionName(locale: string, code: string): string {
+  try {
+    return (
+      new Intl.DisplayNames([locale], { type: 'region' }).of(
+        code.toUpperCase(),
+      ) ?? code.toUpperCase()
+    );
+  } catch {
+    return code.toUpperCase();
+  }
+}
+
 export function buildAlternates(
   locale: string,
   pathWithoutLocale: string,

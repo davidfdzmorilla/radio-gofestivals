@@ -104,6 +104,14 @@ export default async function LocaleLayout({
     url: `${SITE_URL}/${locale}`,
     description: t('seoDescription'),
     inLanguage: locale,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${SITE_URL}/${locale}/search?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
   };
   const organizationLd = {
     '@context': 'https://schema.org',

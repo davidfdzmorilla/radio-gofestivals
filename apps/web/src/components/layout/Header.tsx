@@ -41,6 +41,18 @@ export async function Header() {
             {t('genres')}
           </Link>
           <Link
+            href="/countries"
+            className="font-medium text-fg-1 underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:text-fg-0 hover:decoration-magenta"
+          >
+            {t('countries')}
+          </Link>
+          <Link
+            href="/trending"
+            className="font-medium text-fg-1 underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:text-fg-0 hover:decoration-magenta"
+          >
+            {t('trending')}
+          </Link>
+          <Link
             href="/favorites"
             className="font-medium text-fg-1 underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:text-fg-0 hover:decoration-magenta"
           >

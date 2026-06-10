@@ -14,6 +14,7 @@ from app.repos import user_votes as votes_repo
 from app.repos.recommendations import get_stations_by_ids
 from app.schemas.station import (
     CountryFacet,
+    GenreFacet,
     NearbyStation,
     NowPlayingEntry,
     StationDetail,
@@ -63,6 +64,7 @@ def _to_summary(station: Station) -> StationSummary:
         votes_local=int(station.votes_local or 0),
         genres=[g.slug for g in station.genres],
         primary_stream=_stream_ref(primary) if primary else None,
+        updated_at=station.updated_at,
     )
 
 
@@ -172,6 +174,26 @@ async def list_country_facets(
         genre=genre,
     )
     return [CountryFacet(code=r.code, station_count=r.station_count) for r in rows]
+
+
+async def list_genre_facets(
+    session: AsyncSession,
+    *,
+    country: str | None = None,
+) -> list[GenreFacet]:
+    rows = await stations_repo.count_active_stations_by_genre(
+        session,
+        country=country,
+    )
+    return [
+        GenreFacet(
+            slug=r.slug,
+            name=r.name,
+            color_hex=r.color_hex,
+            station_count=r.station_count,
+        )
+        for r in rows
+    ]
 
 
 def _single_page(summaries: list[StationSummary]) -> StationsPage:

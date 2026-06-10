@@ -54,6 +54,25 @@ async def test_country_facets_filters_by_genre(
     ]
 
 
+async def test_genre_facets_per_country(
+    client: AsyncClient,
+    create_station,  # type: ignore[no-untyped-def]
+) -> None:
+    await create_station(slug="de-t1", country_code="DE", genre_slugs=["techno"])
+    await create_station(slug="de-t2", country_code="DE", genre_slugs=["techno"])
+    await create_station(slug="de-h1", country_code="DE", genre_slugs=["house"])
+    await create_station(slug="fr-h1", country_code="FR", genre_slugs=["house"])
+
+    r = await client.get("/api/v1/stations/facets/genres", params={"country": "DE"})
+    assert r.status_code == 200
+    facets = [(f["slug"], f["station_count"]) for f in r.json()]
+    assert facets == [("techno", 2), ("house", 1)]
+    assert all({"name", "color_hex"} <= set(f) for f in r.json())
+
+    r = await client.get("/api/v1/stations/facets/genres", params={"country": "X"})
+    assert r.status_code == 422
+
+
 async def test_trending_orders_by_click_trend_and_excludes_no_signal(
     client: AsyncClient,
     db_session: AsyncSession,
@@ -126,5 +145,7 @@ async def test_new_excludes_inactive(
     await create_station(slug="broken", status="broken", genre_slugs=["techno"])
 
     r = await client.get("/api/v1/stations/new")
-    slugs = [i["slug"] for i in r.json()["items"]]
-    assert slugs == ["ok"]
+    items = r.json()["items"]
+    assert [i["slug"] for i in items] == ["ok"]
+    # lastmod del sitemap: el summary expone updated_at.
+    assert items[0]["updated_at"] is not None

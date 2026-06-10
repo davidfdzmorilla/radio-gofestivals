@@ -60,12 +60,17 @@
     "profile": "Perfil",
     "favorites": "Favoritas",
     "logout": "Salir",
-    "support": "Soporte"
+    "support": "Soporte",
+    "countries": "Países",
+    "trending": "Tendencias",
+    "new": "Nuevas",
+    "search": "Buscar"
   },
   "pagination": {
     "pageOf": "Página {current} de {total}",
     "previous": "Anterior",
-    "next": "Siguiente"
+    "next": "Siguiente",
+    "pageSuffix": " — página {page}"
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -130,5 +135,46 @@
     "lastUpdated": "Última actualización: {date}",
     "privacyLink": "Política de privacidad",
     "cookiesLink": "Cookies"
+  },
+  "countries": {
+    "title": "Países",
+    "indexTitle": "Radios de electrónica por país",
+    "indexDescription": "Explora {count, plural, =1 {1 país} other {# países}} con emisoras de música electrónica en directo: techno, house, trance y más.",
+    "exploreTitle": "Radio electrónica de {name}",
+    "metaTitle": "Radios de música electrónica de {name} — {count, plural, =1 {1 emisora} other {# emisoras}} en directo",
+    "metaDescription": "Escucha {count, plural, =1 {la emisora} other {las # emisoras}} de música electrónica de {name} en directo. Techno, house, trance y más, gratis y sin registro.",
+    "intro": "{name} aporta {count, plural, =1 {1 emisora} other {# emisoras}} a nuestro directorio de radio electrónica{hasTop, select, yes {; domina el {topGenre} con {topCount, plural, =1 {1 radio} other {# radios}}} other {}}.",
+    "stationCount": "{count, plural, =0 {sin estaciones} =1 {1 estación} other {# estaciones}}",
+    "genresHeading": "Géneros en {name}",
+    "topStations": "Las más escuchadas de {name}"
+  },
+  "trending": {
+    "title": "Tendencias",
+    "metaTitle": "Radios de electrónica en tendencia",
+    "metaDescription": "Las emisoras de música electrónica que más crecen esta semana, según datos reales de escucha. Actualizado a diario.",
+    "genreMetaTitle": "Radios de {name} en tendencia",
+    "genreMetaDescription": "Las emisoras de {name} que más crecen esta semana, según datos reales de escucha. Actualizado a diario.",
+    "heading": "En tendencia",
+    "genreHeading": "{name} en tendencia",
+    "description": "Ordenadas por crecimiento real de escuchas en los últimos 7 días.",
+    "empty": "Aún no hay datos de tendencia suficientes.",
+    "byGenre": "Tendencias por género"
+  },
+  "newStations": {
+    "title": "Nuevas emisoras",
+    "metaTitle": "Nuevas radios de electrónica",
+    "metaDescription": "Las últimas emisoras de música electrónica incorporadas al directorio. Descubre radios recién llegadas de techno, house, trance y más.",
+    "heading": "Recién llegadas",
+    "description": "Las últimas incorporaciones al catálogo.",
+    "empty": "No hay emisoras nuevas todavía."
+  },
+  "search": {
+    "title": "Buscar",
+    "metaTitle": "Buscar radios de electrónica",
+    "metaDescription": "Busca entre todas las emisoras de música electrónica del directorio por nombre.",
+    "placeholder": "Busca una emisora…",
+    "resultsFor": "Resultados para “{query}”",
+    "noResults": "Sin resultados para “{query}”.",
+    "hint": "Escribe al menos 2 caracteres para buscar."
   }
 }

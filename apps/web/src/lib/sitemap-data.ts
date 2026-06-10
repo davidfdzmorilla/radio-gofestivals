@@ -1,4 +1,8 @@
 import type { MetadataRoute } from 'next';
+import {
+  COUNTRY_GATE_MIN_STATIONS,
+  TRENDING_GENRE_GATE_MIN,
+} from './seo';
 
 const SITE = 'https://radio.gofestivals.eu';
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -10,9 +14,15 @@ const PAGE_SIZE = 50;
 
 export const SITEMAP_REVALIDATE_SECONDS = 86_400;
 
-type Station = { slug: string };
+type Station = { slug: string; updated_at?: string | null };
 type StationPage = { items: Station[]; pages: number };
-type Genre = { slug: string; children?: Genre[] };
+type Genre = {
+  slug: string;
+  parent_id: number | null;
+  station_count: number;
+  children?: Genre[];
+};
+type CountryFacet = { code: string; station_count: number };
 
 function flattenGenres(tree: Genre[]): Genre[] {
   const out: Genre[] = [];
@@ -27,6 +37,7 @@ function localizedEntries(
   path: string,
   changeFrequency?: MetadataRoute.Sitemap[number]['changeFrequency'],
   priority?: number,
+  lastModified?: string,
 ): MetadataRoute.Sitemap {
   // Next.js redirects /<locale>/ → /<locale> (308). Sitemap URLs must be
   // canonical (200 OK), so drop the trailing slash for the home path.
@@ -39,6 +50,7 @@ function localizedEntries(
     url: `${SITE}/${locale}${suffix}`,
     changeFrequency,
     priority,
+    ...(lastModified ? { lastModified } : {}),
     alternates: { languages },
   }));
 }
@@ -74,27 +86,60 @@ async function fetchAllGenres(): Promise<Genre[]> {
   return flattenGenres((await res.json()) as Genre[]);
 }
 
+async function fetchCountryFacets(): Promise<CountryFacet[]> {
+  const res = await fetch(`${API}/api/v1/stations/facets/countries`, {
+    next: { revalidate: SITEMAP_REVALIDATE_SECONDS },
+  }).catch(() => null);
+  if (!res?.ok) return [];
+  return (await res.json()) as CountryFacet[];
+}
+
 /**
- * Builds the full set of sitemap entries (static pages + every genre + every
- * station, each localized with hreflang alternates). Shared by the native
- * `app/sitemap.ts` and the `app/sitemap-v2.xml` Route Handler so the two
- * never drift.
+ * Builds the full set of sitemap entries (static pages + every genre, gated
+ * country, ranking and station, each localized with hreflang alternates).
+ * Shared by the native `app/sitemap.ts` and the `app/sitemap-v2.xml` Route
+ * Handler so the two never drift. The country and trending gates use the
+ * SAME thresholds as the pages (lib/seo.ts) so a URL is never listed
+ * without existing nor vice versa.
  */
 export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
-  const [stations, genres] = await Promise.all([
+  const [stations, genres, countries] = await Promise.all([
     fetchAllStations(),
     fetchAllGenres(),
+    fetchCountryFacets(),
   ]);
+
+  const gatedCountries = countries.filter(
+    (c) => c.station_count >= COUNTRY_GATE_MIN_STATIONS,
+  );
+  const trendingGenres = genres.filter(
+    (g) => g.parent_id === null && g.station_count >= TRENDING_GENRE_GATE_MIN,
+  );
 
   return [
     ...localizedEntries('/', 'daily', 1),
     ...localizedEntries('/genres', 'weekly', 0.8),
+    ...localizedEntries('/countries', 'weekly', 0.8),
+    ...localizedEntries('/trending', 'daily', 0.7),
+    ...localizedEntries('/new', 'daily', 0.7),
+    ...localizedEntries('/search', 'monthly', 0.4),
     ...localizedEntries('/support', 'monthly', 0.3),
     ...genres.flatMap((g) =>
       localizedEntries(`/genres/${g.slug}`, 'weekly', 0.7),
     ),
+    ...gatedCountries.flatMap((c) =>
+      localizedEntries(`/countries/${c.code.toLowerCase()}`, 'weekly', 0.7),
+    ),
+    ...trendingGenres.flatMap((g) =>
+      localizedEntries(`/trending/${g.slug}`, 'daily', 0.6),
+    ),
     ...stations.flatMap((s) =>
-      localizedEntries(`/stations/${s.slug}`, 'weekly', 0.6),
+      localizedEntries(
+        `/stations/${s.slug}`,
+        'weekly',
+        0.6,
+        s.updated_at ?? undefined,
+      ),
     ),
   ];
 }

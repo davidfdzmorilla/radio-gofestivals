@@ -39,6 +39,8 @@ class StationSummary(BaseModel):
     votes_local: int = 0
     genres: list[str] = Field(default_factory=list)
     primary_stream: StationStreamRef | None = None
+    # Para el lastmod del sitemap; None en constructores que no cargan la fila.
+    updated_at: datetime | None = None
     # Populated only when the request carries a valid user JWT.
     is_favorite: bool | None = None
     user_voted: bool | None = None
@@ -65,6 +67,13 @@ class StationDetail(BaseModel):
 
 class CountryFacet(BaseModel):
     code: str
+    station_count: int
+
+
+class GenreFacet(BaseModel):
+    slug: str
+    name: str
+    color_hex: str
     station_count: int
 
 

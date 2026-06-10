@@ -48,7 +48,9 @@ async def forgot_password(
         )
 
     await reset_service.request_reset(
-        session, email=body.email, base_url=_public_base_url(),
+        session,
+        email=body.email,
+        base_url=_public_base_url(),
     )
     # Anti-enumeration: same response whether the user exists or not.
     return {"ok": True}

@@ -65,9 +65,7 @@ app = FastAPI(
     redoc_url=None,
     openapi_url=_openapi_url,
 )
-_cors_origins: list[str] = (
-    ["*"] if _settings.is_dev else _settings.cors_allowed_origins
-)
+_cors_origins: list[str] = ["*"] if _settings.is_dev else _settings.cors_allowed_origins
 if not _settings.is_dev and not _settings.cors_allowed_origins:
     _cors_warning_log = get_logger("app.main")
     _cors_warning_log.warning(

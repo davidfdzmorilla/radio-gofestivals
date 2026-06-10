@@ -71,7 +71,9 @@ async def register(
 
     try:
         user = await auth_service.register(
-            session, email=body.email, password=body.password,
+            session,
+            email=body.email,
+            password=body.password,
         )
     except EmailAlreadyRegisteredError as exc:
         raise HTTPException(
@@ -113,7 +115,9 @@ async def login(
 
     try:
         user = await auth_service.authenticate(
-            session, email=body.email, password=body.password,
+            session,
+            email=body.email,
+            password=body.password,
         )
     except InvalidCredentialsError as exc:
         log.warning("user_login_failed", ip=ip, email=body.email)
@@ -144,7 +148,9 @@ async def delete_me(
 ) -> None:
     try:
         await auth_service.delete_account(
-            session, user_id=user.id, password=body.password,
+            session,
+            user_id=user.id,
+            password=body.password,
         )
     except InvalidCredentialsError as exc:
         raise HTTPException(

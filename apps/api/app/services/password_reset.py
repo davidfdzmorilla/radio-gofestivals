@@ -35,12 +35,16 @@ async def request_reset(
 
     expires_at = datetime.now(tz=UTC) + TOKEN_TTL
     token = await tokens_repo.create_token(
-        session, user_id=user.id, expires_at=expires_at,
+        session,
+        user_id=user.id,
+        expires_at=expires_at,
     )
     await session.commit()
 
     await send_password_reset_email(
-        to=user.email, token=str(token), base_url=base_url,
+        to=user.email,
+        token=str(token),
+        base_url=base_url,
     )
     return True
 

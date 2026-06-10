@@ -26,19 +26,23 @@ async def create_user(
 
 
 async def get_user_by_email(
-    session: AsyncSession, email: str,
+    session: AsyncSession,
+    email: str,
 ) -> User | None:
     stmt = select(User).where(
-        User.email == email.lower(), User.deleted_at.is_(None),
+        User.email == email.lower(),
+        User.deleted_at.is_(None),
     )
     return (await session.execute(stmt)).scalar_one_or_none()
 
 
 async def get_user_by_id(
-    session: AsyncSession, user_id: uuid.UUID,
+    session: AsyncSession,
+    user_id: uuid.UUID,
 ) -> User | None:
     stmt = select(User).where(
-        User.id == user_id, User.deleted_at.is_(None),
+        User.id == user_id,
+        User.deleted_at.is_(None),
     )
     return (await session.execute(stmt)).scalar_one_or_none()
 
@@ -59,7 +63,8 @@ async def update_password(
 
 
 async def soft_delete(
-    session: AsyncSession, user_id: uuid.UUID,
+    session: AsyncSession,
+    user_id: uuid.UUID,
 ) -> None:
     """Soft delete a user. Email is rotated to allow re-registration.
 

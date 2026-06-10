@@ -224,7 +224,8 @@ async def apply_curation(
 
 
 async def _collect_station_cache_keys(
-    redis: Redis[str], station_id: uuid.UUID,
+    redis: Redis[str],
+    station_id: uuid.UUID,
 ) -> list[str]:
     # slug-based detail key isn't known; best-effort scan over station:detail:*
     keys: list[str] = []
@@ -332,7 +333,8 @@ async def list_all(
 
 
 async def get_detail(
-    session: AsyncSession, station_id: uuid.UUID,
+    session: AsyncSession,
+    station_id: uuid.UUID,
 ) -> StationAdminDetail | None:
     base = (
         await session.execute(
@@ -481,15 +483,14 @@ def _diff_station(
         status=payload.status is not None and payload.status != cur_status,
         name=payload.name is not None and payload.name != cur_name,
         slug=payload.slug is not None and payload.slug != cur_slug,
-        genres=(
-            payload.genre_ids is not None
-            and set(payload.genre_ids) != current_genre_ids
-        ),
+        genres=(payload.genre_ids is not None and set(payload.genre_ids) != current_genre_ids),
     )
 
 
 async def _ensure_slug_free(
-    session: AsyncSession, station_id: uuid.UUID, new_slug: str,
+    session: AsyncSession,
+    station_id: uuid.UUID,
+    new_slug: str,
 ) -> None:
     clash = (
         await session.execute(
@@ -505,7 +506,9 @@ async def _ensure_slug_free(
 
 
 async def _validated_current_genres(
-    session: AsyncSession, station_id: uuid.UUID, genre_ids: list[int],
+    session: AsyncSession,
+    station_id: uuid.UUID,
+    genre_ids: list[int],
 ) -> set[int]:
     """Valida los genre_ids del payload y devuelve los géneros actuales.
 
@@ -534,8 +537,7 @@ async def _validated_current_genres(
         for r in (
             await session.execute(
                 text(
-                    "SELECT genre_id FROM station_genres "
-                    "WHERE station_id = :id",
+                    "SELECT genre_id FROM station_genres WHERE station_id = :id",
                 ),
                 {"id": str(station_id)},
             )
@@ -627,8 +629,7 @@ def _build_audit_entries(
             parts.append(f"slug: {cur_slug!r} → {payload.slug!r}")
         if changes.genres:
             parts.append(
-                f"genres: {sorted(current_genre_ids)} "
-                f"→ {sorted(payload.genre_ids or [])}",
+                f"genres: {sorted(current_genre_ids)} → {sorted(payload.genre_ids or [])}",
             )
         entries.append(("edit_metadata", _with_notes("; ".join(parts))))
     return entries
@@ -657,7 +658,10 @@ async def update_station(
         return None
 
     cur_slug, cur_name, cur_status, cur_curated = (
-        str(current[0]), str(current[1]), str(current[2]), bool(current[3]),
+        str(current[0]),
+        str(current[1]),
+        str(current[2]),
+        bool(current[3]),
     )
 
     if payload.slug is not None and payload.slug != cur_slug:
@@ -666,7 +670,9 @@ async def update_station(
     current_genre_ids: set[int] = set()
     if payload.genre_ids is not None:
         current_genre_ids = await _validated_current_genres(
-            session, station_id, payload.genre_ids,
+            session,
+            station_id,
+            payload.genre_ids,
         )
 
     changes = _diff_station(

@@ -83,15 +83,17 @@ async def list_jobs(
     admin: AdminDep,  # noqa: ARG001
     session: SessionDep,
     status_filter: Annotated[
-        Literal["pending", "running", "success", "failed", "timeout"]
-        | None,
+        Literal["pending", "running", "success", "failed", "timeout"] | None,
         Query(alias="status"),
     ] = None,
     page: Annotated[int, Query(ge=1)] = 1,
     size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> JobListPage:
     items, total, pages = await jobs_repo.list_jobs(
-        session, page=page, size=size, status=status_filter,
+        session,
+        page=page,
+        size=size,
+        status=status_filter,
     )
     return JobListPage(
         items=[JobOut(**item) for item in items],
@@ -111,6 +113,7 @@ async def get_job(
     job = await jobs_repo.get_job(session, job_id)
     if job is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="job_not_found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="job_not_found",
         )
     return JobOut(**job)

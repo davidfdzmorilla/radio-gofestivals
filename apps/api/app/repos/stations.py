@@ -145,9 +145,7 @@ async def list_featured_diverse_stations(
             {"ids": [str(i) for i in station_ids]},
         )
     ).all()
-    primary_by_station: dict[str, int] = {
-        str(r[0]): int(r[1]) for r in primary_rows
-    }
+    primary_by_station: dict[str, int] = {str(r[0]): int(r[1]) for r in primary_rows}
 
     candidates: list[tuple[Station, int | None]] = [
         (s, primary_by_station.get(str(s.id))) for s in pool

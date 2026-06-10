@@ -58,7 +58,8 @@ async def authenticate(
 
 
 def mint_token(
-    user: User, settings: Settings,
+    user: User,
+    settings: Settings,
 ) -> tuple[str, datetime]:
     return issue_user_token(user.id, user.email, settings)
 

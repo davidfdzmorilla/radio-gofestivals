@@ -33,7 +33,8 @@ async def create_token(
 
 
 async def consume_token(
-    session: AsyncSession, token: uuid.UUID,
+    session: AsyncSession,
+    token: uuid.UUID,
 ) -> uuid.UUID | None:
     """Return user_id if the token is valid (unused, not expired) and mark
     it consumed atomically. Returns None for any failure mode.
@@ -58,7 +59,8 @@ async def consume_token(
 
 
 async def invalidate_user_tokens(
-    session: AsyncSession, user_id: uuid.UUID,
+    session: AsyncSession,
+    user_id: uuid.UUID,
 ) -> int:
     """Invalidate all unused tokens for a user (used at password reset)."""
     now = datetime.now(tz=UTC)

@@ -46,8 +46,7 @@ async def list_all(
     admin: AdminDep,  # noqa: ARG001 — enforces auth
     session: SessionDep,
     status_filter: Annotated[
-        Literal["pending", "active", "broken", "rejected", "duplicate", "inactive"]
-        | None,
+        Literal["pending", "active", "broken", "rejected", "duplicate", "inactive"] | None,
         Query(alias="status"),
     ] = None,
     curated: Annotated[bool | None, Query()] = None,
@@ -74,7 +73,8 @@ async def get_station(
     detail = await admin_stations_service.get_detail(session, station_id)
     if detail is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="station_not_found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="station_not_found",
         )
     return detail
 
@@ -96,14 +96,16 @@ async def update_station(
     )
     if detail is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="station_not_found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="station_not_found",
         )
     log.info(
         "admin_station_updated",
         admin_id=str(admin.id),
         station_id=str(station_id),
         fields=[
-            k for k in ("curated", "status", "name", "slug", "genre_ids")
+            k
+            for k in ("curated", "status", "name", "slug", "genre_ids")
             if getattr(body, k) is not None
         ],
     )

@@ -66,9 +66,7 @@ async def promote_stream_to_primary(
             {"station_id": str(station_id)},
         )
     ).first()
-    demoted_id: uuid.UUID | None = (
-        uuid.UUID(str(demoted_row[0])) if demoted_row else None
-    )
+    demoted_id: uuid.UUID | None = uuid.UUID(str(demoted_row[0])) if demoted_row else None
 
     await session.execute(
         text(
@@ -81,13 +79,8 @@ async def promote_stream_to_primary(
         {"id": str(target_id)},
     )
 
-    notes = (
-        f"Promoted stream {target_id} to primary"
-        + (
-            f" (demoted {demoted_id})"
-            if demoted_id
-            else " (no previous primary)"
-        )
+    notes = f"Promoted stream {target_id} to primary" + (
+        f" (demoted {demoted_id})" if demoted_id else " (no previous primary)"
     )
     await session.execute(
         text(
@@ -154,9 +147,8 @@ async def bulk_change_status(
     skipped = len(station_ids) - affected
 
     if affected_ids:
-        marker = (
-            f"bulk_{new_status}:{affected}_stations"
-            + (f":reason='{reason}'" if reason else "")
+        marker = f"bulk_{new_status}:{affected}_stations" + (
+            f":reason='{reason}'" if reason else ""
         )
         for sid in affected_ids:
             await session.execute(

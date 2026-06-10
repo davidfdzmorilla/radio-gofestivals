@@ -94,7 +94,8 @@ async def list_jobs(
 
 
 async def get_job(
-    session: AsyncSession, job_id: int,
+    session: AsyncSession,
+    job_id: int,
 ) -> dict[str, Any] | None:
     row = (
         await session.execute(

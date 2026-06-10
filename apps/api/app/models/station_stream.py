@@ -43,7 +43,9 @@ class StationStream(Base):
     format: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     status: Mapped[str] = mapped_column(
-        stream_status_enum, nullable=False, default="active",
+        stream_status_enum,
+        nullable=False,
+        default="active",
     )
     failed_checks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)

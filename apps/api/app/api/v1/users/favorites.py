@@ -51,7 +51,8 @@ def _row_to_out(row: dict[str, Any]) -> FavoriteOut:
 
 @router.get("", response_model=FavoritesListResponse)
 async def list_favorites(
-    user: UserDep, session: SessionDep,
+    user: UserDep,
+    session: SessionDep,
 ) -> FavoritesListResponse:
     rows = await fav_repo.list_favorites(session, user.id)
     items = [_row_to_out(r) for r in rows]
@@ -81,7 +82,9 @@ async def migrate_favorites(
             detail="rate_limit_exceeded",
         )
     counts = await fav_repo.bulk_add_favorites(
-        session, user.id, body.station_ids,
+        session,
+        user.id,
+        body.station_ids,
     )
     await session.commit()
     log.info(
@@ -117,7 +120,8 @@ async def add_favorite(
 
 
 @router.delete(
-    "/{station_id}", status_code=status.HTTP_204_NO_CONTENT,
+    "/{station_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def remove_favorite(
     station_id: uuid.UUID,

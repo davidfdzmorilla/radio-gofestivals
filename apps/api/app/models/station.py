@@ -52,7 +52,9 @@ class Station(Base):
         server_default=func.uuid_generate_v4(),
     )
     rb_uuid: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), unique=True, nullable=True,
+        UUID(as_uuid=True),
+        unique=True,
+        nullable=True,
     )
     slug: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)
@@ -68,7 +70,10 @@ class Station(Base):
     language: Mapped[str | None] = mapped_column(Text, nullable=True)
     curated: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     hidden: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default="false",
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
     )
     quality_score: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=50)
     status: Mapped[str] = mapped_column(station_status_enum, nullable=False, default="pending")
@@ -83,13 +88,16 @@ class Station(Base):
     # mirrors the Radio-Browser remote count via rb_sync).
     votes_local: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_changeuuid: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True,
+        UUID(as_uuid=True),
+        nullable=True,
     )
     last_local_checktime: Mapped[datetime | None] = mapped_column(nullable=True)
     # 7-day log-ratio of clickcount, computed nightly from
     # station_clickcount_history. Defaults to 0 until the 7th snapshot lands.
     click_trend: Mapped[Decimal] = mapped_column(
-        Numeric(10, 4), nullable=False, default=0,
+        Numeric(10, 4),
+        nullable=False,
+        default=0,
     )
     source: Mapped[str] = mapped_column(Text, nullable=False, default="radio-browser")
     created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())

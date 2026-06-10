@@ -22,7 +22,8 @@ LIKE_LIMIT, LIKE_WINDOW = 10, 60
 
 
 async def _ensure_station_exists(
-    session: AsyncSession, station_id: uuid.UUID,
+    session: AsyncSession,
+    station_id: uuid.UUID,
 ) -> None:
     exists = (
         await session.execute(

@@ -30,9 +30,11 @@ class StationClickcountHistory(Base):
     )
     clickcount: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     recorded_at: Mapped[datetime] = mapped_column(
-        nullable=False, server_default=func.now(),
+        nullable=False,
+        server_default=func.now(),
     )
 
     station: Mapped[Station] = relationship(
-        "Station", back_populates="clickcount_history",
+        "Station",
+        back_populates="clickcount_history",
     )

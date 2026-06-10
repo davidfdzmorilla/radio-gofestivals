@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { useAuth } from '@/lib/users/AuthContext';
 import { LocaleSwitcher } from '@/components/layout/LocaleSwitcher';
+import { SearchBox } from '@/components/search/SearchBox';
 import { AuthModal } from './AuthModal';
 import { cn } from '@/lib/utils';
 
@@ -76,6 +77,10 @@ export function MobileMenu() {
               >
                 <X size={20} />
               </button>
+            </div>
+
+            <div className="mb-4">
+              <SearchBox variant="drawer" onNavigate={() => setOpen(false)} />
             </div>
 
             <nav className="flex flex-col gap-1">

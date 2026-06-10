@@ -175,6 +175,9 @@
     "placeholder": "Busca una emisora…",
     "resultsFor": "Resultados para “{query}”",
     "noResults": "Sin resultados para “{query}”.",
-    "hint": "Escribe al menos 2 caracteres para buscar."
+    "hint": "Escribe al menos 2 caracteres para buscar.",
+    "ariaLabel": "Buscar emisoras",
+    "noSuggestions": "Sin coincidencias",
+    "viewAll": "Ver todos los resultados de “{query}”"
   }
 }

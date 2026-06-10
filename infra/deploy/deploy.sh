@@ -161,6 +161,7 @@ docker image prune -f --filter "label=org.opencontainers.image.source=https://gi
 
 # ---------- 8. final log ---------------------------------------------------
 DURATION=$(( $(date -u +%s) - START_TS ))
-cat <<EOF
-{"event":"deploy_done","deploy_at":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","git_sha":"$GIT_SHA","domain":"$DOMAIN","duration_seconds":$DURATION,"backup_path":"${BACKUP_PATH:-}"}
-EOF
+DEPLOY_JSON="{\"event\":\"deploy_done\",\"deploy_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"git_sha\":\"$GIT_SHA\",\"domain\":\"$DOMAIN\",\"duration_seconds\":$DURATION,\"backup_path\":\"${BACKUP_PATH:-}\"}"
+echo "$DEPLOY_JSON"
+# Historial append-only de despliegues (no rotado por el cleanup de 14d)
+echo "$DEPLOY_JSON" >> /var/log/radio/deploys.jsonl 2>/dev/null || true

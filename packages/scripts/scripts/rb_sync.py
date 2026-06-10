@@ -246,8 +246,9 @@ async def upsert_station(
     votes = _to_int(item.get("votes")) or 0
     last_changeuuid = parse_uuid(item.get("changeuuid"))
     last_local_checktime = parse_iso_datetime(item.get("lastlocalchecktime"))
-    # click_trend: not computed yet; requires station_clickcount_history.
-    # Pendiente (plan de mejoras, B6c): backfill cuando aterrice la history table.
+    # click_trend no se setea aquí: lo calcula el cron nocturno
+    # compute-click-trends desde station_clickcount_history; una emisora
+    # nueva lo recibe sola a los ~7 días (ventana del log-ratio).
 
     quality_score = compute_quality_score(
         {

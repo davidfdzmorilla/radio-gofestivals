@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import text
 
 if TYPE_CHECKING:
+    from sqlalchemy import CursorResult
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -61,14 +62,19 @@ async def invalidate_user_tokens(
 ) -> int:
     """Invalidate all unused tokens for a user (used at password reset)."""
     now = datetime.now(tz=UTC)
-    result = await session.execute(
-        text(
-            """
-            UPDATE password_reset_tokens
-            SET used_at = :now
-            WHERE user_id = :uid AND used_at IS NULL
-            """,
+    # AsyncSession.execute se tipa como Result genérico, pero un UPDATE
+    # devuelve CursorResult (que sí expone rowcount).
+    result = cast(
+        "CursorResult[Any]",
+        await session.execute(
+            text(
+                """
+                UPDATE password_reset_tokens
+                SET used_at = :now
+                WHERE user_id = :uid AND used_at IS NULL
+                """,
+            ),
+            {"uid": str(user_id), "now": now},
         ),
-        {"uid": str(user_id), "now": now},
     )
     return int(result.rowcount or 0)

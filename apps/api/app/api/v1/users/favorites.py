@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import text
@@ -23,7 +24,7 @@ log = get_logger("app.user.favorites")
 MIGRATE_LIMIT, MIGRATE_WINDOW = 1, 60
 
 
-def _row_to_out(row: dict) -> FavoriteOut:
+def _row_to_out(row: dict[str, Any]) -> FavoriteOut:
     primary = None
     if row["primary_stream"] is not None:
         ps = row["primary_stream"]

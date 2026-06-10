@@ -5,6 +5,8 @@ import math
 import uuid
 from typing import TYPE_CHECKING
 
+from sqlalchemy import text
+
 from app.repos import station_plays as plays_repo
 from app.repos import stations as stations_repo
 from app.repos import user_favorites as fav_repo
@@ -220,8 +222,6 @@ async def register_play_for_slug(
     slug didn't resolve; (True, False) means the same identity already
     played this station today and we treated it as a no-op.
     """
-    from sqlalchemy import text
-
     row = (
         await session.execute(
             text("SELECT id FROM stations WHERE slug = :slug"),

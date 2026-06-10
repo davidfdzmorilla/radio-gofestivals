@@ -8,6 +8,9 @@ from sqlalchemy import text
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
+# Tope defensivo del bulk: una operación masiva mayor pasa por jobs async
+BULK_STATUS_MAX_STATIONS = 100
+
 
 class StreamNotFoundError(Exception):
     """Raised when the target stream id does not exist."""
@@ -127,7 +130,7 @@ async def bulk_change_status(
     """
     if not station_ids:
         raise ValueError("empty_station_ids")
-    if len(station_ids) > 100:
+    if len(station_ids) > BULK_STATUS_MAX_STATIONS:
         raise ValueError("too_many_stations")
 
     ids_str = [str(sid) for sid in station_ids]

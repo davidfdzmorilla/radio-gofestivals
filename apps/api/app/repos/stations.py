@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NamedTuple, TypeVar
+from typing import TYPE_CHECKING, NamedTuple
 
 from sqlalchemy import bindparam, func, select, text
 
@@ -13,10 +13,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-T = TypeVar("T")
-
-
-def apply_genre_cap(
+def apply_genre_cap[T](
     candidates: list[tuple[T, int | None]],
     *,
     size: int,

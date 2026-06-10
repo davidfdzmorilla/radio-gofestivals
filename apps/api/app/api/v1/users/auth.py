@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.api.deps import RedisDep, SessionDep, SettingsDep, UserDep
@@ -18,6 +20,9 @@ from app.services.user_auth import (
     InvalidCredentialsError,
 )
 
+if TYPE_CHECKING:
+    from app.models.user import User
+
 router = APIRouter(prefix="/auth", tags=["user-auth"])
 log = get_logger("app.user.auth")
 
@@ -25,7 +30,7 @@ REGISTER_LIMIT, REGISTER_WINDOW = 3, 60 * 60
 LOGIN_LIMIT, LOGIN_WINDOW = 5, 60
 
 
-def _to_user_out(user) -> UserOut:  # noqa: ANN001
+def _to_user_out(user: User) -> UserOut:
     return UserOut(
         id=user.id,
         email=user.email,

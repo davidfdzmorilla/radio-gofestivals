@@ -62,7 +62,7 @@ async def export_plays(
         user=UserExportInfo(
             id=user.id, email=user.email, created_at=user.created_at,
         ),
-        plays=[PlayExportItem(**row) for row in rows],  # type: ignore[arg-type]
+        plays=[PlayExportItem(**row) for row in rows],
     )
 
 

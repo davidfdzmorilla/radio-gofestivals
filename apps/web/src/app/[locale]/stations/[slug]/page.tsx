@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import { getGenresTree, getStation } from '@/lib/api';
+import { getCountryFacets, getGenresTree, getStation } from '@/lib/api';
 import { getSimilarStations } from '@/lib/recs';
 import { StationPlayerControls } from '@/components/stations/StationPlayerControls';
 import { TrackedStationGrid } from '@/components/stations/TrackedStationGrid';
@@ -13,7 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { initials } from '@/lib/utils';
 import { SITE_URL } from '@/lib/site';
-import { buildAlternates } from '@/lib/seo';
+import {
+  buildAlternates,
+  COUNTRY_GATE_MIN_STATIONS,
+  regionName,
+} from '@/lib/seo';
 
 export const revalidate = 60;
 
@@ -80,10 +84,19 @@ export default async function StationPage({
 
   // No personalizado → puede ir en el ISR. La tabla de similitud se
   // regenera de noche; si aún no existe para esta emisora, sección fuera.
-  const [similar, genresTree] = await Promise.all([
+  const [similar, genresTree, countryFacets] = await Promise.all([
     getSimilarStations(slug, { size: 6, revalidate: 3600 }).catch(() => []),
     getGenresTree().catch(() => []),
+    getCountryFacets().catch(() => []),
   ]);
+  // Enlace ascendente al hub de país solo si este pasa el gate (no enlazar 404s).
+  const countryFacet = station.country_code
+    ? countryFacets.find(
+        (f) =>
+          f.code === station.country_code &&
+          f.station_count >= COUNTRY_GATE_MIN_STATIONS,
+      )
+    : undefined;
   const genresBySlug: Record<string, (typeof genresTree)[number]> = {};
   const walkGenres = (list: typeof genresTree) => {
     for (const g of list) {
@@ -182,13 +195,14 @@ export default async function StationPage({
               </Badge>
             )}
             {station.genres.map((g) => (
-              <Badge
-                key={g.slug}
-                className="border-fg-3 bg-bg-2"
-                style={{ color: g.color_hex }}
-              >
-                {g.name}
-              </Badge>
+              <Link key={g.slug} href={`/genres/${g.slug}`}>
+                <Badge
+                  className="border-fg-3 bg-bg-2 transition-colors hover:border-fg-2 hover:bg-bg-3"
+                  style={{ color: g.color_hex }}
+                >
+                  {g.name}
+                </Badge>
+              </Link>
             ))}
           </div>
           <h1 className="font-display text-[clamp(2rem,5vw,3.5rem)] font-semibold leading-[1.05] text-fg-0">
@@ -198,7 +212,16 @@ export default async function StationPage({
             <p className="font-mono text-sm uppercase tracking-wide text-fg-2">
               {station.city ?? ''}
               {station.city && station.country_code ? ' · ' : ''}
-              {station.country_code ?? ''}
+              {countryFacet ? (
+                <Link
+                  href={`/countries/${countryFacet.code.toLowerCase()}`}
+                  className="underline decoration-fg-3 underline-offset-4 transition-colors hover:text-fg-0 hover:decoration-fg-1"
+                >
+                  {regionName(locale, countryFacet.code)}
+                </Link>
+              ) : (
+                (station.country_code ?? '')
+              )}
               {primaryStream?.codec && primaryStream.bitrate && (
                 <span className="ml-3 text-fg-2/80">
                   {primaryStream.codec.toUpperCase()} · {primaryStream.bitrate}kbps

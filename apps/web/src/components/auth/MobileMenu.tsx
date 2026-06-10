@@ -94,6 +94,27 @@ export function MobileMenu() {
                 {t('genres')}
               </Link>
               <Link
+                href="/countries"
+                onClick={() => setOpen(false)}
+                className="text-fg-1 hover:bg-bg-3 hover:text-fg-0 rounded-md px-3 py-2 text-sm transition-colors"
+              >
+                {t('countries')}
+              </Link>
+              <Link
+                href="/trending"
+                onClick={() => setOpen(false)}
+                className="text-fg-1 hover:bg-bg-3 hover:text-fg-0 rounded-md px-3 py-2 text-sm transition-colors"
+              >
+                {t('trending')}
+              </Link>
+              <Link
+                href="/new"
+                onClick={() => setOpen(false)}
+                className="text-fg-1 hover:bg-bg-3 hover:text-fg-0 rounded-md px-3 py-2 text-sm transition-colors"
+              >
+                {t('new')}
+              </Link>
+              <Link
                 href="/favorites"
                 onClick={() => setOpen(false)}
                 className="text-fg-1 hover:bg-bg-3 hover:text-fg-0 flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors"

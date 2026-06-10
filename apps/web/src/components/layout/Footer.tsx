@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 export async function Footer({ locale }: { locale: 'es' | 'en' }) {
   const tHome = await getTranslations({ locale, namespace: 'home' });
   const tLegal = await getTranslations({ locale, namespace: 'legal' });
+  const tNav = await getTranslations({ locale, namespace: 'nav' });
   return (
     <footer className="mt-20 border-t border-fg-3/30 px-4 py-8">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 text-center sm:flex-row sm:justify-between">
@@ -11,6 +12,27 @@ export async function Footer({ locale }: { locale: 'es' | 'en' }) {
           {tHome('title')}
         </p>
         <nav className="flex items-center gap-4 font-mono text-[11px] uppercase tracking-widest text-fg-2">
+          <a
+            href={`/${locale}/countries`}
+            className="transition-colors hover:text-fg-0"
+          >
+            {tNav('countries')}
+          </a>
+          <span aria-hidden>·</span>
+          <a
+            href={`/${locale}/trending`}
+            className="transition-colors hover:text-fg-0"
+          >
+            {tNav('trending')}
+          </a>
+          <span aria-hidden>·</span>
+          <a
+            href={`/${locale}/new`}
+            className="transition-colors hover:text-fg-0"
+          >
+            {tNav('new')}
+          </a>
+          <span aria-hidden>·</span>
           <a
             href={`/${locale}/legal/privacy`}
             className="transition-colors hover:text-fg-0"

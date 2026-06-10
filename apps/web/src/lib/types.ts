@@ -58,8 +58,23 @@ export const StationSummarySchema = z.object({
   primary_stream: StationStreamRefSchema.nullable().optional(),
   is_favorite: z.boolean().nullable().optional(),
   user_voted: z.boolean().nullable().optional(),
+  updated_at: z.string().nullable().optional(),
 });
 export type StationSummary = z.infer<typeof StationSummarySchema>;
+
+export const CountryFacetSchema = z.object({
+  code: z.string(),
+  station_count: z.number(),
+});
+export type CountryFacet = z.infer<typeof CountryFacetSchema>;
+
+export const GenreFacetSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  color_hex: z.string(),
+  station_count: z.number(),
+});
+export type GenreFacet = z.infer<typeof GenreFacetSchema>;
 
 export const StationsPageSchema = z.object({
   items: z.array(StationSummarySchema),

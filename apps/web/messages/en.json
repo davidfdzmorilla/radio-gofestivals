@@ -60,12 +60,17 @@
     "profile": "Profile",
     "favorites": "Favorites",
     "logout": "Log out",
-    "support": "Support"
+    "support": "Support",
+    "countries": "Countries",
+    "trending": "Trending",
+    "new": "New",
+    "search": "Search"
   },
   "pagination": {
     "pageOf": "Page {current} of {total}",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "pageSuffix": " — page {page}"
   },
   "auth": {
     "signIn": "Sign in",
@@ -130,5 +135,46 @@
     "lastUpdated": "Last updated: {date}",
     "privacyLink": "Privacy policy",
     "cookiesLink": "Cookies"
+  },
+  "countries": {
+    "title": "Countries",
+    "indexTitle": "Electronic radio by country",
+    "indexDescription": "Explore {count, plural, =1 {1 country} other {# countries}} with live electronic music stations: techno, house, trance and more.",
+    "exploreTitle": "Electronic radio from {name}",
+    "metaTitle": "{name} electronic music radio — {count, plural, =1 {1 live station} other {# live stations}}",
+    "metaDescription": "Listen to {count, plural, =1 {the electronic music station} other {all # electronic music stations}} from {name} live. Techno, house, trance and more, free and no sign-up.",
+    "intro": "{name} contributes {count, plural, =1 {1 station} other {# stations}} to our electronic radio directory{hasTop, select, yes {; {topGenre} leads with {topCount, plural, =1 {1 station} other {# stations}}} other {}}.",
+    "stationCount": "{count, plural, =0 {no stations} =1 {1 station} other {# stations}}",
+    "genresHeading": "Genres in {name}",
+    "topStations": "Most listened in {name}"
+  },
+  "trending": {
+    "title": "Trending",
+    "metaTitle": "Trending electronic radio stations",
+    "metaDescription": "The electronic music stations growing fastest this week, based on real listening data. Updated daily.",
+    "genreMetaTitle": "Trending {name} radio stations",
+    "genreMetaDescription": "The {name} stations growing fastest this week, based on real listening data. Updated daily.",
+    "heading": "Trending now",
+    "genreHeading": "Trending in {name}",
+    "description": "Ranked by real listening growth over the last 7 days.",
+    "empty": "Not enough trend data yet.",
+    "byGenre": "Trending by genre"
+  },
+  "newStations": {
+    "title": "New stations",
+    "metaTitle": "New electronic radio stations",
+    "metaDescription": "The latest electronic music stations added to the directory. Discover fresh techno, house and trance radios.",
+    "heading": "Just arrived",
+    "description": "The latest additions to the catalog.",
+    "empty": "No new stations yet."
+  },
+  "search": {
+    "title": "Search",
+    "metaTitle": "Search electronic radio stations",
+    "metaDescription": "Search every electronic music station in the directory by name.",
+    "placeholder": "Search for a station…",
+    "resultsFor": "Results for “{query}”",
+    "noResults": "No results for “{query}”.",
+    "hint": "Type at least 2 characters to search."
   }
 }

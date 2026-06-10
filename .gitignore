@@ -32,3 +32,7 @@ playwright-report/
 
 # Docker / logs
 *.log
+
+# pnpm local store (created by containerized installs)
+.pnpm-store/
+.venv-host/

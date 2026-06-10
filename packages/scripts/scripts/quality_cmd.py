@@ -10,11 +10,12 @@ store). For backfill those signals are absent and `popularity_score`
 collapses to 0 — the next `rb_sync` run will refresh the score with
 fresh popularity data.
 """
+
 from __future__ import annotations
 
 import asyncio
 import statistics
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import typer
 from sqlalchemy import text
@@ -110,7 +111,9 @@ def compute_quality_scores(
         try:
             async with maker() as session:
                 rows = await _fetch_rows(
-                    session, where_status=status_filter, limit=limit,
+                    session,
+                    where_status=status_filter,
+                    limit=limit,
                 )
                 changed: list[tuple[str, int]] = []
                 unchanged = 0
@@ -118,7 +121,8 @@ def compute_quality_scores(
                 for row in rows:
                     new_score = compute_quality_score(row)
                     new_scores.append(new_score)
-                    old_score = int(row["quality_score"])
+                    # columna int NOT NULL; el dict generico la tipa object
+                    old_score = cast("int", row["quality_score"])
                     if new_score == old_score:
                         unchanged += 1
                         continue

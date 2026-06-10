@@ -5,7 +5,7 @@ description = "radio.gofestivals · ICY metadata worker"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "httpx>=0.27.0",
-    "redis[hiredis]>=5.0.7,<8",  # redis-py 8.x sin validar; subir en fase de majors
+    "redis[hiredis]>=8",
     "asyncpg>=0.29.0",
     "sqlalchemy[asyncio]>=2.0.30",
     "structlog>=24.4.0",
@@ -19,7 +19,7 @@ dev = [
     "pytest-mock>=3.14.0",
     "respx>=0.21.1",
     "ruff>=0.6.0",
-    "mypy>=1.11.0,<2",  # mypy 2.x sin validar; subir en fase de majors
+    "mypy>=2",
     "types-redis>=4.6.0",
 ]
 

@@ -18,6 +18,7 @@ def test_catalog_has_expected_commands() -> None:
         "compute_quality_scores",
         "snapshot_clickcounts",
         "compute_click_trends",
+        "compute_station_similarity",
     }
     for spec in ALLOWED_COMMANDS.values():
         assert "argv_base" in spec

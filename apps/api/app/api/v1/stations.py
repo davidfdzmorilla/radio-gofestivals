@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
@@ -12,8 +13,14 @@ from app.api.deps import (
     SettingsDep,
 )
 from app.core.logging import get_logger
-from app.schemas.station import NearbyStation, StationDetail, StationsPage
+from app.schemas.station import (
+    NearbyStation,
+    StationDetail,
+    StationsPage,
+    StationSummary,
+)
 from app.schemas.station_play import PlayRegisterRequest, PlayRegisterResponse
+from app.services import recommendations as recs_service
 from app.services import stations as stations_service
 from app.services.rate_limit import check_rate_limit
 
@@ -74,6 +81,32 @@ async def list_featured(
     return await stations_service.list_featured_stations(session, size=size)
 
 
+@router.get("/recommended", response_model=StationsPage)
+async def list_recommended(
+    session: SessionDep,
+    redis: RedisDep,
+    user: OptionalUserDep,
+    client_id: Annotated[uuid.UUID | None, Query()] = None,
+    locale: Annotated[str | None, Query(max_length=20)] = None,
+    size: Annotated[int, Query(ge=1, le=24)] = 12,
+) -> StationsPage:
+    """Recomendaciones personalizadas por identidad (JWT > client_id).
+
+    Sin identidad o sin historial devuelve el cold start del locale
+    (país/idioma) — nunca una lista vacía mientras haya catálogo.
+    """
+    user_id = user.id if user else None
+    effective_client = client_id if user is None else None
+    return await recs_service.get_recommendations(
+        session,
+        redis,
+        user_id=user_id,
+        client_id=effective_client,
+        locale=locale,
+        size=size,
+    )
+
+
 @router.get("/{slug}", response_model=StationDetail)
 async def station_detail(
     slug: str,
@@ -92,6 +125,28 @@ async def station_detail(
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="station_not_found")
     return detail
+
+
+@router.get("/{slug}/similar", response_model=list[StationSummary])
+async def similar_stations(
+    slug: str,
+    session: SessionDep,
+    redis: RedisDep,
+    size: Annotated[int, Query(ge=1, le=12)] = 6,
+) -> list[StationSummary]:
+    """Vecinas precomputadas de una emisora (station_similarity)."""
+    summaries = await recs_service.get_similar_stations(
+        session,
+        redis,
+        slug=slug,
+        size=size,
+    )
+    if summaries is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="station_not_found",
+        )
+    return summaries
 
 
 @router.post("/{slug}/play", response_model=PlayRegisterResponse)

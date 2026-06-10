@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { getGenresTree, listFeaturedStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
+import { ForYouSection } from '@/components/stations/ForYouSection';
 import { GenreTree } from '@/components/genres/GenreTree';
 import type { Genre } from '@/lib/types';
 
@@ -67,6 +68,9 @@ export default async function HomePage({
           countLabel={(count) => tGenres('stationCount', { count })}
         />
       </section>
+
+      {/* Para ti — personalizado, client-side (fuera del ISR) */}
+      <ForYouSection genresBySlug={genresBySlug} />
 
       {/* Destacadas */}
       <section className="space-y-5">

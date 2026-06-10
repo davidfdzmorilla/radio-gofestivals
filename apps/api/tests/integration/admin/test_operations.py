@@ -17,17 +17,18 @@ async def test_401_without_auth(client: AsyncClient) -> None:
     assert resp.status_code == 401
 
 
-async def test_catalog_returns_six_commands(
+async def test_catalog_returns_all_commands(
     logged_in_client: AsyncClient,
 ) -> None:
     resp = await logged_in_client.get("/api/v1/admin/operations/catalog")
     assert resp.status_code == 200
     body = resp.json()
     assert isinstance(body, list)
-    assert len(body) == 6
+    assert len(body) == 7
     keys = {entry["command"] for entry in body}
     assert "rb_sync_run" in keys
     assert "auto_curate" in keys
+    assert "compute_station_similarity" in keys
 
 
 async def test_run_no_param_command_creates_pending_job(

@@ -38,6 +38,7 @@ run-pending-admin-jobs = "scripts.run_pending_admin_jobs:app"
 export-spam-candidates = "scripts.export_spam_candidates:app"
 retain-plays = "scripts.retain_plays:app"
 compute-station-similarity = "scripts.compute_station_similarity:app"
+eval-recommendations = "scripts.eval_recommendations:app"
 
 [tool.uv]
 package = true

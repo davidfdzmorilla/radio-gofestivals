@@ -31,6 +31,7 @@ CommandKey = Literal[
     "compute_quality_scores",
     "snapshot_clickcounts",
     "compute_click_trends",
+    "compute_station_similarity",
 ]
 
 
@@ -85,6 +86,13 @@ ALLOWED_COMMANDS: dict[str, dict[str, Any]] = {
         "params_model": NoParams,
         "label": "Recompute click trends",
         "description": "Recalcular click_trend (ratio 7-day) por station.",
+    },
+    "compute_station_similarity": {
+        "argv_base": ["compute-station-similarity"],
+        "timeout": 300,
+        "params_model": NoParams,
+        "label": "Recompute station similarity",
+        "description": "Recalcular vecinos top-K por emisora (recomendaciones).",
     },
 }
 

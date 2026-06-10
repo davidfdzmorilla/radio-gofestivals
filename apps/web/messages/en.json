@@ -92,7 +92,16 @@
     "deleteAccount": "Delete account",
     "deleteConfirm": "This is permanent. Confirm with your password.",
     "deleted": "Account deleted",
-    "support": "Support"
+    "support": "Support",
+    "verifyEmailTitle": "Verify email",
+    "verifyEmailVerifying": "Verifying your email…",
+    "verifyEmailDone": "Email verified. You're all set.",
+    "verifyEmailError": "This link is invalid or has expired. Request a new one from your profile.",
+    "backToHome": "Back to home",
+    "emailUnverified": "Email not verified",
+    "resendVerification": "Resend verification email",
+    "verificationSent": "Verification email sent. Check your inbox.",
+    "verificationNotSent": "Could not send the email. Try again later."
   },
   "favorites": {
     "title": "Favorites",

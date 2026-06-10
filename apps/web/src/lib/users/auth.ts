@@ -4,7 +4,7 @@ import {
   type AuthResponse,
   type User,
 } from './types';
-import { userFetch } from './api';
+import { userFetch, userFetchJson } from './api';
 
 /**
  * Maps backend status codes to typed error codes the UI knows about.
@@ -116,4 +116,24 @@ export async function logoutUser(): Promise<void> {
   } catch {
     // best-effort
   }
+}
+
+
+export async function verifyEmail(token: string): Promise<void> {
+  const response = await userFetch('/api/v1/auth/verify-email', {
+    method: 'POST',
+    skipAuth: true,
+    body: JSON.stringify({ token }),
+  });
+  if (!response.ok) {
+    throw new Error(mapAuthError(response.status, await readDetail(response)));
+  }
+}
+
+export async function resendVerification(): Promise<boolean> {
+  const data = await userFetchJson<{ ok: boolean; sent: boolean }>(
+    '/api/v1/auth/resend-verification',
+    { method: 'POST' },
+  );
+  return data.sent;
 }

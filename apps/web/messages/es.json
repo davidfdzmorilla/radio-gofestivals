@@ -92,7 +92,16 @@
     "deleteAccount": "Borrar cuenta",
     "deleteConfirm": "Esta acción es definitiva. Confirma con tu contraseña.",
     "deleted": "Cuenta eliminada",
-    "support": "Soporte"
+    "support": "Soporte",
+    "verifyEmailTitle": "Verificar email",
+    "verifyEmailVerifying": "Verificando tu email…",
+    "verifyEmailDone": "Email verificado. Ya está todo listo.",
+    "verifyEmailError": "El enlace no es válido o ha caducado. Pide uno nuevo desde tu perfil.",
+    "backToHome": "Volver al inicio",
+    "emailUnverified": "Email sin verificar",
+    "resendVerification": "Reenviar email de verificación",
+    "verificationSent": "Email de verificación enviado. Revisa tu bandeja.",
+    "verificationNotSent": "No se pudo enviar el email. Inténtalo más tarde."
   },
   "favorites": {
     "title": "Favoritas",

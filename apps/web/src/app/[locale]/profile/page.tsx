@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Loader2 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { useAuth } from '@/lib/users/AuthContext';
-import { deleteAccount } from '@/lib/users/auth';
+import { deleteAccount, resendVerification } from '@/lib/users/auth';
 import { useToast } from '@/components/auth/ToastContext';
 
 export default function ProfilePage() {
@@ -66,6 +66,26 @@ export default function ProfilePage() {
             {t('email')}
           </p>
           <p className="text-fg-0 font-mono text-sm">{user.email}</p>
+          {!user.email_verified && (
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <span className="text-warm font-mono text-[11px] uppercase tracking-widest">
+                {t('emailUnverified')}
+              </span>
+              <button
+                type="button"
+                className="text-fg-1 hover:text-fg-0 text-xs underline underline-offset-4"
+                onClick={() => {
+                  void resendVerification()
+                    .then((sent) =>
+                      show(sent ? t('verificationSent') : t('verificationNotSent')),
+                    )
+                    .catch(() => show(t('verificationNotSent')));
+                }}
+              >
+                {t('resendVerification')}
+              </button>
+            </div>
+          )}
         </div>
         <div>
           <p className="text-fg-2 font-mono text-[10px] uppercase tracking-widest">

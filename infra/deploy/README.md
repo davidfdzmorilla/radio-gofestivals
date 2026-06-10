@@ -51,13 +51,19 @@ docker compose -f docker-compose.prod.yml --profile cron run --rm scripts \
   bootstrap-admin --email tu@email --name "Tu nombre"
 
 # 5. Sync inicial y auto-curación
-docker compose -f docker-compose.prod.yml --profile cron run --rm scripts \
-  rb_sync run --limit 200
+docker compose --env-file .env.production -f docker-compose.prod.yml \
+  --profile cron run --rm scripts rb_sync run --limit 200
 
-docker compose -f docker-compose.prod.yml --profile cron run --rm scripts \
-  rb_sync auto-curate-top --limit 50 --admin-email tu@email
+docker compose --env-file .env.production -f docker-compose.prod.yml \
+  --profile cron run --rm scripts rb_sync auto-curate-top --limit 50 \
+  --admin-email tu@email
 
-# 6. Crontab
+# 6. Primer cálculo de similitud (recomendaciones); después lo mantiene
+#    el cron nocturno de las 04:40
+docker compose --env-file .env.production -f docker-compose.prod.yml \
+  --profile cron run --rm scripts compute-station-similarity
+
+# 7. Crontab
 crontab -e
 # pegar contenido de infra/deploy/crontab.example
 ```
@@ -71,7 +77,8 @@ git pull
 ./infra/deploy/deploy.sh
 ```
 
-El script hace backup, build, migraciones, rolling up con healthchecks,
+El script hace backup, build de TODAS las imágenes (incluida `scripts`,
+gateada por el profile `cron`), migraciones, rolling up con healthchecks,
 smoke tests contra el dominio, y rollback automático si algo falla.
 
 Variables útiles:
@@ -124,8 +131,16 @@ docker compose -f docker-compose.prod.yml exec api bash
 ./infra/deploy/backup-postgres.sh
 
 # Sync Radio-Browser ad-hoc
-docker compose -f docker-compose.prod.yml --profile cron run --rm scripts \
-  rb_sync run --limit 500
+docker compose --env-file .env.production -f docker-compose.prod.yml \
+  --profile cron run --rm scripts rb_sync run --limit 500
+
+# Recalcular similitud de emisoras (recomendaciones) ad-hoc
+docker compose --env-file .env.production -f docker-compose.prod.yml \
+  --profile cron run --rm scripts compute-station-similarity
+
+# Evaluación offline del recomendador (solo lectura, salida JSON)
+docker compose --env-file .env.production -f docker-compose.prod.yml \
+  --profile cron run --rm scripts eval-recommendations
 ```
 
 ## 5 · Troubleshooting
@@ -174,7 +189,9 @@ docker compose -f docker-compose.prod.yml exec redis \
   Tras rotar, hay que hacer login de nuevo en el panel de admin.
 - `POSTGRES_PASSWORD` y `REDIS_PASSWORD`: al cambiarlos hay que
   recrear los contenedores para que cojan el nuevo valor.
-- No hacer `git push` desde el VPS. El VPS es solo destino de deploy.
+- `git push` desde el VPS está autorizado vía deploy key específica del
+  repo (`~/.ssh/github_radio`, host `github-radio`), revocable desde
+  GitHub → Settings → Deploy keys. Ver CLAUDE.md §11.
 - Si al resolver un incidente necesitas ver un log que podría tener
   secretos, filtra con `grep -v` o enmascara antes de compartir.
 

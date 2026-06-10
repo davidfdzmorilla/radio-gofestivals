@@ -52,7 +52,7 @@ export function GenreSelector({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           disabled={disabled}
-          className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-1.5 pl-8 text-sm focus:outline-none disabled:opacity-50"
+          className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-1.5 pl-8 text-sm focus:outline-hidden disabled:opacity-50"
         />
       </div>
 

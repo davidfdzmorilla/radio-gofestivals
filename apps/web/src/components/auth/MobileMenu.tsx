@@ -50,7 +50,7 @@ export function MobileMenu() {
 
       {open && mounted ? createPortal(
         <div className="fixed inset-0 z-50 md:hidden">
-          {/* Plain backdrop without backdrop-blur — the filter was
+          {/* Plain backdrop without backdrop-blur-sm — the filter was
               leaking into the sibling drawer's rendering, washing out
               its background. */}
           <div

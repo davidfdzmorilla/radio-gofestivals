@@ -82,14 +82,14 @@ export function ConsentChoiceClient({ labels }: { labels: Labels }) {
           <button
             type="button"
             onClick={() => handle('rejected')}
-            className="inline-flex min-w-[120px] items-center justify-center rounded-full border border-fg-3 bg-bg-2 px-4 py-2 text-sm font-medium text-fg-0 transition-colors hover:bg-bg-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-magenta"
+            className="inline-flex min-w-[120px] items-center justify-center rounded-full border border-fg-3 bg-bg-2 px-4 py-2 text-sm font-medium text-fg-0 transition-colors hover:bg-bg-3 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-magenta"
           >
             {labels.reject}
           </button>
           <button
             type="button"
             onClick={() => handle('accepted')}
-            className="inline-flex min-w-[120px] items-center justify-center rounded-full border border-fg-3 bg-bg-2 px-4 py-2 text-sm font-medium text-fg-0 transition-colors hover:bg-bg-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-magenta"
+            className="inline-flex min-w-[120px] items-center justify-center rounded-full border border-fg-3 bg-bg-2 px-4 py-2 text-sm font-medium text-fg-0 transition-colors hover:bg-bg-3 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-magenta"
           >
             {labels.accept}
           </button>

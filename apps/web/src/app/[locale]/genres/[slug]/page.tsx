@@ -183,7 +183,7 @@ export default async function GenrePage({
         />
         <div
           aria-hidden
-          className="absolute inset-0 bg-gradient-to-br from-bg-0/80 via-bg-0/70 to-bg-0/85"
+          className="absolute inset-0 bg-linear-to-br from-bg-0/80 via-bg-0/70 to-bg-0/85"
         />
         <div className="relative px-6 py-10 sm:px-10">
           <p className="font-mono text-[11px] uppercase tracking-widest text-fg-2">

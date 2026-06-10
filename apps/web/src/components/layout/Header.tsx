@@ -8,7 +8,7 @@ export async function Header() {
   const t = await getTranslations('nav');
   const tHome = await getTranslations('home');
   return (
-    <header className="sticky top-0 z-40 border-b border-fg-3/40 bg-bg-1/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-fg-3/40 bg-bg-1/90 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
         <Link
           href="/"

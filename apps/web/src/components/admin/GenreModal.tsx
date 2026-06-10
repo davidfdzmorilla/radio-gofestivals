@@ -89,7 +89,7 @@ export function GenreModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-bg-0/80 p-4 backdrop-blur"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-bg-0/80 p-4 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget && !saving) onClose();
       }}
@@ -121,7 +121,7 @@ export function GenreModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={saving}
-              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
             />
           </Field>
 
@@ -136,7 +136,7 @@ export function GenreModal({
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               disabled={saving}
-              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 font-mono text-sm focus:outline-none disabled:opacity-50"
+              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 font-mono text-sm focus:outline-hidden disabled:opacity-50"
             />
           </Field>
 
@@ -148,7 +148,7 @@ export function GenreModal({
                 setParentId(e.target.value ? Number(e.target.value) : null)
               }
               disabled={saving}
-              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
             >
               <option value="">— No parent (root) —</option>
               {parentOptions
@@ -181,7 +181,7 @@ export function GenreModal({
                 value={sortOrder}
                 onChange={(e) => setSortOrder(Number(e.target.value))}
                 disabled={saving}
-                className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+                className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
               />
             </Field>
           </div>
@@ -194,7 +194,7 @@ export function GenreModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={saving}
-              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-none disabled:opacity-50"
+              className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta w-full rounded-md border px-3 py-2 text-sm focus:outline-hidden disabled:opacity-50"
             />
           </Field>
 

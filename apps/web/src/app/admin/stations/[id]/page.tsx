@@ -293,7 +293,7 @@ function StationDetailInner() {
                 <span className="text-fg-2 min-w-[160px] font-mono text-xs">
                   {new Date(a.created_at).toLocaleString()}
                 </span>
-                <span className="bg-bg-3 text-fg-1 rounded font-mono text-[10px] px-1.5 py-0.5 uppercase tracking-widest">
+                <span className="bg-bg-3 text-fg-1 rounded-sm font-mono text-[10px] px-1.5 py-0.5 uppercase tracking-widest">
                   {a.decision}
                 </span>
                 <span className="text-fg-2 font-mono text-xs">

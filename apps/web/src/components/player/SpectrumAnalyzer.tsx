@@ -201,7 +201,7 @@ export function SpectrumAnalyzer({
       {bars.map((value, i) => (
         <div
           key={i}
-          className="w-[3px] rounded-sm bg-magenta opacity-85 transition-[height] duration-75"
+          className="w-[3px] rounded-xs bg-magenta opacity-85 transition-[height] duration-75"
           style={{ height: `${Math.max(2, value * 24)}px` }}
         />
       ))}

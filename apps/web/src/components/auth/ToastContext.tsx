@@ -107,7 +107,7 @@ function ToastViewport({
           key={t.id}
           role="alert"
           className={cn(
-            'pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-md border px-3 py-2.5 shadow-sticker-lg backdrop-blur',
+            'pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-md border px-3 py-2.5 shadow-sticker-lg backdrop-blur-sm',
             TONE_STYLES[t.tone],
           )}
         >

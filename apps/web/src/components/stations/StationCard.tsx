@@ -41,7 +41,7 @@ export function StationCard({ station, genresBySlug, index = 0, labels }: Props)
     >
       <Link
         href={`/stations/${station.slug}`}
-        className="flex min-w-0 flex-1 items-center gap-3 outline-none"
+        className="flex min-w-0 flex-1 items-center gap-3 outline-hidden"
       >
         <div
           className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg font-display text-xl font-bold text-bg-0 shadow-sticker-sm"

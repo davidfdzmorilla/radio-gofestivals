@@ -231,13 +231,13 @@ function StationsListInner() {
           placeholder="Buscar por nombre o slug..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta min-w-[220px] flex-1 rounded-md border px-3 py-1.5 text-sm focus:outline-none"
+          className="border-fg-3 bg-bg-1 text-fg-0 focus:border-magenta min-w-[220px] flex-1 rounded-md border px-3 py-1.5 text-sm focus:outline-hidden"
         />
 
         <select
           value={status ?? ''}
           onChange={(e) => updateUrl({ status: e.target.value || null, page: 1 })}
-          className="border-fg-3 bg-bg-1 text-fg-1 rounded-md border px-3 py-1.5 text-sm focus:outline-none"
+          className="border-fg-3 bg-bg-1 text-fg-1 rounded-md border px-3 py-1.5 text-sm focus:outline-hidden"
         >
           <option value="">Status: All</option>
           <option value="active">Active</option>
@@ -251,7 +251,7 @@ function StationsListInner() {
         <select
           value={curatedRaw ?? ''}
           onChange={(e) => updateUrl({ curated: e.target.value || null, page: 1 })}
-          className="border-fg-3 bg-bg-1 text-fg-1 rounded-md border px-3 py-1.5 text-sm focus:outline-none"
+          className="border-fg-3 bg-bg-1 text-fg-1 rounded-md border px-3 py-1.5 text-sm focus:outline-hidden"
         >
           <option value="">Curated: All</option>
           <option value="true">Yes</option>
@@ -261,7 +261,7 @@ function StationsListInner() {
         <select
           value={String(size)}
           onChange={(e) => updateUrl({ size: e.target.value, page: 1 })}
-          className="border-fg-3 bg-bg-1 text-fg-1 rounded-md border px-3 py-1.5 text-sm focus:outline-none"
+          className="border-fg-3 bg-bg-1 text-fg-1 rounded-md border px-3 py-1.5 text-sm focus:outline-hidden"
         >
           <option value="20">20 / page</option>
           <option value="50">50 / page</option>

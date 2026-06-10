@@ -175,6 +175,9 @@
     "placeholder": "Search for a station…",
     "resultsFor": "Results for “{query}”",
     "noResults": "No results for “{query}”.",
-    "hint": "Type at least 2 characters to search."
+    "hint": "Type at least 2 characters to search.",
+    "ariaLabel": "Search stations",
+    "noSuggestions": "No matches",
+    "viewAll": "See all results for “{query}”"
   }
 }

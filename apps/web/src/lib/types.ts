@@ -62,6 +62,14 @@ export const StationSummarySchema = z.object({
 });
 export type StationSummary = z.infer<typeof StationSummarySchema>;
 
+export const StationSuggestionSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  country_code: z.string().nullable(),
+  genres: z.array(z.string()).default([]),
+});
+export type StationSuggestion = z.infer<typeof StationSuggestionSchema>;
+
 export const CountryFacetSchema = z.object({
   code: z.string(),
   station_count: z.number(),

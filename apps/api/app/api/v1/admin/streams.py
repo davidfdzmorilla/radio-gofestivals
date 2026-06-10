@@ -39,11 +39,13 @@ async def promote_primary(
         )
     except StreamNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="stream_not_found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="stream_not_found",
         ) from exc
     except AlreadyPrimaryError as exc:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="already_primary",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="already_primary",
         ) from exc
 
     log.info(
@@ -51,15 +53,14 @@ async def promote_primary(
         admin_id=str(admin.id),
         stream_id=str(result["promoted_stream_id"]),
         station_id=str(result["station_id"]),
-        demoted=str(result["demoted_stream_id"])
-        if result["demoted_stream_id"]
-        else None,
+        demoted=str(result["demoted_stream_id"]) if result["demoted_stream_id"] else None,
     )
     return PromotePrimaryResponse(**result)
 
 
 @bulk_router.post(
-    "/bulk-status-change", response_model=BulkStatusChangeResponse,
+    "/bulk-status-change",
+    response_model=BulkStatusChangeResponse,
 )
 async def bulk_status_change(
     body: BulkStatusChangeRequest,

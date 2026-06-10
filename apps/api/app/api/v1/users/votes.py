@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import TYPE_CHECKING
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import text
@@ -11,6 +12,9 @@ from app.repos import user_votes as votes_repo
 from app.schemas.user import LikeResponse
 from app.services.rate_limit import check_rate_limit
 
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
+
 router = APIRouter(prefix="/stations", tags=["user-votes"])
 log = get_logger("app.user.votes")
 
@@ -18,7 +22,8 @@ LIKE_LIMIT, LIKE_WINDOW = 10, 60
 
 
 async def _ensure_station_exists(
-    session, station_id: uuid.UUID,  # noqa: ANN001
+    session: AsyncSession,
+    station_id: uuid.UUID,
 ) -> None:
     exists = (
         await session.execute(

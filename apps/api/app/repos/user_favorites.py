@@ -10,7 +10,8 @@ if TYPE_CHECKING:
 
 
 async def list_favorites(
-    session: AsyncSession, user_id: uuid.UUID,
+    session: AsyncSession,
+    user_id: uuid.UUID,
 ) -> list[dict[str, Any]]:
     """Return favorites joined with station summary fields.
 

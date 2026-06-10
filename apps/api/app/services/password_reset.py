@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -10,6 +9,8 @@ from app.repos import users as users_repo
 from app.services.email_resend import send_password_reset_email
 
 if TYPE_CHECKING:
+    import uuid
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -34,12 +35,16 @@ async def request_reset(
 
     expires_at = datetime.now(tz=UTC) + TOKEN_TTL
     token = await tokens_repo.create_token(
-        session, user_id=user.id, expires_at=expires_at,
+        session,
+        user_id=user.id,
+        expires_at=expires_at,
     )
     await session.commit()
 
     await send_password_reset_email(
-        to=user.email, token=str(token), base_url=base_url,
+        to=user.email,
+        token=str(token),
+        base_url=base_url,
     )
     return True
 

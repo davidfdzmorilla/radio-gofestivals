@@ -34,7 +34,9 @@ async def merge_plays(
     point already exists), not double-counted.
     """
     merged, dropped = await plays_repo.merge_anon_plays_to_user(
-        session, user_id=user.id, client_id=body.client_id,
+        session,
+        user_id=user.id,
+        client_id=body.client_id,
     )
     log.info(
         "plays_merged_anon_to_user",
@@ -60,9 +62,11 @@ async def export_plays(
     rows = await plays_repo.export_user_plays(session, user.id)
     return PlaysExportResponse(
         user=UserExportInfo(
-            id=user.id, email=user.email, created_at=user.created_at,
+            id=user.id,
+            email=user.email,
+            created_at=user.created_at,
         ),
-        plays=[PlayExportItem(**row) for row in rows],  # type: ignore[arg-type]
+        plays=[PlayExportItem(**row) for row in rows],
     )
 
 
@@ -80,6 +84,8 @@ async def erase_plays(
     """
     erased = await plays_repo.erase_user_plays(session, user.id)
     log.info(
-        "plays_erased_for_user", user_id=str(user.id), erased=erased,
+        "plays_erased_for_user",
+        user_id=str(user.id),
+        erased=erased,
     )
     return ErasePlaysResponse(erased=erased)

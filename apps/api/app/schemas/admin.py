@@ -75,7 +75,9 @@ class GenreCreate(BaseModel):
 
 
 class GenreUpdate(BaseModel):
-    slug: str | None = Field(default=None, min_length=2, max_length=60, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    slug: str | None = Field(
+        default=None, min_length=2, max_length=60, pattern=r"^[a-z0-9][a-z0-9-]*$"
+    )
     name: str | None = Field(default=None, min_length=1, max_length=100)
     parent_id: int | None = None
     color_hex: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")

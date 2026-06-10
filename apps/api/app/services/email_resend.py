@@ -5,6 +5,7 @@ instead of an exception so that local dev / tests don't need a real
 key — the caller treats `False` as "not delivered" and decides whether
 to surface that to the user.
 """
+
 from __future__ import annotations
 
 import os
@@ -18,6 +19,15 @@ log = get_logger("app.email")
 
 RESEND_FROM = "noreply@davidfdzmorilla.dev"
 RESEND_ENDPOINT = "https://api.resend.com/emails"
+SUPPORT_URL = "https://github.com/davidfdzmorilla/radio-gofestivals/issues"
+
+_BODY_STYLE = (
+    "font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#222;"
+)
+_BUTTON_STYLE = (
+    "display:inline-block;padding:10px 20px;background:#d4145a;color:#fff;"
+    "text-decoration:none;border-radius:6px;font-weight:600;"
+)
 
 
 def _api_key() -> str | None:
@@ -57,10 +67,10 @@ async def send_email(
                 headers={"Authorization": f"Bearer {api_key}"},
             )
     except httpx.HTTPError as exc:
-        log.error("resend_http_error", error=str(exc), to=to)
+        log.exception("resend_http_error", error=str(exc), to=to)
         return False
 
-    if response.status_code >= 400:
+    if response.is_error:
         log.error(
             "resend_send_failed",
             status=response.status_code,
@@ -85,7 +95,10 @@ async def send_email(
 
 
 async def send_password_reset_email(
-    *, to: str, token: str, base_url: str,
+    *,
+    to: str,
+    token: str,
+    base_url: str,
 ) -> bool:
     reset_url = f"{base_url}/reset-password?token={token}"
     subject = "Reset your radio.gofestivals password"
@@ -98,16 +111,16 @@ async def send_password_reset_email(
         f"{reset_url}\n\n"
         "If you didn't request this, you can safely ignore this email.\n\n"
         "— radio.gofestivals\n"
-        "For support: https://github.com/davidfdzmorilla/radio-gofestivals/issues"
+        f"For support: {SUPPORT_URL}"
     )
     html = f"""<!doctype html>
-<html><body style="font-family:-apple-system,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#222;">
+<html><body style="{_BODY_STYLE}">
   <h2 style="margin:0 0 16px;">Reset your password</h2>
   <p>Someone requested a password reset for your radio.gofestivals account.</p>
   <p>If this was you, click the link below (expires in 1 hour):</p>
   <p style="margin:24px 0;">
     <a href="{reset_url}"
-       style="display:inline-block;padding:10px 20px;background:#d4145a;color:#fff;text-decoration:none;border-radius:6px;font-weight:600;">
+       style="{_BUTTON_STYLE}">
       Reset password
     </a>
   </p>
@@ -115,7 +128,7 @@ async def send_password_reset_email(
   <hr style="border:0;border-top:1px solid #eee;margin:24px 0;">
   <p style="color:#999;font-size:13px;">
     If you didn't request this, ignore this email.<br>
-    For support: <a href="https://github.com/davidfdzmorilla/radio-gofestivals/issues">GitHub issues</a>
+    For support: <a href="{SUPPORT_URL}">GitHub issues</a>
   </p>
 </body></html>"""
     return await send_email(to=to, subject=subject, text=text, html=html)

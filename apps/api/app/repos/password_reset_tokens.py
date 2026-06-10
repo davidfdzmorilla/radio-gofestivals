@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import text
 
 if TYPE_CHECKING:
+    from sqlalchemy import CursorResult
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -32,7 +33,8 @@ async def create_token(
 
 
 async def consume_token(
-    session: AsyncSession, token: uuid.UUID,
+    session: AsyncSession,
+    token: uuid.UUID,
 ) -> uuid.UUID | None:
     """Return user_id if the token is valid (unused, not expired) and mark
     it consumed atomically. Returns None for any failure mode.
@@ -57,18 +59,24 @@ async def consume_token(
 
 
 async def invalidate_user_tokens(
-    session: AsyncSession, user_id: uuid.UUID,
+    session: AsyncSession,
+    user_id: uuid.UUID,
 ) -> int:
     """Invalidate all unused tokens for a user (used at password reset)."""
     now = datetime.now(tz=UTC)
-    result = await session.execute(
-        text(
-            """
-            UPDATE password_reset_tokens
-            SET used_at = :now
-            WHERE user_id = :uid AND used_at IS NULL
-            """,
+    # AsyncSession.execute se tipa como Result genérico, pero un UPDATE
+    # devuelve CursorResult (que sí expone rowcount).
+    result = cast(
+        "CursorResult[Any]",
+        await session.execute(
+            text(
+                """
+                UPDATE password_reset_tokens
+                SET used_at = :now
+                WHERE user_id = :uid AND used_at IS NULL
+                """,
+            ),
+            {"uid": str(user_id), "now": now},
         ),
-        {"uid": str(user_id), "now": now},
     )
     return int(result.rowcount or 0)

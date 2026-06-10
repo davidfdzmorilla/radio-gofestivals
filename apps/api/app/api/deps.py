@@ -53,14 +53,16 @@ async def get_current_admin(
         payload = decode_access_token(creds.credentials, settings)
     except TokenError as exc:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc),
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
         ) from exc
 
     try:
         admin_id = uuid.UUID(str(payload.get("sub", "")))
     except (ValueError, TypeError) as exc:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_token",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid_token",
         ) from exc
 
     admin = await admins_repo.get_by_id(session, admin_id)
@@ -81,26 +83,30 @@ async def get_current_user(
 ) -> User:
     if creds is None or not creds.credentials:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="missing_token",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="missing_token",
         )
     try:
         payload = decode_user_token(creds.credentials, settings)
     except TokenError as exc:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc),
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(exc),
         ) from exc
 
     try:
         user_id = uuid.UUID(str(payload.get("sub", "")))
     except (ValueError, TypeError) as exc:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_token",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid_token",
         ) from exc
 
     user = await users_repo.get_user_by_id(session, user_id)
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="user_not_found",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="user_not_found",
         )
     return user
 

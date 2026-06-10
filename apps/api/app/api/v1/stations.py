@@ -58,7 +58,11 @@ async def nearby_stations(
     radius_km: Annotated[float, Query(gt=0, le=500)] = 50,
 ) -> list[NearbyStation]:
     return await stations_service.find_nearby(
-        session, lat=lat, lng=lng, radius_km=radius_km, limit=50,
+        session,
+        lat=lat,
+        lng=lng,
+        radius_km=radius_km,
+        limit=50,
     )
 
 
@@ -131,7 +135,10 @@ async def register_play(
         )
 
     found, was_new = await stations_service.register_play_for_slug(
-        session, slug=slug, user_id=user_id, client_id=client_id,
+        session,
+        slug=slug,
+        user_id=user_id,
+        client_id=client_id,
     )
     if not found:
         raise HTTPException(

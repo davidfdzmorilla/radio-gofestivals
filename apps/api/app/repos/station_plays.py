@@ -48,11 +48,13 @@ async def register_play(
     """
     if user_id is not None:
         result = await session.execute(
-            _INSERT_USER, {"sid": str(station_id), "uid": str(user_id)},
+            _INSERT_USER,
+            {"sid": str(station_id), "uid": str(user_id)},
         )
     else:
         result = await session.execute(
-            _INSERT_CLIENT, {"sid": str(station_id), "cid": str(client_id)},
+            _INSERT_CLIENT,
+            {"sid": str(station_id), "cid": str(client_id)},
         )
     inserted = result.first() is not None
     await session.commit()
@@ -116,7 +118,8 @@ async def merge_anon_plays_to_user(
 
 
 async def export_user_plays(
-    session: AsyncSession, user_id: uuid.UUID,
+    session: AsyncSession,
+    user_id: uuid.UUID,
 ) -> list[dict[str, object]]:
     """Return every play row attributed to ``user_id``, joined with the
     station for an informative GDPR dump (slug + name).
@@ -149,7 +152,8 @@ async def export_user_plays(
 
 
 async def erase_user_plays(
-    session: AsyncSession, user_id: uuid.UUID,
+    session: AsyncSession,
+    user_id: uuid.UUID,
 ) -> int:
     """Delete every play row attributed to ``user_id``.
 

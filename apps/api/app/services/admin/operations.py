@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
@@ -9,6 +8,8 @@ from app.repos import admin_jobs as jobs_repo
 from app.services.admin.operations_catalog import ALLOWED_COMMANDS
 
 if TYPE_CHECKING:
+    import uuid
+
     from sqlalchemy.ext.asyncio import AsyncSession
 
 

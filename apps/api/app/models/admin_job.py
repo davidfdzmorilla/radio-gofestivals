@@ -16,22 +16,28 @@ class AdminJob(Base):
     __tablename__ = "admin_jobs"
 
     id: Mapped[int] = mapped_column(
-        BigInteger, primary_key=True, autoincrement=True,
+        BigInteger,
+        primary_key=True,
+        autoincrement=True,
     )
     command: Mapped[str] = mapped_column(Text, nullable=False)
     params_json: Mapped[dict[str, Any] | None] = mapped_column(
-        JSONB, nullable=True,
+        JSONB,
+        nullable=True,
     )
     status: Mapped[str] = mapped_column(Text, nullable=False)
     result_json: Mapped[dict[str, Any] | None] = mapped_column(
-        JSONB, nullable=True,
+        JSONB,
+        nullable=True,
     )
     stderr_tail: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     finished_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True,
+        DateTime(timezone=True),
+        nullable=True,
     )
     admin_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

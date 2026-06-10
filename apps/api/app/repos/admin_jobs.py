@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 import uuid
 from typing import TYPE_CHECKING, Any
@@ -37,7 +38,8 @@ async def create_job(
             },
         )
     ).first()
-    assert row is not None
+    if row is None:  # INSERT ... RETURNING siempre devuelve fila; defensa anti-driver
+        raise RuntimeError("insert_returning_no_row")
     return _row_to_dict(row)
 
 
@@ -92,7 +94,8 @@ async def list_jobs(
 
 
 async def get_job(
-    session: AsyncSession, job_id: int,
+    session: AsyncSession,
+    job_id: int,
 ) -> dict[str, Any] | None:
     row = (
         await session.execute(
@@ -119,12 +122,10 @@ async def get_job(
 def _to_json(value: dict[str, Any] | None) -> str | None:
     if value is None:
         return None
-    import json
-
     return json.dumps(value)
 
 
-def _row_to_dict(row: Any) -> dict[str, Any]:  # noqa: ANN401
+def _row_to_dict(row: Any) -> dict[str, Any]:
     mapping = row._mapping  # noqa: SLF001
     return {
         "id": int(mapping["id"]),

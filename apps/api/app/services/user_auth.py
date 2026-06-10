@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import uuid
 from typing import TYPE_CHECKING
 
 from app.core.security import (
@@ -11,6 +10,7 @@ from app.core.security import (
 from app.repos import users as users_repo
 
 if TYPE_CHECKING:
+    import uuid
     from datetime import datetime
 
     from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,7 +58,8 @@ async def authenticate(
 
 
 def mint_token(
-    user: User, settings: Settings,
+    user: User,
+    settings: Settings,
 ) -> tuple[str, datetime]:
     return issue_user_token(user.id, user.email, settings)
 

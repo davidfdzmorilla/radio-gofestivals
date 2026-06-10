@@ -4,6 +4,7 @@ The same catalog (with executable argv only) lives in
 `packages/scripts/scripts/run_pending_admin_jobs.py`. Both must stay
 in sync — there is no cross-package import to enforce that.
 """
+
 from __future__ import annotations
 
 from typing import Any, Literal
@@ -62,9 +63,7 @@ ALLOWED_COMMANDS: dict[str, dict[str, Any]] = {
         "timeout": 300,
         "params_model": AutoCurateParams,
         "label": "Auto-curate top stations",
-        "description": (
-            "Promover stations pending con quality_score >= threshold."
-        ),
+        "description": ("Promover stations pending con quality_score >= threshold."),
     },
     "compute_quality_scores": {
         "argv_base": ["compute-quality-scores"],

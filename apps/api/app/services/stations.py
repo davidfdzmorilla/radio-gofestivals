@@ -5,6 +5,8 @@ import math
 import uuid
 from typing import TYPE_CHECKING
 
+from sqlalchemy import text
+
 from app.repos import station_plays as plays_repo
 from app.repos import stations as stations_repo
 from app.repos import user_favorites as fav_repo
@@ -87,10 +89,14 @@ async def list_stations(
     if user_id is not None and items:
         ids = [s.id for s in items]
         fav_set = await fav_repo.get_favorite_station_ids(
-            session, user_id, ids,
+            session,
+            user_id,
+            ids,
         )
         voted_set = await votes_repo.get_voted_station_ids(
-            session, user_id, ids,
+            session,
+            user_id,
+            ids,
         )
         for summary in summaries:
             summary.is_favorite = summary.id in fav_set
@@ -118,7 +124,8 @@ async def list_featured_stations(
     a single page — the home does not paginate featured.
     """
     items = await stations_repo.list_featured_diverse_stations(
-        session, size=size,
+        session,
+        size=size,
     )
     summaries = [_to_summary(s) for s in items]
     return StationsPage(
@@ -149,13 +156,16 @@ async def get_station_detail(
         detail = StationDetail.model_validate(json.loads(cached))
     else:
         station = await stations_repo.get_active_station_by_slug(
-            session, slug,
+            session,
+            slug,
         )
         if station is None:
             return None
 
         now_playing = await stations_repo.last_now_playing(
-            session, station.id, limit=10,
+            session,
+            station.id,
+            limit=10,
         )
         detail = StationDetail(
             id=station.id,
@@ -171,7 +181,9 @@ async def get_station_detail(
             votes_local=int(station.votes_local or 0),
             genres=[
                 StationGenreRef(
-                    slug=g.slug, name=g.name, color_hex=g.color_hex,
+                    slug=g.slug,
+                    name=g.name,
+                    color_hex=g.color_hex,
                 )
                 for g in station.genres
             ],
@@ -187,15 +199,21 @@ async def get_station_detail(
         )
         # Cache the user-agnostic snapshot only.
         await redis.set(
-            _detail_cache_key(slug), detail.model_dump_json(), ex=ttl,
+            _detail_cache_key(slug),
+            detail.model_dump_json(),
+            ex=ttl,
         )
 
     if user_id is not None:
         fav_set = await fav_repo.get_favorite_station_ids(
-            session, user_id, [detail.id],
+            session,
+            user_id,
+            [detail.id],
         )
         voted_set = await votes_repo.get_voted_station_ids(
-            session, user_id, [detail.id],
+            session,
+            user_id,
+            [detail.id],
         )
         # Return a user-personalized copy without polluting the cache.
         return detail.model_copy(
@@ -220,8 +238,6 @@ async def register_play_for_slug(
     slug didn't resolve; (True, False) means the same identity already
     played this station today and we treated it as a no-op.
     """
-    from sqlalchemy import text
-
     row = (
         await session.execute(
             text("SELECT id FROM stations WHERE slug = :slug"),
@@ -259,7 +275,11 @@ async def find_nearby(
     limit: int = 50,
 ) -> list[NearbyStation]:
     rows = await stations_repo.find_nearby(
-        session, lat=lat, lng=lng, radius_km=radius_km, limit=limit,
+        session,
+        lat=lat,
+        lng=lng,
+        radius_km=radius_km,
+        limit=limit,
     )
     nearby: list[NearbyStation] = []
     for row in rows:

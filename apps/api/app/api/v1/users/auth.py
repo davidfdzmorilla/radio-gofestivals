@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from fastapi import APIRouter, HTTPException, Request, status
 
 from app.api.deps import RedisDep, SessionDep, SettingsDep, UserDep
@@ -18,6 +20,9 @@ from app.services.user_auth import (
     InvalidCredentialsError,
 )
 
+if TYPE_CHECKING:
+    from app.models.user import User
+
 router = APIRouter(prefix="/auth", tags=["user-auth"])
 log = get_logger("app.user.auth")
 
@@ -25,7 +30,7 @@ REGISTER_LIMIT, REGISTER_WINDOW = 3, 60 * 60
 LOGIN_LIMIT, LOGIN_WINDOW = 5, 60
 
 
-def _to_user_out(user) -> UserOut:  # noqa: ANN001
+def _to_user_out(user: User) -> UserOut:
     return UserOut(
         id=user.id,
         email=user.email,
@@ -66,7 +71,9 @@ async def register(
 
     try:
         user = await auth_service.register(
-            session, email=body.email, password=body.password,
+            session,
+            email=body.email,
+            password=body.password,
         )
     except EmailAlreadyRegisteredError as exc:
         raise HTTPException(
@@ -108,7 +115,9 @@ async def login(
 
     try:
         user = await auth_service.authenticate(
-            session, email=body.email, password=body.password,
+            session,
+            email=body.email,
+            password=body.password,
         )
     except InvalidCredentialsError as exc:
         log.warning("user_login_failed", ip=ip, email=body.email)
@@ -139,7 +148,9 @@ async def delete_me(
 ) -> None:
     try:
         await auth_service.delete_account(
-            session, user_id=user.id, password=body.password,
+            session,
+            user_id=user.id,
+            password=body.password,
         )
     except InvalidCredentialsError as exc:
         raise HTTPException(

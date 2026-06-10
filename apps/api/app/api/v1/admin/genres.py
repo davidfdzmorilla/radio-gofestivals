@@ -24,7 +24,8 @@ async def create_genre(
         return await admin_genres_service.create_genre(session, redis, body)
     except admin_genres_service.GenreConflictError as exc:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="slug_conflict",
+            status_code=status.HTTP_409_CONFLICT,
+            detail="slug_conflict",
         ) from exc
 
 
@@ -40,11 +41,13 @@ async def update_genre(
         return await admin_genres_service.update_genre(session, redis, genre_id, body)
     except admin_genres_service.GenreNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="genre_not_found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="genre_not_found",
         ) from exc
     except admin_genres_service.GenreConflictError as exc:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="slug_conflict",
+            status_code=status.HTTP_409_CONFLICT,
+            detail="slug_conflict",
         ) from exc
 
 
@@ -59,10 +62,12 @@ async def delete_genre(
         await admin_genres_service.delete_genre(session, redis, genre_id)
     except admin_genres_service.GenreInUseError as exc:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="genre_in_use",
+            status_code=status.HTTP_409_CONFLICT,
+            detail="genre_in_use",
         ) from exc
     except admin_genres_service.GenreNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="genre_not_found",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="genre_not_found",
         ) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)

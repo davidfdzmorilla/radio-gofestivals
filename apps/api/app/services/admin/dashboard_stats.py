@@ -46,9 +46,7 @@ async def get_dashboard_stats(session: AsyncSession) -> DashboardStats:
         stations_active=int(kpi_row[0] or 0) if kpi_row else 0,
         stations_curated=int(kpi_row[1] or 0) if kpi_row else 0,
         stations_broken=int(kpi_row[2] or 0) if kpi_row else 0,
-        avg_quality_active=(
-            round(float(kpi_row[3] or 0), 1) if kpi_row else 0.0
-        ),
+        avg_quality_active=(round(float(kpi_row[3] or 0), 1) if kpi_row else 0.0),
     )
 
     quality_rows = (
@@ -73,9 +71,7 @@ async def get_dashboard_stats(session: AsyncSession) -> DashboardStats:
             ),
         )
     ).all()
-    quality_distribution = [
-        QualityBucket(bucket=str(r[0]), count=int(r[1])) for r in quality_rows
-    ]
+    quality_distribution = [QualityBucket(bucket=str(r[0]), count=int(r[1])) for r in quality_rows]
 
     genre_rows = (
         await session.execute(
@@ -93,9 +89,7 @@ async def get_dashboard_stats(session: AsyncSession) -> DashboardStats:
             ),
         )
     ).all()
-    top_genres = [
-        GenreCount(name=str(r[0]), count=int(r[1])) for r in genre_rows
-    ]
+    top_genres = [GenreCount(name=str(r[0]), count=int(r[1])) for r in genre_rows]
 
     country_rows = (
         await session.execute(
@@ -111,10 +105,7 @@ async def get_dashboard_stats(session: AsyncSession) -> DashboardStats:
             ),
         )
     ).all()
-    top_countries = [
-        CountryCount(country_code=str(r[0]), count=int(r[1]))
-        for r in country_rows
-    ]
+    top_countries = [CountryCount(country_code=str(r[0]), count=int(r[1])) for r in country_rows]
 
     activity_rows = (
         await session.execute(

@@ -3,9 +3,10 @@ from __future__ import annotations
 import math
 import uuid
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
-from fastapi import HTTPException, status as http_status
+from fastapi import HTTPException
+from fastapi import status as http_status
 from sqlalchemy import text
 
 from app.schemas.admin import (
@@ -223,7 +224,8 @@ async def apply_curation(
 
 
 async def _collect_station_cache_keys(
-    redis: Redis[str], station_id: uuid.UUID,
+    redis: Redis[str],
+    station_id: uuid.UUID,
 ) -> list[str]:
     # slug-based detail key isn't known; best-effort scan over station:detail:*
     keys: list[str] = []
@@ -331,7 +333,8 @@ async def list_all(
 
 
 async def get_detail(
-    session: AsyncSession, station_id: uuid.UUID,
+    session: AsyncSession,
+    station_id: uuid.UUID,
 ) -> StationAdminDetail | None:
     base = (
         await session.execute(
@@ -456,6 +459,182 @@ async def get_detail(
     )
 
 
+class _StationChanges(NamedTuple):
+    """Qué partes del PATCH difieren del estado actual (iterable → any())."""
+
+    curated: bool
+    status: bool
+    name: bool
+    slug: bool
+    genres: bool
+
+
+def _diff_station(
+    payload: StationUpdate,
+    *,
+    cur_slug: str,
+    cur_name: str,
+    cur_status: str,
+    cur_curated: bool,
+    current_genre_ids: set[int],
+) -> _StationChanges:
+    return _StationChanges(
+        curated=payload.curated is not None and payload.curated != cur_curated,
+        status=payload.status is not None and payload.status != cur_status,
+        name=payload.name is not None and payload.name != cur_name,
+        slug=payload.slug is not None and payload.slug != cur_slug,
+        genres=(payload.genre_ids is not None and set(payload.genre_ids) != current_genre_ids),
+    )
+
+
+async def _ensure_slug_free(
+    session: AsyncSession,
+    station_id: uuid.UUID,
+    new_slug: str,
+) -> None:
+    clash = (
+        await session.execute(
+            text("SELECT 1 FROM stations WHERE slug = :s AND id <> :id"),
+            {"s": new_slug, "id": str(station_id)},
+        )
+    ).first()
+    if clash is not None:
+        raise HTTPException(
+            status_code=http_status.HTTP_409_CONFLICT,
+            detail="slug_already_in_use",
+        )
+
+
+async def _validated_current_genres(
+    session: AsyncSession,
+    station_id: uuid.UUID,
+    genre_ids: list[int],
+) -> set[int]:
+    """Valida los genre_ids del payload y devuelve los géneros actuales.
+
+    Los ids fuera del rango smallint (PK de genres) se filtran antes de la
+    query: asyncpg bindea :ids como int2[] y lanzaría OverflowError en lugar
+    de devolver 400.
+    """
+    queryable = [gid for gid in genre_ids if -(2**15) <= gid < 2**15]
+    valid_ids: set[int] = set()
+    if queryable:
+        valid_rows = (
+            await session.execute(
+                text("SELECT id FROM genres WHERE id = ANY(:ids)"),
+                {"ids": queryable},
+            )
+        ).all()
+        valid_ids = {int(r[0]) for r in valid_rows}
+    invalid = [gid for gid in genre_ids if gid not in valid_ids]
+    if invalid:
+        raise HTTPException(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail={"error": "invalid_genre_ids", "ids": invalid},
+        )
+    return {
+        int(r[0])
+        for r in (
+            await session.execute(
+                text(
+                    "SELECT genre_id FROM station_genres WHERE station_id = :id",
+                ),
+                {"id": str(station_id)},
+            )
+        ).all()
+    }
+
+
+async def _apply_station_update(
+    session: AsyncSession,
+    station_id: uuid.UUID,
+    payload: StationUpdate,
+    changes: _StationChanges,
+) -> None:
+    # Build SET clause dynamically — only touch columns the caller asked for
+    sets: list[str] = []
+    update_params: dict[str, object] = {"id": str(station_id)}
+    if changes.curated:
+        sets.append("curated = :curated")
+        update_params["curated"] = bool(payload.curated)
+    if changes.status:
+        sets.append("status = CAST(:status AS station_status)")
+        update_params["status"] = payload.status
+    if changes.name:
+        sets.append("name = :name")
+        update_params["name"] = payload.name
+    if changes.slug:
+        sets.append("slug = :slug")
+        update_params["slug"] = payload.slug
+
+    if sets:
+        sets.append("updated_at = now()")
+        await session.execute(
+            text(
+                f"UPDATE stations SET {', '.join(sets)} WHERE id = :id",  # noqa: S608
+            ),
+            update_params,
+        )
+
+    if changes.genres:
+        await session.execute(
+            text("DELETE FROM station_genres WHERE station_id = :id"),
+            {"id": str(station_id)},
+        )
+        for gid in payload.genre_ids or []:
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO station_genres (station_id, genre_id, source, confidence)
+                    VALUES (:sid, :gid, 'manual', 100)
+                    """,
+                ),
+                {"sid": str(station_id), "gid": gid},
+            )
+
+
+def _build_audit_entries(
+    payload: StationUpdate,
+    changes: _StationChanges,
+    *,
+    cur_slug: str,
+    cur_name: str,
+    cur_status: str,
+    cur_curated: bool,
+    current_genre_ids: set[int],
+) -> list[tuple[str, str]]:
+    """One curation_log entry per *kind* of change.
+
+    Caller skips inserting when nothing changed so a no-op PATCH
+    (e.g. curated=true → true) does not pollute the audit history.
+    """
+
+    def _with_notes(note: str) -> str:
+        return f"{note}. {payload.notes}" if payload.notes else note
+
+    entries: list[tuple[str, str]] = []
+    if changes.curated:
+        entries.append(
+            ("toggle_curated", _with_notes(f"curated: {cur_curated} → {bool(payload.curated)}")),
+        )
+    if changes.status:
+        entries.append(
+            ("change_status", _with_notes(f"status: {cur_status} → {payload.status}")),
+        )
+    if changes.name or changes.slug or changes.genres:
+        parts: list[str] = []
+        if changes.name:
+            parts.append(f"name: {cur_name!r} → {payload.name!r}")
+        if changes.slug:
+            parts.append(f"slug: {cur_slug!r} → {payload.slug!r}")
+        if changes.genres:
+            parts.append(
+                f"genres: {sorted(current_genre_ids)} → {sorted(payload.genre_ids or [])}",
+            )
+        entries.append(("edit_metadata", _with_notes("; ".join(parts))))
+    return entries
+
+
 async def update_station(
     session: AsyncSession,
     redis: Redis[str],
@@ -478,142 +657,44 @@ async def update_station(
     if current is None:
         return None
 
-    cur_slug, cur_name, cur_status, cur_curated = current
+    cur_slug, cur_name, cur_status, cur_curated = (
+        str(current[0]),
+        str(current[1]),
+        str(current[2]),
+        bool(current[3]),
+    )
 
     if payload.slug is not None and payload.slug != cur_slug:
-        clash = (
-            await session.execute(
-                text("SELECT 1 FROM stations WHERE slug = :s AND id <> :id"),
-                {"s": payload.slug, "id": str(station_id)},
-            )
-        ).first()
-        if clash is not None:
-            raise HTTPException(
-                status_code=http_status.HTTP_409_CONFLICT,
-                detail="slug_already_in_use",
-            )
+        await _ensure_slug_free(session, station_id, payload.slug)
 
     current_genre_ids: set[int] = set()
     if payload.genre_ids is not None:
-        # Validate every supplied genre id. Los ids fuera del rango smallint
-        # (PK de genres) se filtran antes de la query: asyncpg bindea :ids
-        # como int2[] y lanzaría OverflowError en lugar de devolver 400.
-        queryable = [gid for gid in payload.genre_ids if -(2**15) <= gid < 2**15]
-        valid_ids: set[int] = set()
-        if queryable:
-            valid_rows = (
-                await session.execute(
-                    text("SELECT id FROM genres WHERE id = ANY(:ids)"),
-                    {"ids": queryable},
-                )
-            ).all()
-            valid_ids = {int(r[0]) for r in valid_rows}
-        invalid = [gid for gid in payload.genre_ids if gid not in valid_ids]
-        if invalid:
-            raise HTTPException(
-                status_code=http_status.HTTP_400_BAD_REQUEST,
-                detail={"error": "invalid_genre_ids", "ids": invalid},
-            )
-        current_genre_ids = {
-            int(r[0])
-            for r in (
-                await session.execute(
-                    text(
-                        "SELECT genre_id FROM station_genres "
-                        "WHERE station_id = :id",
-                    ),
-                    {"id": str(station_id)},
-                )
-            ).all()
-        }
-
-    # Build SET clause dynamically — only touch columns the caller asked for
-    sets: list[str] = []
-    update_params: dict[str, object] = {"id": str(station_id)}
-
-    curated_changed = (
-        payload.curated is not None and payload.curated != bool(cur_curated)
-    )
-    status_changed = (
-        payload.status is not None and payload.status != str(cur_status)
-    )
-    name_changed = payload.name is not None and payload.name != cur_name
-    slug_changed = payload.slug is not None and payload.slug != cur_slug
-    genres_changed = (
-        payload.genre_ids is not None
-        and set(payload.genre_ids) != current_genre_ids
-    )
-
-    if curated_changed:
-        sets.append("curated = :curated")
-        update_params["curated"] = bool(payload.curated)
-    if status_changed:
-        sets.append("status = CAST(:status AS station_status)")
-        update_params["status"] = payload.status
-    if name_changed:
-        sets.append("name = :name")
-        update_params["name"] = payload.name
-    if slug_changed:
-        sets.append("slug = :slug")
-        update_params["slug"] = payload.slug
-
-    if sets:
-        sets.append("updated_at = now()")
-        await session.execute(
-            text(
-                f"UPDATE stations SET {', '.join(sets)} WHERE id = :id",  # noqa: S608
-            ),
-            update_params,
+        current_genre_ids = await _validated_current_genres(
+            session,
+            station_id,
+            payload.genre_ids,
         )
 
-    if genres_changed:
-        await session.execute(
-            text("DELETE FROM station_genres WHERE station_id = :id"),
-            {"id": str(station_id)},
-        )
-        for gid in payload.genre_ids or []:
-            await session.execute(
-                text(
-                    """
-                    INSERT INTO station_genres (station_id, genre_id, source, confidence)
-                    VALUES (:sid, :gid, 'manual', 100)
-                    """,
-                ),
-                {"sid": str(station_id), "gid": gid},
-            )
+    changes = _diff_station(
+        payload,
+        cur_slug=cur_slug,
+        cur_name=cur_name,
+        cur_status=cur_status,
+        cur_curated=cur_curated,
+        current_genre_ids=current_genre_ids,
+    )
 
-    # Audit: one curation_log entry per *kind* of change. Skip when nothing
-    # changed so a no-op PATCH (e.g. curated=true → true) does not pollute
-    # the audit history.
-    audit_entries: list[tuple[str, str | None]] = []
-    if curated_changed:
-        note = (
-            f"curated: {bool(cur_curated)} → {bool(payload.curated)}"
-        )
-        if payload.notes:
-            note = f"{note}. {payload.notes}"
-        audit_entries.append(("toggle_curated", note))
-    if status_changed:
-        note = f"status: {cur_status} → {payload.status}"
-        if payload.notes:
-            note = f"{note}. {payload.notes}"
-        audit_entries.append(("change_status", note))
-    if name_changed or slug_changed or genres_changed:
-        parts: list[str] = []
-        if name_changed:
-            parts.append(f"name: {cur_name!r} → {payload.name!r}")
-        if slug_changed:
-            parts.append(f"slug: {cur_slug!r} → {payload.slug!r}")
-        if genres_changed:
-            parts.append(
-                f"genres: {sorted(current_genre_ids)} "
-                f"→ {sorted(payload.genre_ids or [])}",
-            )
-        note = "; ".join(parts)
-        if payload.notes:
-            note = f"{note}. {payload.notes}"
-        audit_entries.append(("edit_metadata", note))
+    await _apply_station_update(session, station_id, payload, changes)
 
+    audit_entries = _build_audit_entries(
+        payload,
+        changes,
+        cur_slug=cur_slug,
+        cur_name=cur_name,
+        cur_status=cur_status,
+        cur_curated=cur_curated,
+        current_genre_ids=current_genre_ids,
+    )
     for action, note in audit_entries:
         await session.execute(
             text(
@@ -632,7 +713,7 @@ async def update_station(
 
     await session.commit()
 
-    if curated_changed or status_changed or genres_changed or slug_changed:
+    if changes.curated or changes.status or changes.genres or changes.slug:
         await invalidate_genres_cache(redis)
         keys = await _collect_station_cache_keys(redis, station_id)
         if keys:

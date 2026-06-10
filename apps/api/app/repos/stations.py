@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, NamedTuple, TypeVar
+from typing import TYPE_CHECKING, NamedTuple
 
 from sqlalchemy import bindparam, func, select, text
 
@@ -13,10 +13,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-T = TypeVar("T")
-
-
-def apply_genre_cap(
+def apply_genre_cap[T](
     candidates: list[tuple[T, int | None]],
     *,
     size: int,
@@ -148,9 +145,7 @@ async def list_featured_diverse_stations(
             {"ids": [str(i) for i in station_ids]},
         )
     ).all()
-    primary_by_station: dict[str, int] = {
-        str(r[0]): int(r[1]) for r in primary_rows
-    }
+    primary_by_station: dict[str, int] = {str(r[0]): int(r[1]) for r in primary_rows}
 
     candidates: list[tuple[Station, int | None]] = [
         (s, primary_by_station.get(str(s.id))) for s in pool

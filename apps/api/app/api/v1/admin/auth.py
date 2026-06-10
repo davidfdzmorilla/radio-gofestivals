@@ -25,19 +25,24 @@ async def login(
 ) -> AccessToken:
     ip = request.client.host if request.client else "unknown"
     allowed, _count = await check_rate_limit(
-        redis, f"admin_login:{ip}", limit=LOGIN_RATE_LIMIT, window_seconds=LOGIN_RATE_WINDOW,
+        redis,
+        f"admin_login:{ip}",
+        limit=LOGIN_RATE_LIMIT,
+        window_seconds=LOGIN_RATE_WINDOW,
     )
     if not allowed:
         log.warning("admin_login_rate_limited", ip=ip, email=body.email)
         raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="rate_limit_exceeded",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="rate_limit_exceeded",
         )
 
     result = await auth_service.authenticate(session, body.email, body.password, settings)
     if result is None:
         log.warning("admin_login_failed", ip=ip, email=body.email)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials",
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="invalid_credentials",
         )
 
     admin, token, expires_at = result

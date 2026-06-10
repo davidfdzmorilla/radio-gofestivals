@@ -7,6 +7,8 @@ from app.api.v1.admin.operations import router as admin_operations_router
 from app.api.v1.admin.stations import router as admin_stations_router
 from app.api.v1.admin.streams import (
     bulk_router as admin_bulk_status_router,
+)
+from app.api.v1.admin.streams import (
     streams_router as admin_streams_router,
 )
 

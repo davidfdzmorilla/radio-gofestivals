@@ -72,6 +72,8 @@ ignore = [
     "FBT003",   # Typer usa bool positional en opciones
     "PLR0913",
     "PLR0915",  # el orquestador upsert es extenso pero lineal
+    "PLR0911",  # escaleras de decisión lineales (spam/stream heuristics):
+    "PLR0912",  # muchos returns/ramas planos y legibles, mismo criterio que C901
     "TC001",
     "TC003",
     "ASYNC109", # timeout kwarg es idiomático aquí (no usamos asyncio.timeout)
@@ -80,8 +82,18 @@ ignore = [
     "C901",     # upsert_station linealmente complejo pero legible
 ]
 
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option"]  # patrón idiomático de Typer
+
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "PLR2004", "ANN", "INP001", "S311", "E501"]
+"tests/**" = [
+    "S101", "PLR2004", "ANN", "INP001", "S311", "E501",
+    "ARG001",  # fixtures no siempre usados por el cuerpo (mismo criterio que api)
+    "S608",    # helpers con nombre de tabla parametrizado en f-string
+    "PERF401", "RUF003",
+]
+# Informe CLI ad-hoc: imprimir tablas a stdout es su función
+"scripts/export_spam_candidates.py" = ["T201"]
 
 [tool.mypy]
 python_version = "3.12"

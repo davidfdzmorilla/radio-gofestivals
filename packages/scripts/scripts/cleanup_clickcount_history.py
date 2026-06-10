@@ -1,4 +1,5 @@
 """cleanup-clickcount-history · drop snapshots older than retention window."""
+
 from __future__ import annotations
 
 import asyncio

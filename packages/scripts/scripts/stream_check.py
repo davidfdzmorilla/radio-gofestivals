@@ -18,10 +18,11 @@ Status code policy is deliberately conservative:
   >= 500     → dead
   404        → dead (URL is wrong, not a misbehaving HEAD handler)
   401/403    → ALIVE (auth required, stream exists)
-  other 4xx  → ALIVE (Icecast 400 / 405 etc. – ambiguous, prefer FN over FP)
+  other 4xx  → ALIVE (Icecast 400 / 405 etc. - ambiguous, prefer FN over FP)
   200/206    → ALIVE if content-type is audio-ish OR icy-name header
                present; otherwise still ALIVE conservatively but logged
 """
+
 from __future__ import annotations
 
 import time
@@ -53,6 +54,11 @@ def _truncate(msg: str, limit: int = 200) -> str:
     return msg if len(msg) <= limit else msg[:limit]
 
 
+_CLIENT_ERROR = 400
+_NOT_FOUND = 404
+_SERVER_ERROR = 500
+
+
 async def check_stream_alive(
     stream_url: str,
     *,
@@ -82,28 +88,36 @@ async def check_stream_alive(
 
             if status in (401, 403):
                 return StreamCheckResult(
-                    alive=True, status_code=status, content_type=ctype,
+                    alive=True,
+                    status_code=status,
+                    content_type=ctype,
                     error=f"auth required (status {status}, assumed alive)",
                     latency_ms=latency_ms,
                 )
 
-            if status >= 500:
+            if status >= _SERVER_ERROR:
                 return StreamCheckResult(
-                    alive=False, status_code=status, content_type=ctype,
+                    alive=False,
+                    status_code=status,
+                    content_type=ctype,
                     error=f"server error {status}",
                     latency_ms=latency_ms,
                 )
 
-            if status == 404:
+            if status == _NOT_FOUND:
                 return StreamCheckResult(
-                    alive=False, status_code=status, content_type=ctype,
+                    alive=False,
+                    status_code=status,
+                    content_type=ctype,
                     error="not found 404",
                     latency_ms=latency_ms,
                 )
 
-            if 400 <= status < 500:
+            if _CLIENT_ERROR <= status < _SERVER_ERROR:
                 return StreamCheckResult(
-                    alive=True, status_code=status, content_type=ctype,
+                    alive=True,
+                    status_code=status,
+                    content_type=ctype,
                     error=f"non-fatal {status} (ambiguous, assumed alive)",
                     latency_ms=latency_ms,
                 )
@@ -111,24 +125,33 @@ async def check_stream_alive(
             if status in (200, 206):
                 if ctype.startswith(_AUDIO_CT_PREFIXES):
                     return StreamCheckResult(
-                        alive=True, status_code=status, content_type=ctype,
-                        error=None, latency_ms=latency_ms,
+                        alive=True,
+                        status_code=status,
+                        content_type=ctype,
+                        error=None,
+                        latency_ms=latency_ms,
                     )
                 icy_name = response.headers.get("icy-name")
                 if icy_name:
                     return StreamCheckResult(
-                        alive=True, status_code=status, content_type=ctype,
+                        alive=True,
+                        status_code=status,
+                        content_type=ctype,
                         error=f"non-audio content-type but icy-name='{icy_name}'",
                         latency_ms=latency_ms,
                     )
                 return StreamCheckResult(
-                    alive=True, status_code=status, content_type=ctype,
+                    alive=True,
+                    status_code=status,
+                    content_type=ctype,
                     error=f"unexpected content-type '{ctype}', conservative=alive",
                     latency_ms=latency_ms,
                 )
 
             return StreamCheckResult(
-                alive=False, status_code=status, content_type=ctype,
+                alive=False,
+                status_code=status,
+                content_type=ctype,
                 error=f"unhandled status {status}",
                 latency_ms=latency_ms,
             )
@@ -136,10 +159,14 @@ async def check_stream_alive(
     except httpx.TimeoutException:
         if verify_ssl:
             return await check_stream_alive(
-                stream_url, timeout_s=timeout_s, verify_ssl=False,
+                stream_url,
+                timeout_s=timeout_s,
+                verify_ssl=False,
             )
         return StreamCheckResult(
-            alive=False, status_code=None, content_type=None,
+            alive=False,
+            status_code=None,
+            content_type=None,
             error=f"timeout after {timeout_s}s",
             latency_ms=int(timeout_s * 1000),
         )
@@ -148,17 +175,23 @@ async def check_stream_alive(
         msg = str(exc)
         if "CERTIFICATE_VERIFY_FAILED" in msg and verify_ssl:
             return await check_stream_alive(
-                stream_url, timeout_s=timeout_s, verify_ssl=False,
+                stream_url,
+                timeout_s=timeout_s,
+                verify_ssl=False,
             )
         return StreamCheckResult(
-            alive=False, status_code=None, content_type=None,
+            alive=False,
+            status_code=None,
+            content_type=None,
             error=f"connect error: {_truncate(msg)}",
             latency_ms=0,
         )
 
     except httpx.HTTPError as exc:
         return StreamCheckResult(
-            alive=False, status_code=None, content_type=None,
+            alive=False,
+            status_code=None,
+            content_type=None,
             error=f"{type(exc).__name__}: {_truncate(str(exc))}",
             latency_ms=0,
         )

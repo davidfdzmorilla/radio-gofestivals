@@ -12,7 +12,8 @@ os.environ["DATABASE_URL"] = os.environ.get(
     "postgresql+asyncpg://radio:radio_dev_password@localhost:5433/radio",
 )
 os.environ["RB_USER_AGENT"] = os.environ.get(
-    "RB_USER_AGENT", "radio.gofestivals/test (admin@gofestivals.eu)",
+    "RB_USER_AGENT",
+    "radio.gofestivals/test (admin@gofestivals.eu)",
 )
 os.environ["LOG_LEVEL"] = os.environ.get("LOG_LEVEL", "WARNING")
 

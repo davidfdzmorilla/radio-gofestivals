@@ -166,12 +166,20 @@ async def test_auto_curate_idempotent(
         await _make_station(db_session, slug=f"id-{i}", quality=80)
 
     s1 = await run_auto_curate_top(
-        maker, admin_email="auto@test.com", limit=10,
-        country=None, min_quality=0, dry_run=False,
+        maker,
+        admin_email="auto@test.com",
+        limit=10,
+        country=None,
+        min_quality=0,
+        dry_run=False,
     )
     s2 = await run_auto_curate_top(
-        maker, admin_email="auto@test.com", limit=10,
-        country=None, min_quality=0, dry_run=False,
+        maker,
+        admin_email="auto@test.com",
+        limit=10,
+        country=None,
+        min_quality=0,
+        dry_run=False,
     )
     assert s1.curated == 3
     assert s2.curated == 0
@@ -216,8 +224,12 @@ async def test_auto_curate_dry_run_no_writes(
         await _make_station(db_session, slug=f"dry-{i}", quality=80)
 
     stats = await run_auto_curate_top(
-        maker, admin_email="auto@test.com", limit=10,
-        country=None, min_quality=0, dry_run=True,
+        maker,
+        admin_email="auto@test.com",
+        limit=10,
+        country=None,
+        min_quality=0,
+        dry_run=True,
     )
     assert stats.curated == 3  # stats reflejan lo que se habría curado
 
@@ -227,9 +239,7 @@ async def test_auto_curate_dry_run_no_writes(
         )
     ).scalar_one()
     assert curated == 0
-    log_count = (
-        await db_session.execute(text("SELECT COUNT(*) FROM curation_log"))
-    ).scalar_one()
+    log_count = (await db_session.execute(text("SELECT COUNT(*) FROM curation_log"))).scalar_one()
     assert log_count == 0
 
 
@@ -239,13 +249,21 @@ async def test_auto_curate_ignores_active_stations(
 ) -> None:
     await _make_admin(db_session)
     await _make_station(
-        db_session, slug="already", status="active", quality=99, curated=True,
+        db_session,
+        slug="already",
+        status="active",
+        quality=99,
+        curated=True,
     )
     await _make_station(db_session, slug="new", status="pending", quality=80)
 
     stats = await run_auto_curate_top(
-        maker, admin_email="auto@test.com", limit=10,
-        country=None, min_quality=0, dry_run=False,
+        maker,
+        admin_email="auto@test.com",
+        limit=10,
+        country=None,
+        min_quality=0,
+        dry_run=False,
     )
     assert stats.curated == 1
 

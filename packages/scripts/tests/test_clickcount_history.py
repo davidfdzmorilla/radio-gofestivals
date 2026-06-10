@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-from datetime import timedelta
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
@@ -140,10 +139,16 @@ async def test_compute_trends_log_ratio(db_session: AsyncSession) -> None:
 
     # Snapshot 7 days ago for the first two; nothing for no_hist.
     await _seed_history_at(
-        db_session, station_id=growing, clickcount=100, days_ago=7,
+        db_session,
+        station_id=growing,
+        clickcount=100,
+        days_ago=7,
     )
     await _seed_history_at(
-        db_session, station_id=flat, clickcount=50, days_ago=7,
+        db_session,
+        station_id=flat,
+        clickcount=50,
+        days_ago=7,
     )
 
     await compute_trends_run(dry_run=False)

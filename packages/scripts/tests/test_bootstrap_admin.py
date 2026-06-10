@@ -20,7 +20,9 @@ async def test_creates_admin(
 
     row = (
         await db_session.execute(
-            text("SELECT email, name, active, password_hash FROM admins WHERE email='new@test.com'"),
+            text(
+                "SELECT email, name, active, password_hash FROM admins WHERE email='new@test.com'"
+            ),
         )
     ).first()
     assert row is not None

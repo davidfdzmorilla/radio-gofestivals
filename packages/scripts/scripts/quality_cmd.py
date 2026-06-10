@@ -49,7 +49,7 @@ async def _fetch_rows(
     # so stations without a primary stream still appear with NULL technical
     # signals — compute_quality_score tolerates None.
     sql = (
-        "SELECT s.id::text AS id, ss.bitrate, ss.codec, "
+        "SELECT s.id::text AS id, ss.bitrate, ss.codec, "  # noqa: S608 — where es literal interno
         "       s.clickcount, s.votes, s.failed_checks, "
         "       s.status, s.quality_score "
         "FROM stations s "

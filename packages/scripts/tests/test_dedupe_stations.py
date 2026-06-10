@@ -101,7 +101,11 @@ def test_pick_best_falls_back_to_codec_then_quality_then_age() -> None:
 
     older = _row(bitrate=128, codec="mp3", quality=50, created=base, rid="older")
     newer = _row(
-        bitrate=128, codec="mp3", quality=50, created=base + timedelta(days=10), rid="newer",
+        bitrate=128,
+        codec="mp3",
+        quality=50,
+        created=base + timedelta(days=10),
+        rid="newer",
     )
     assert pick_best([older, newer]).id == "older"  # older wins
 
@@ -173,13 +177,27 @@ async def _insert_station(
 
 async def test_dedupe_run_marks_losers_and_keeps_winner(db_session: AsyncSession) -> None:
     keeper = await _insert_station(
-        db_session, name="Sub FM", slug="sub-fm-1", bitrate=320, codec="aac+", quality=80,
+        db_session,
+        name="Sub FM",
+        slug="sub-fm-1",
+        bitrate=320,
+        codec="aac+",
+        quality=80,
     )
     loser = await _insert_station(
-        db_session, name="Sub FM", slug="sub-fm-2", bitrate=128, codec="mp3", quality=20,
+        db_session,
+        name="Sub FM",
+        slug="sub-fm-2",
+        bitrate=128,
+        codec="mp3",
+        quality=20,
     )
     unrelated = await _insert_station(
-        db_session, name="Other Station", slug="other-1", bitrate=128, codec="mp3",
+        db_session,
+        name="Other Station",
+        slug="other-1",
+        bitrate=128,
+        codec="mp3",
     )
 
     stats = await dedupe_run(db_session, dry_run=False)
@@ -188,9 +206,7 @@ async def test_dedupe_run_marks_losers_and_keeps_winner(db_session: AsyncSession
     assert stats.marked_duplicate == 1
 
     statuses = dict(
-        (
-            await db_session.execute(text("SELECT id, status FROM stations"))
-        ).all(),
+        (await db_session.execute(text("SELECT id, status FROM stations"))).all(),
     )
     assert statuses[keeper] == "active"
     assert statuses[loser] == "duplicate"
@@ -199,10 +215,18 @@ async def test_dedupe_run_marks_losers_and_keeps_winner(db_session: AsyncSession
 
 async def test_dedupe_run_dry_run_does_not_mutate(db_session: AsyncSession) -> None:
     a = await _insert_station(
-        db_session, name="Same Name", slug="sn-1", bitrate=320, codec="aac+",
+        db_session,
+        name="Same Name",
+        slug="sn-1",
+        bitrate=320,
+        codec="aac+",
     )
     b = await _insert_station(
-        db_session, name="Same Name", slug="sn-2", bitrate=128, codec="mp3",
+        db_session,
+        name="Same Name",
+        slug="sn-2",
+        bitrate=128,
+        codec="mp3",
     )
 
     stats = await dedupe_run(db_session, dry_run=True)

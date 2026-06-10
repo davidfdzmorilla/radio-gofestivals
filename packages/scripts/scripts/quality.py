@@ -2,7 +2,7 @@
 
 Combines three signals on a 0-100 scale:
 
-  technical    50%  bitrate × codec factor
+  technical    50%  bitrate x codec factor
   popularity   30%  log10(clickcount) + log10(votes)
   reliability  20%  inverse of failed_checks
 
@@ -11,6 +11,7 @@ the underlying signals — a broken stream is worthless even if its
 metadata looks great, and a duplicate is by definition shadowed by
 another row that should rank higher.
 """
+
 from __future__ import annotations
 
 import math
@@ -48,7 +49,7 @@ def compute_technical_score(bitrate: int | None, codec: str | None) -> int:
 
 
 def _log_score(value: int | None, *, multiplier: float) -> float:
-    """log10(value+1) × multiplier, clamped to [0, 100]."""
+    """log10(value+1) x multiplier, clamped to [0, 100]."""
     if value is None or value <= 0:
         return 0.0
     return min(100.0, math.log10(value + 1) * multiplier)
@@ -64,14 +65,17 @@ def compute_popularity_score(clickcount: int | None, votes: int | None) -> int:
     click_score = _log_score(clickcount, multiplier=25.0)
     vote_score = _log_score(votes, multiplier=30.0)
     combined = click_score * 0.6 + vote_score * 0.4
-    return int(round(combined))
+    return round(combined)
+
+
+MAX_FAILED_CHECKS = 5  # >=5 fallos consecutivos => fiabilidad 0
 
 
 def compute_reliability_score(failed_checks: int | None) -> int:
     """Step function: 100 at 0 fails, 0 at >=5 fails, -20 per fail in between."""
     if failed_checks is None or failed_checks <= 0:
         return 100
-    if failed_checks >= 5:
+    if failed_checks >= MAX_FAILED_CHECKS:
         return 0
     return 100 - failed_checks * 20
 
@@ -88,9 +92,10 @@ def compute_quality_score(station: dict[str, Any]) -> int:
 
     technical = compute_technical_score(station.get("bitrate"), station.get("codec"))
     popularity = compute_popularity_score(
-        station.get("clickcount"), station.get("votes"),
+        station.get("clickcount"),
+        station.get("votes"),
     )
     reliability = compute_reliability_score(station.get("failed_checks"))
 
     weighted = technical * 0.50 + popularity * 0.30 + reliability * 0.20
-    return max(0, min(100, int(round(weighted))))
+    return max(0, min(100, round(weighted)))

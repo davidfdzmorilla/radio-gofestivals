@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { HeaderAuth } from '@/components/auth/HeaderAuth';
@@ -14,9 +15,15 @@ export async function Header() {
           href="/"
           className="group inline-flex items-center gap-2 -rotate-1 font-display text-lg font-semibold text-fg-0 transition-transform duration-200 hover:rotate-0"
         >
-          <span
+          <Image
+            src="/gofestivals-logo.png"
+            alt=""
             aria-hidden
-            className="inline-block h-2.5 w-2.5 rounded-full bg-magenta shadow-[0_0_0_3px_rgba(230,45,233,0.18)]"
+            width={954}
+            height={748}
+            sizes="46px"
+            priority
+            className="h-9 w-auto"
           />
           {tHome('title')}
         </Link>

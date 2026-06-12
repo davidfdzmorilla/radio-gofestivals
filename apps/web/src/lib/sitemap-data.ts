@@ -138,6 +138,7 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
     ...localizedEntries('/trending', 'daily', 0.7),
     ...localizedEntries('/new', 'daily', 0.7),
     ...localizedEntries('/search', 'monthly', 0.4),
+    ...localizedEntries('/for-stations', 'monthly', 0.4),
     ...localizedEntries('/support', 'monthly', 0.3),
     ...genres.flatMap((g) =>
       localizedEntries(`/genres/${g.slug}`, 'weekly', 0.7),

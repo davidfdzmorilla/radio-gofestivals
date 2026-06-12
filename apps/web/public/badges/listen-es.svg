@@ -1,0 +1,6 @@
+<svg width="200" height="56" viewBox="0 0 200 56" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Escúchanos en radio.gofestivals">
+  <rect width="199" height="55" x="0.5" y="0.5" rx="12" fill="#14130f" stroke="#2b2924"/>
+  <circle cx="22" cy="28" r="5" fill="#e62de9"/>
+  <text x="38" y="25" font-family="Arial, Helvetica, sans-serif" font-size="9" letter-spacing="1.5" fill="#8a877f">ESC&#218;CHANOS EN</text>
+  <text x="38" y="41" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="bold" fill="#fafaf9">radio.gofestivals</text>
+</svg>

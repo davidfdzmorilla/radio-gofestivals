@@ -34,6 +34,13 @@ export async function Footer({ locale }: { locale: 'es' | 'en' }) {
           </a>
           <span aria-hidden>·</span>
           <a
+            href={`/${locale}/for-stations`}
+            className="transition-colors hover:text-fg-0"
+          >
+            {tNav('forStations')}
+          </a>
+          <span aria-hidden>·</span>
+          <a
             href={`/${locale}/legal/privacy`}
             className="transition-colors hover:text-fg-0"
           >

@@ -65,7 +65,8 @@
     "countries": "Países",
     "trending": "Tendencias",
     "new": "Nuevas",
-    "search": "Buscar"
+    "search": "Buscar",
+    "forStations": "¿Tienes una emisora?"
   },
   "pagination": {
     "pageOf": "Página {current} de {total}",
@@ -184,5 +185,27 @@
     "ariaLabel": "Buscar emisoras",
     "noSuggestions": "Sin coincidencias",
     "viewAll": "Ver todos los resultados de “{query}”"
+  },
+  "forStations": {
+    "title": "Para emisoras",
+    "metaTitle": "Para emisoras — añade el badge «Escúchanos en»",
+    "metaDescription": "Tu emisora de música electrónica está en nuestro directorio curado. Añade el badge «Escúchanos en radio.gofestivals» a tu web y enlaza tu ficha.",
+    "heading": "¿Tienes una emisora de electrónica?",
+    "intro": "radio.gofestivals es un directorio curado de {count, plural, other {# emisoras}} de música electrónica con métricas reales de escucha. Si tu emisora suena techno, house, trance o cualquier electrónica, probablemente ya esté en el catálogo.",
+    "why1Title": "Oyentes nuevos",
+    "why1Body": "Tu ficha aparece en los hubs de tu género y tu país, en las recomendaciones y en tendencias.",
+    "why2Title": "Metadata en vivo",
+    "why2Body": "Mostramos lo que está sonando en tu stream en tiempo real, con historial de tracks.",
+    "why3Title": "Gratis y sin registro",
+    "why3Body": "El catálogo se sincroniza con Radio-Browser y se cura editorialmente. Sin coste, sin cuenta.",
+    "badgeHeading": "Añade el badge a tu web",
+    "badgeBody": "Busca tu emisora y copia el código: el badge enlaza directamente a tu ficha.",
+    "searchPlaceholder": "Busca tu emisora…",
+    "snippetLabel": "Código para tu web",
+    "copy": "Copiar",
+    "copied": "¡Copiado!",
+    "notFoundHint": "¿No encuentras tu emisora? Escríbenos y la valoramos para el catálogo.",
+    "contactCta": "Contactar",
+    "badgeAlt": "Escúchanos en radio.gofestivals"
   }
 }

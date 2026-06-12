@@ -65,7 +65,8 @@
     "countries": "Countries",
     "trending": "Trending",
     "new": "New",
-    "search": "Search"
+    "search": "Search",
+    "forStations": "Run a station?"
   },
   "pagination": {
     "pageOf": "Page {current} of {total}",
@@ -184,5 +185,27 @@
     "ariaLabel": "Search stations",
     "noSuggestions": "No matches",
     "viewAll": "See all results for “{query}”"
+  },
+  "forStations": {
+    "title": "For stations",
+    "metaTitle": "For stations — add the “Listen on” badge",
+    "metaDescription": "Your electronic music station is in our curated directory. Add the “Listen on radio.gofestivals” badge to your site and link your page.",
+    "heading": "Run an electronic music station?",
+    "intro": "radio.gofestivals is a curated directory of {count, plural, other {# electronic music stations}} with real listening metrics. If your station plays techno, house, trance or any electronic music, it is probably already in the catalog.",
+    "why1Title": "New listeners",
+    "why1Body": "Your page appears in your genre and country hubs, in recommendations and in trending.",
+    "why2Title": "Live metadata",
+    "why2Body": "We show what is playing on your stream in real time, with track history.",
+    "why3Title": "Free, no sign-up",
+    "why3Body": "The catalog syncs with Radio-Browser and is editorially curated. No cost, no account.",
+    "badgeHeading": "Add the badge to your site",
+    "badgeBody": "Find your station and copy the code: the badge links straight to your page.",
+    "searchPlaceholder": "Find your station…",
+    "snippetLabel": "Code for your site",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "notFoundHint": "Can’t find your station? Write to us and we’ll review it for the catalog.",
+    "contactCta": "Contact",
+    "badgeAlt": "Listen on radio.gofestivals"
   }
 }

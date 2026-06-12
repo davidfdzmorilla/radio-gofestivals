@@ -25,7 +25,8 @@
     "metaTitle": "Radio {name} Online · {count, plural, =0 {Sin emisoras} =1 {1 Emisora} other {# Emisoras}} en Vivo · radio.gofestivals",
     "metaDescription": "{count, plural, =0 {Aún no hay emisoras de radio {name} disponibles en radio.gofestivals.} =1 {1 emisora de radio {name} online curada, sonando en vivo. Escucha gratis en radio.gofestivals.} other {# emisoras de radio {name} online curadas, sonando en vivo desde todo el mundo. Escucha gratis en radio.gofestivals.}}",
     "indexTitle": "Géneros de música electrónica · radio.gofestivals",
-    "indexDescription": "Explora todos los géneros de música electrónica: techno, house, trance, drum & bass, dubstep y más. Emisoras curadas, sonando en vivo en radio.gofestivals."
+    "indexDescription": "Explora todos los géneros de música electrónica: techno, house, trance, drum & bass, dubstep y más. Emisoras curadas, sonando en vivo en radio.gofestivals.",
+    "byCountry": "{name} por país"
   },
   "station": {
     "nowPlaying": "Sonando ahora",
@@ -146,7 +147,11 @@
     "intro": "{name} aporta {count, plural, =1 {1 emisora} other {# emisoras}} a nuestro directorio de radio electrónica{hasTop, select, yes {; domina el {topGenre} con {topCount, plural, =1 {1 radio} other {# radios}}} other {}}.",
     "stationCount": "{count, plural, =0 {sin estaciones} =1 {1 estación} other {# estaciones}}",
     "genresHeading": "Géneros en {name}",
-    "topStations": "Las más escuchadas de {name}"
+    "topStations": "Las más escuchadas de {name}",
+    "comboTitle": "Radio {genre} de {name}",
+    "comboMetaTitle": "Radio {genre} de {name} en directo — {count, plural, =1 {1 emisora} other {# emisoras}}",
+    "comboMetaDescription": "Escucha {count, plural, =1 {la emisora} other {las # emisoras}} de {genre} de {name} en directo, gratis y sin registro.",
+    "comboIntro": "{name} tiene {count, plural, =1 {1 emisora} other {# emisoras}} de {genre} en nuestro directorio de radio electrónica en directo."
   },
   "trending": {
     "title": "Tendencias",

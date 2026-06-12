@@ -25,7 +25,8 @@
     "metaTitle": "Online {name} Radio · {count, plural, =0 {No Stations} =1 {1 Station} other {# Stations}} Live · radio.gofestivals",
     "metaDescription": "{count, plural, =0 {No {name} radio stations yet on radio.gofestivals.} =1 {1 hand-picked online {name} radio station, streaming live. Listen free on radio.gofestivals.} other {# hand-picked online {name} radio stations, streaming live from across the world. Listen free on radio.gofestivals.}}",
     "indexTitle": "Electronic music genres · radio.gofestivals",
-    "indexDescription": "Browse every electronic music genre: techno, house, trance, drum & bass, dubstep and more. Curated stations, streaming live on radio.gofestivals."
+    "indexDescription": "Browse every electronic music genre: techno, house, trance, drum & bass, dubstep and more. Curated stations, streaming live on radio.gofestivals.",
+    "byCountry": "{name} by country"
   },
   "station": {
     "nowPlaying": "Now playing",
@@ -146,7 +147,11 @@
     "intro": "{name} contributes {count, plural, =1 {1 station} other {# stations}} to our electronic radio directory{hasTop, select, yes {; {topGenre} leads with {topCount, plural, =1 {1 station} other {# stations}}} other {}}.",
     "stationCount": "{count, plural, =0 {no stations} =1 {1 station} other {# stations}}",
     "genresHeading": "Genres in {name}",
-    "topStations": "Most listened in {name}"
+    "topStations": "Most listened in {name}",
+    "comboTitle": "{genre} radio from {name}",
+    "comboMetaTitle": "{genre} radio from {name} — {count, plural, =1 {1 live station} other {# live stations}}",
+    "comboMetaDescription": "Listen to {count, plural, =1 {the {genre} station} other {all # {genre} stations}} from {name} live, free and with no sign-up.",
+    "comboIntro": "{name} has {count, plural, =1 {1 {genre} station} other {# {genre} stations}} in our live electronic radio directory."
   },
   "trending": {
     "title": "Trending",

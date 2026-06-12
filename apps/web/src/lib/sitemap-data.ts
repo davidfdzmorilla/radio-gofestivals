@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import {
+  COMBO_GATE_MIN_STATIONS,
   COUNTRY_GATE_MIN_STATIONS,
   TRENDING_GENRE_GATE_MIN,
 } from './seo';
@@ -86,8 +87,9 @@ async function fetchAllGenres(): Promise<Genre[]> {
   return flattenGenres((await res.json()) as Genre[]);
 }
 
-async function fetchCountryFacets(): Promise<CountryFacet[]> {
-  const res = await fetch(`${API}/api/v1/stations/facets/countries`, {
+async function fetchCountryFacets(genre?: string): Promise<CountryFacet[]> {
+  const qs = genre ? `?genre=${encodeURIComponent(genre)}` : '';
+  const res = await fetch(`${API}/api/v1/stations/facets/countries${qs}`, {
     next: { revalidate: SITEMAP_REVALIDATE_SECONDS },
   }).catch(() => null);
   if (!res?.ok) return [];
@@ -115,6 +117,19 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
   const trendingGenres = genres.filter(
     (g) => g.parent_id === null && g.station_count >= TRENDING_GENRE_GATE_MIN,
   );
+  // Combos país×género: misma fuente y gate que la página y los hubs.
+  // TODOS los géneros (no solo raíz): los hubs de país enlazan combos de
+  // subgéneros (p. ej. deep-house) y lo enlazado debe estar en el sitemap.
+  const combos = (
+    await Promise.all(
+      genres.map(async (g) => {
+        const facets = await fetchCountryFacets(g.slug);
+        return facets
+          .filter((f) => f.station_count >= COMBO_GATE_MIN_STATIONS)
+          .map((f) => ({ code: f.code.toLowerCase(), genre: g.slug }));
+      }),
+    )
+  ).flat();
 
   return [
     ...localizedEntries('/', 'daily', 1),
@@ -129,6 +144,9 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
     ),
     ...gatedCountries.flatMap((c) =>
       localizedEntries(`/countries/${c.code.toLowerCase()}`, 'weekly', 0.7),
+    ),
+    ...combos.flatMap((c) =>
+      localizedEntries(`/countries/${c.code}/${c.genre}`, 'weekly', 0.7),
     ),
     ...trendingGenres.flatMap((g) =>
       localizedEntries(`/trending/${g.slug}`, 'daily', 0.6),

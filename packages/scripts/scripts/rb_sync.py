@@ -35,6 +35,7 @@ app = typer.Typer(help="radio.gofestivals · Radio-Browser sync")
 
 HEALTH_CONCURRENCY = 20
 HEALTH_MAX_FAILURES = 3
+MAX_HOMEPAGE_LENGTH = 500
 
 
 @dataclass
@@ -221,6 +222,13 @@ async def upsert_station(
     except (ValueError, TypeError):
         bitrate = None
     language = (item.get("language") or "").strip().lower() or None
+    homepage_raw = (item.get("homepage") or "").strip()
+    homepage_url = (
+        homepage_raw
+        if homepage_raw.lower().startswith(("http://", "https://"))
+        and len(homepage_raw) <= MAX_HOMEPAGE_LENGTH
+        else None
+    )
 
     def _to_float(v: Any) -> float | None:
         if v in (None, ""):
@@ -282,12 +290,17 @@ async def upsert_station(
                 FROM stations
                 WHERE LOWER(TRIM(name)) = :n
                   AND COALESCE(country_code, '') = COALESCE(:cc, '')
-                  AND COALESCE(LOWER(TRIM(homepage_url)), '') = ''
+                  -- Misma semántica que dedupe_stations: homepage vacío es
+                  -- comodín; si ambos lados la tienen, deben coincidir.
+                  AND (
+                      COALESCE(LOWER(TRIM(homepage_url)), '') = ''
+                      OR LOWER(TRIM(homepage_url)) = COALESCE(LOWER(:home), '')
+                  )
                   AND status IN ('active', 'pending')
                 LIMIT 1
                 """,
             ),
-            {"n": normalized, "cc": country_code},
+            {"n": normalized, "cc": country_code, "home": homepage_url},
         )
         brand_row = brand_lookup.first()
     else:
@@ -307,6 +320,7 @@ async def upsert_station(
             "country_code": country_code,
             "city": city,
             "language": language,
+            "homepage_url": homepage_url,
             "quality_score": quality_score,
             "clickcount": clickcount,
             "votes": votes,
@@ -322,12 +336,12 @@ async def upsert_station(
             f"""
             INSERT INTO stations (
                 rb_uuid, slug, name, country_code, city, language,
-                quality_score, clickcount, votes,
+                homepage_url, quality_score, clickcount, votes,
                 last_changeuuid, last_local_checktime,
                 source, last_sync_at, hidden, geo
             ) VALUES (
                 :rb, :slug, :name, :country_code, :city, :language,
-                :quality_score, :clickcount, :votes,
+                :homepage_url, :quality_score, :clickcount, :votes,
                 CAST(:last_changeuuid AS uuid), :last_local_checktime,
                 'radio-browser', :now, :hidden, {geo_expr}
             )
@@ -382,6 +396,7 @@ async def upsert_station(
         "country_code": country_code,
         "city": city,
         "language": language,
+        "homepage_url": homepage_url,
         "quality_score": update_quality,
         "clickcount": clickcount,
         "votes": votes,
@@ -402,6 +417,9 @@ async def upsert_station(
             country_code = :country_code,
             city = :city,
             language = :language,
+            -- RB manda cuando trae homepage; si no trae, conserva la
+            -- existente (posiblemente editorial) en lugar de pisarla a NULL.
+            homepage_url = COALESCE(:homepage_url, homepage_url),
             quality_score = :quality_score,
             clickcount = :clickcount,
             votes = :votes,

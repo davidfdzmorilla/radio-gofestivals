@@ -2,12 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
-import {
-  getCountryFacets,
-  getGenreFacets,
-  getGenresTree,
-  listStations,
-} from '@/lib/api';
+import { getCountryFacets, getGenresTree, listStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { PublicPagination } from '@/components/PublicPagination';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -15,26 +10,54 @@ import { SITE_URL } from '@/lib/site';
 import {
   buildAlternates,
   COMBO_GATE_MIN_STATIONS,
-  COUNTRY_GATE_MIN_STATIONS,
   regionName,
 } from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
 export const revalidate = 300;
 
-async function gatedFacet(code: string) {
-  const facets = await getCountryFacets().catch(() => []);
+function findGenre(genres: Genre[], slug: string): Genre | null {
+  for (const g of genres) {
+    if (g.slug === slug) return g;
+    const child = findGenre(g.children, slug);
+    if (child) return child;
+  }
+  return null;
+}
+
+/**
+ * El combo solo existe si el género tiene >= COMBO_GATE_MIN_STATIONS
+ * emisoras en ese país. Misma fuente (facets/countries?genre=) que el
+ * sitemap y que los enlaces desde los hubs, para que nunca diverjan.
+ */
+async function gatedCombo(code: string, genreSlug: string) {
+  const [facets, genresTree] = await Promise.all([
+    getCountryFacets({ genre: genreSlug }).catch(() => []),
+    getGenresTree().catch(() => []),
+  ]);
+  const genre = findGenre(genresTree, genreSlug);
   const facet = facets.find((f) => f.code.toLowerCase() === code.toLowerCase());
-  if (!facet || facet.station_count < COUNTRY_GATE_MIN_STATIONS) return null;
-  return facet;
+  if (!genre || !facet || facet.station_count < COMBO_GATE_MIN_STATIONS) {
+    return null;
+  }
+  return { genre, facet, genresTree };
 }
 
 export async function generateStaticParams() {
   try {
-    const facets = await getCountryFacets();
-    return facets
-      .filter((f) => f.station_count >= COUNTRY_GATE_MIN_STATIONS)
-      .map((f) => ({ code: f.code.toLowerCase() }));
+    const genres = await getGenresTree();
+    const roots = genres.filter((g) => g.parent_id === null);
+    const pairs = await Promise.all(
+      roots.map(async (g) => {
+        const facets = await getCountryFacets({ genre: g.slug }).catch(
+          () => [],
+        );
+        return facets
+          .filter((f) => f.station_count >= COMBO_GATE_MIN_STATIONS)
+          .map((f) => ({ code: f.code.toLowerCase(), genre: g.slug }));
+      }),
+    );
+    return pairs.flat();
   } catch {
     return [];
   }
@@ -44,10 +67,10 @@ export async function generateMetadata({
   params,
   searchParams,
 }: {
-  params: Promise<{ locale: string; code: string }>;
+  params: Promise<{ locale: string; code: string; genre: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
-  const { locale, code } = await params;
+  const { locale, code, genre: genreSlug } = await params;
   const sp = await searchParams;
   const t = await getTranslations({ locale, namespace: 'countries' });
   const tPagination = await getTranslations({
@@ -56,35 +79,45 @@ export async function generateMetadata({
   });
   const pageParam = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1;
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
-  const base = `/countries/${code.toLowerCase()}`;
+  const base = `/countries/${code.toLowerCase()}/${genreSlug}`;
   const alternates = buildAlternates(
     locale,
     page > 1 ? `${base}?page=${page}` : base,
   );
-  const facet = await gatedFacet(code);
-  if (!facet) return { alternates };
-  const name = regionName(locale, facet.code);
+  const combo = await gatedCombo(code, genreSlug);
+  if (!combo) return { alternates };
+  const name = regionName(locale, combo.facet.code);
   const pageSuffix = page > 1 ? tPagination('pageSuffix', { page }) : '';
   return {
-    title: t('metaTitle', { name, count: facet.station_count }) + pageSuffix,
-    description: t('metaDescription', { name, count: facet.station_count }),
+    title:
+      t('comboMetaTitle', {
+        genre: combo.genre.name,
+        name,
+        count: combo.facet.station_count,
+      }) + pageSuffix,
+    description: t('comboMetaDescription', {
+      genre: combo.genre.name,
+      name,
+      count: combo.facet.station_count,
+    }),
     alternates,
   };
 }
 
-export default async function CountryPage({
+export default async function CountryGenrePage({
   params,
   searchParams,
 }: {
-  params: Promise<{ locale: string; code: string }>;
+  params: Promise<{ locale: string; code: string; genre: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { locale, code } = await params;
+  const { locale, code, genre: genreSlug } = await params;
   const sp = await searchParams;
   setRequestLocale(locale);
 
-  const facet = await gatedFacet(code);
-  if (!facet) notFound();
+  const combo = await gatedCombo(code, genreSlug);
+  if (!combo) notFound();
+  const { genre, facet, genresTree } = combo;
 
   const pageParam = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1;
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
@@ -93,14 +126,15 @@ export default async function CountryPage({
   const tNav = await getTranslations('nav');
   const tCommon = await getTranslations('common');
   const tStation = await getTranslations('station');
-  const tHome = await getTranslations('home');
   const tPagination = await getTranslations('pagination');
 
-  const [stationsPage, genreFacets, genresTree] = await Promise.all([
-    listStations({ country: facet.code, page, size: 20, revalidate: 300 }),
-    getGenreFacets({ country: facet.code }).catch(() => []),
-    getGenresTree().catch(() => []),
-  ]);
+  const stationsPage = await listStations({
+    genre: genre.slug,
+    country: facet.code,
+    page,
+    size: 20,
+    revalidate: 300,
+  });
 
   const genresBySlug: Record<string, Genre> = {};
   const walk = (list: Genre[]) => {
@@ -112,11 +146,11 @@ export default async function CountryPage({
   walk(genresTree);
 
   const name = regionName(locale, facet.code);
-  const topGenre = genreFacets[0];
   const codeLower = facet.code.toLowerCase();
+  const basePath = `/countries/${codeLower}/${genre.slug}`;
 
   const buildPageHref = (targetPage: number): string =>
-    `/${locale}/countries/${codeLower}${targetPage > 1 ? `?page=${targetPage}` : ''}`;
+    `/${locale}${basePath}${targetPage > 1 ? `?page=${targetPage}` : ''}`;
 
   const breadcrumbLd = {
     '@context': 'https://schema.org',
@@ -140,13 +174,19 @@ export default async function CountryPage({
         name,
         item: `${SITE_URL}/${locale}/countries/${codeLower}`,
       },
+      {
+        '@type': 'ListItem',
+        position: 4,
+        name: genre.name,
+        item: `${SITE_URL}/${locale}${basePath}`,
+      },
     ],
   };
   const collectionLd = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: t('exploreTitle', { name }),
-    url: `${SITE_URL}/${locale}/countries/${codeLower}`,
+    name: t('comboTitle', { genre: genre.name, name }),
+    url: `${SITE_URL}/${locale}${basePath}`,
     inLanguage: locale,
     mainEntity: {
       '@type': 'ItemList',
@@ -171,57 +211,44 @@ export default async function CountryPage({
           {t('title')}
         </Link>
         <span>/</span>
-        <span className="text-fg-1">{name}</span>
+        <Link
+          href={`/countries/${codeLower}`}
+          className="transition-colors hover:text-fg-0"
+        >
+          {name}
+        </Link>
+        <span>/</span>
+        <span className="text-fg-1">{genre.name}</span>
       </nav>
 
-      <header>
-        <h1 className="font-display text-[clamp(2.25rem,5vw,3.75rem)] font-semibold leading-tight text-fg-0">
-          {t('exploreTitle', { name })}
-        </h1>
-        <p className="mt-3 max-w-2xl text-fg-1">
-          {t('intro', {
-            name,
-            count: facet.station_count,
-            hasTop: topGenre ? 'yes' : 'no',
-            topGenre: topGenre?.name ?? '',
-            topCount: topGenre?.station_count ?? 0,
-          })}
-        </p>
+      <header className="relative overflow-hidden rounded-2xl border border-fg-3">
+        <div
+          aria-hidden
+          className="absolute inset-0"
+          style={{ backgroundColor: genre.color_hex, opacity: 0.25 }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-linear-to-br from-bg-0/80 via-bg-0/70 to-bg-0/85"
+        />
+        <div className="relative px-6 py-10 sm:px-10">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+            {name}
+          </p>
+          <h1 className="mt-2 font-display text-[clamp(2.25rem,5vw,3.75rem)] font-semibold leading-tight text-fg-0">
+            {t('comboTitle', { genre: genre.name, name })}
+          </h1>
+          <p className="mt-3 max-w-2xl text-fg-1">
+            {t('comboIntro', {
+              genre: genre.name,
+              name,
+              count: facet.station_count,
+            })}
+          </p>
+        </div>
       </header>
 
-      {genreFacets.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-display text-xl font-semibold text-fg-0">
-            {t('genresHeading', { name })}
-          </h2>
-          <ul className="flex flex-wrap gap-2">
-            {genreFacets.map((g) => (
-              <li key={g.slug}>
-                <Link
-                  href={
-                    g.station_count >= COMBO_GATE_MIN_STATIONS
-                      ? `/countries/${codeLower}/${g.slug}`
-                      : `/genres/${g.slug}?country=${facet.code}`
-                  }
-                  className="inline-flex items-center gap-2 rounded-full border border-fg-3 bg-bg-2 px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-fg-1 transition-colors hover:border-fg-2 hover:bg-bg-3"
-                >
-                  <span
-                    aria-hidden
-                    className="inline-block h-2 w-2 rounded-full"
-                    style={{ backgroundColor: g.color_hex }}
-                  />
-                  {g.name} ({g.station_count})
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="space-y-4">
-        <h2 className="font-display text-xl font-semibold text-fg-0">
-          {t('topStations', { name })}
-        </h2>
+      <div className="space-y-4">
         <StationGrid
           stations={stationsPage.items}
           genresBySlug={genresBySlug}
@@ -230,7 +257,7 @@ export default async function CountryPage({
             curated: tCommon('curated'),
             location: ({ city, country: c }) =>
               tStation('location', { city, country: c }),
-            empty: tHome('featuredEmpty'),
+            empty: t('stationCount', { count: 0 }),
           }}
         />
         <PublicPagination
@@ -244,7 +271,7 @@ export default async function CountryPage({
           prevLabel={tPagination('previous')}
           nextLabel={tPagination('next')}
         />
-      </section>
+      </div>
 
       <JsonLd data={breadcrumbLd} />
       <JsonLd data={collectionLd} />

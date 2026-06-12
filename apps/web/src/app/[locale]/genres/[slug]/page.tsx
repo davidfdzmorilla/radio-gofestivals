@@ -8,7 +8,11 @@ import { SidebarFilters } from '@/components/layout/SidebarFilters';
 import { PublicPagination } from '@/components/PublicPagination';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { SITE_URL } from '@/lib/site';
-import { buildAlternates } from '@/lib/seo';
+import {
+  buildAlternates,
+  COMBO_GATE_MIN_STATIONS,
+  regionName,
+} from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
 export const revalidate = 300;
@@ -41,13 +45,23 @@ export async function generateMetadata({
   });
   const pageParam = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1;
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
-  const hasFilters = typeof sp.country === 'string' || sp.curated !== undefined;
+  const countryParam = typeof sp.country === 'string' ? sp.country : undefined;
+  const hasFilters = countryParam !== undefined || sp.curated !== undefined;
   // Paginación limpia: self-canonical con título "página N" (las páginas
-  // profundas listan emisoras que ningún otro sitio enlaza). Con filtros
-  // (?country=…): canonical a la página 1 limpia del género hasta que
-  // existan los combos dedicados país×género.
-  const canonicalPath =
+  // profundas listan emisoras que ningún otro sitio enlaza). Con
+  // ?country=… el canonical apunta al combo dedicado si pasa el gate;
+  // si no, a la página 1 limpia del género.
+  let canonicalPath =
     !hasFilters && page > 1 ? `/genres/${slug}?page=${page}` : `/genres/${slug}`;
+  if (countryParam) {
+    const facets = await getCountryFacets({ genre: slug }).catch(() => []);
+    const facet = facets.find(
+      (f) => f.code.toLowerCase() === countryParam.toLowerCase(),
+    );
+    if (facet && facet.station_count >= COMBO_GATE_MIN_STATIONS) {
+      canonicalPath = `/countries/${facet.code.toLowerCase()}/${slug}`;
+    }
+  }
   const alternates = buildAlternates(locale, canonicalPath);
   const pageSuffix =
     !hasFilters && page > 1 ? tPagination('pageSuffix', { page }) : '';
@@ -139,6 +153,17 @@ export default async function GenrePage({
 
   // Países reales del género (antes lista hardcodeada con 'UK' no-ISO).
   const countries = countryFacets.slice(0, 12).map((f) => f.code);
+  // Países con combo dedicado: el sidebar navega a la ruta indexable en
+  // lugar de filtrar por querystring (y los enlaces de abajo la enlazan).
+  const comboFacets = countryFacets.filter(
+    (f) => f.station_count >= COMBO_GATE_MIN_STATIONS,
+  );
+  const countryRoutes: Record<string, string> = Object.fromEntries(
+    comboFacets.map((f) => [
+      f.code,
+      `/countries/${f.code.toLowerCase()}/${genre.slug}`,
+    ]),
+  );
 
   const buildPageHref = (targetPage: number): string => {
     const params = new URLSearchParams();
@@ -229,6 +254,7 @@ export default async function GenrePage({
         <SidebarFilters
           current={{ country, curated: curatedParam === 'true' }}
           countries={countries}
+          countryRoutes={countryRoutes}
         />
         <div className="space-y-4">
           <StationGrid
@@ -255,6 +281,26 @@ export default async function GenrePage({
           />
         </div>
       </div>
+
+      {comboFacets.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-semibold text-fg-0">
+            {tGenres('byCountry', { name: genre.name })}
+          </h2>
+          <ul className="flex flex-wrap gap-2">
+            {comboFacets.slice(0, 8).map((f) => (
+              <li key={f.code}>
+                <Link
+                  href={`/countries/${f.code.toLowerCase()}/${genre.slug}`}
+                  className="inline-flex items-center gap-2 rounded-full border border-fg-3 bg-bg-2 px-3 py-1.5 font-mono text-xs uppercase tracking-wide text-fg-1 transition-colors hover:border-fg-2 hover:bg-bg-3"
+                >
+                  {regionName(locale, f.code)} ({f.station_count})
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <JsonLd data={breadcrumbLd} />
       <JsonLd data={collectionLd} />

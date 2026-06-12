@@ -7,14 +7,23 @@ import type { Route } from 'next';
 interface Props {
   current: { country?: string; curated?: boolean };
   countries: string[];
+  /**
+   * Países con página dedicada (combo país×género): al seleccionarlos se
+   * navega a esa ruta indexable en lugar de filtrar por querystring.
+   */
+  countryRoutes?: Record<string, string>;
 }
 
-export function SidebarFilters({ current, countries }: Props) {
+export function SidebarFilters({ current, countries, countryRoutes }: Props) {
   const t = useTranslations('filters');
   const router = useRouter();
   const pathname = usePathname();
 
   const updateFilter = (key: 'country' | 'curated', value: string | null) => {
+    if (key === 'country' && value && countryRoutes?.[value]) {
+      router.replace(countryRoutes[value] as unknown as Route);
+      return;
+    }
     const url = new URL(window.location.href);
     if (value === null || value === '') url.searchParams.delete(key);
     else url.searchParams.set(key, value);

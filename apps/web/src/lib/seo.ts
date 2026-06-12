@@ -24,6 +24,13 @@ export const COUNTRY_GATE_MIN_STATIONS = 3;
  */
 export const TRENDING_GENRE_GATE_MIN = 10;
 
+/**
+ * Country×genre combo pages (/countries/{iso2}/{genre}): the longtail core
+ * of the programmatic layer, and also its biggest thin-content risk — a
+ * combo with 2 stations is exactly the page Helpful Content demotes.
+ */
+export const COMBO_GATE_MIN_STATIONS = 5;
+
 /** Localized country name from its ISO code, falling back to the code. */
 export function regionName(locale: string, code: string): string {
   try {

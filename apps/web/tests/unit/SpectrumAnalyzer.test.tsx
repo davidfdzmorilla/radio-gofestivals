@@ -1,169 +1,62 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import { SpectrumAnalyzer, groupBars } from '@/components/player/SpectrumAnalyzer';
+import { SpectrumAnalyzer } from '@/components/player/SpectrumAnalyzer';
 
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
-describe('groupBars', () => {
-  it('produces N groups normalized to [0,1]', () => {
-    const data = new Uint8Array(32);
-    for (let i = 0; i < 32; i++) data[i] = 255;
-    const groups = groupBars(data, 8);
-    expect(groups).toHaveLength(8);
-    for (const g of groups) expect(g).toBeCloseTo(1, 5);
-  });
-
-  it('averages within each group', () => {
-    const data = new Uint8Array([0, 0, 255, 255]);
-    const groups = groupBars(data, 2);
-    expect(groups).toHaveLength(2);
-    expect(groups[0]).toBeCloseTo(0, 5);
-    expect(groups[1]).toBeCloseTo(1, 5);
-  });
-
-  it('handles targetCount=0 gracefully', () => {
-    expect(groupBars(new Uint8Array(8), 0)).toEqual([]);
-  });
-});
-
 describe('<SpectrumAnalyzer />', () => {
   it('renders the requested number of bars', () => {
-    render(<SpectrumAnalyzer audioRef={{ current: null }} isPlaying={false} barCount={12} />);
+    render(<SpectrumAnalyzer isPlaying={false} barCount={12} />);
     const wrapper = screen.getByTestId('spectrum-analyzer');
     expect(wrapper.children).toHaveLength(12);
   });
 
-  it('starts in idle mode when audioElement is null', () => {
-    render(<SpectrumAnalyzer audioRef={{ current: null }} isPlaying barCount={6} />);
-    const wrapper = screen.getByTestId('spectrum-analyzer');
-    expect(wrapper.dataset.mode).toBe('idle');
+  it('is idle when not playing', () => {
+    render(<SpectrumAnalyzer isPlaying={false} barCount={6} />);
+    expect(screen.getByTestId('spectrum-analyzer').dataset.mode).toBe('idle');
+  });
+
+  it('is decorative when playing', () => {
+    vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+    render(<SpectrumAnalyzer isPlaying barCount={8} />);
+    expect(screen.getByTestId('spectrum-analyzer').dataset.mode).toBe(
+      'decorative',
+    );
   });
 
   it('does not run animation frames while paused', () => {
     const raf = vi.spyOn(window, 'requestAnimationFrame');
-    render(<SpectrumAnalyzer audioRef={{ current: null }} isPlaying={false} barCount={4} />);
+    render(<SpectrumAnalyzer isPlaying={false} barCount={4} />);
     expect(raf).not.toHaveBeenCalled();
   });
 
-  it('switches to decorative mode after sustained silence on a real analyser', () => {
-    let frameCb: FrameRequestCallback | null = null;
-    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
-      frameCb = cb;
-      return 1;
-    });
-    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
-
-    const fakeAnalyser = {
-      fftSize: 64,
-      smoothingTimeConstant: 0.85,
-      frequencyBinCount: 32,
-      getByteFrequencyData: (arr: Uint8Array) => {
-        for (let i = 0; i < arr.length; i++) arr[i] = 0;
-      },
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-    } as unknown as AnalyserNode;
-    const fakeSource = { connect: vi.fn(), disconnect: vi.fn() };
-    const fakeCtx = {
-      state: 'running',
-      resume: vi.fn().mockResolvedValue(undefined),
-      close: vi.fn().mockResolvedValue(undefined),
-      destination: {} as AudioDestinationNode,
-      createMediaElementSource: vi.fn().mockReturnValue(fakeSource),
-      createAnalyser: vi.fn().mockReturnValue(fakeAnalyser),
-    };
-    (window as unknown as { AudioContext: unknown }).AudioContext = vi
-      .fn()
-      // function, no arrow: Vitest 4 ya no envuelve la implementación y
-      // `new` sobre una arrow lanza "not a constructor".
-      .mockImplementation(function (this: unknown) {
-        return fakeCtx;
-      });
-
-    const audio = document.createElement('audio');
-    render(<SpectrumAnalyzer audioRef={{ current: audio }} isPlaying barCount={8} />);
-
-    const wrapper = screen.getByTestId('spectrum-analyzer');
-    expect(wrapper.dataset.mode).toBe('real');
-
-    act(() => {
-      for (let i = 0; i < 65; i++) {
-        if (!frameCb) break;
-        const cb = frameCb;
-        frameCb = null;
-        cb(performance.now());
-      }
-    });
-
-    expect(wrapper.dataset.mode).toBe('decorative');
+  it('schedules animation frames while playing', () => {
+    const raf = vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
+    render(<SpectrumAnalyzer isPlaying barCount={4} />);
+    expect(raf).toHaveBeenCalled();
   });
 
-  it('reconnects pipeline and resets mode on audio loadstart', () => {
+  it('cancels its animation frame on unmount', () => {
+    vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(42);
+    const cancel = vi
+      .spyOn(window, 'cancelAnimationFrame')
+      .mockImplementation(() => {});
+    const { unmount } = render(<SpectrumAnalyzer isPlaying barCount={4} />);
+    act(() => unmount());
+    expect(cancel).toHaveBeenCalledWith(42);
+  });
+
+  it('never references an audio element (no Web Audio tap)', () => {
+    // Regression guard: tapping the <audio> via createMediaElementSource is
+    // what silenced cross-origin streams. The component must not need it.
+    const ctor = vi.fn();
+    (window as unknown as { AudioContext: unknown }).AudioContext = ctor;
     vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
-    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
-
-    const fakeAnalyser = {
-      fftSize: 64,
-      smoothingTimeConstant: 0.85,
-      frequencyBinCount: 32,
-      getByteFrequencyData: (arr: Uint8Array) => {
-        for (let i = 0; i < arr.length; i++) arr[i] = 0;
-      },
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-    } as unknown as AnalyserNode;
-    const fakeSource = { connect: vi.fn(), disconnect: vi.fn() };
-    const fakeCtx = {
-      state: 'running',
-      resume: vi.fn().mockResolvedValue(undefined),
-      close: vi.fn().mockResolvedValue(undefined),
-      destination: {} as AudioDestinationNode,
-      createMediaElementSource: vi.fn().mockReturnValue(fakeSource),
-      createAnalyser: vi.fn().mockReturnValue(fakeAnalyser),
-    };
-    (window as unknown as { AudioContext: unknown }).AudioContext = vi
-      .fn()
-      // function, no arrow: Vitest 4 ya no envuelve la implementación y
-      // `new` sobre una arrow lanza "not a constructor".
-      .mockImplementation(function (this: unknown) {
-        return fakeCtx;
-      });
-
-    const audio = document.createElement('audio');
-    const addSpy = vi.spyOn(audio, 'addEventListener');
-    render(<SpectrumAnalyzer audioRef={{ current: audio }} isPlaying barCount={8} />);
-
-    const wrapper = screen.getByTestId('spectrum-analyzer');
-    expect(wrapper.dataset.mode).toBe('real');
-    expect(addSpy).toHaveBeenCalledWith('loadstart', expect.any(Function));
-
-    // Reset mocks so we can assert the reconnect path runs
-    (fakeSource.connect as ReturnType<typeof vi.fn>).mockClear();
-    (fakeSource.disconnect as ReturnType<typeof vi.fn>).mockClear();
-    (fakeAnalyser.connect as ReturnType<typeof vi.fn>).mockClear();
-    (fakeAnalyser.disconnect as ReturnType<typeof vi.fn>).mockClear();
-
-    act(() => {
-      audio.dispatchEvent(new Event('loadstart'));
-    });
-
-    expect(fakeSource.disconnect).toHaveBeenCalledTimes(1);
-    expect(fakeAnalyser.disconnect).toHaveBeenCalledTimes(1);
-    expect(fakeSource.connect).toHaveBeenCalledWith(fakeAnalyser);
-    expect(fakeAnalyser.connect).toHaveBeenCalledWith(fakeCtx.destination);
-    expect(wrapper.dataset.mode).toBe('real');
-  });
-
-  it('removes loadstart listener on unmount', () => {
-    const audio = document.createElement('audio');
-    const removeSpy = vi.spyOn(audio, 'removeEventListener');
-    const { unmount } = render(
-      <SpectrumAnalyzer audioRef={{ current: audio }} isPlaying={false} barCount={4} />,
-    );
-    unmount();
-    expect(removeSpy).toHaveBeenCalledWith('loadstart', expect.any(Function));
+    render(<SpectrumAnalyzer isPlaying barCount={4} />);
+    expect(ctor).not.toHaveBeenCalled();
   });
 });

@@ -50,6 +50,10 @@ class StationStream(Base):
     failed_checks: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_check_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    # Browser-playability signals set by the CORS-aware health-check.
+    # NULL = not checked yet by that version.
+    cors_ok: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    browser_playable: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
 

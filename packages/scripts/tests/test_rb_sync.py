@@ -546,3 +546,116 @@ async def test_health_check_recovers(
     assert row is not None
     assert row[0] == "active"
     assert row[1] == 0
+
+
+@pytest.mark.usefixtures("db_session")
+@respx.mock
+async def test_health_check_demotes_mixed_content(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    """Reachable but browser-unplayable (https→http redirect): counts as a
+    failure and persists browser_playable=False even before going broken."""
+    sid = (
+        await db_session.execute(
+            text(
+                """
+                INSERT INTO stations (slug, name, status, failed_checks)
+                VALUES ('mixed', 'Mixed', 'active', 0)
+                RETURNING id
+                """,
+            ),
+        )
+    ).scalar_one()
+    await db_session.execute(
+        text(
+            """
+            INSERT INTO station_streams
+                (station_id, stream_url, codec, bitrate, is_primary, status,
+                 failed_checks)
+            VALUES (:sid, 'https://mixed.example/x.mp3', 'mp3', 128,
+                    true, 'active', 0)
+            """,
+        ),
+        {"sid": sid},
+    )
+    await db_session.commit()
+
+    respx.get("https://mixed.example/x.mp3").respond(
+        status_code=302,
+        headers={"location": "http://mixed.example/x.mp3"},
+    )
+    respx.get("http://mixed.example/x.mp3").respond(
+        status_code=200,
+        headers={"content-type": "audio/mpeg"},
+    )
+
+    async with httpx.AsyncClient(follow_redirects=True) as hc:
+        stats = await run_health_check(maker, timeout=2, client=hc)
+
+    assert stats["failed"] == 1
+    assert stats["not_browser_playable"] == 1
+    row = (
+        await db_session.execute(
+            text(
+                "SELECT browser_playable, failed_checks FROM station_streams "
+                "WHERE station_id = :sid",
+            ),
+            {"sid": sid},
+        )
+    ).first()
+    assert row is not None
+    assert row[0] is False
+    assert row[1] == 1
+
+
+@pytest.mark.usefixtures("db_session")
+@respx.mock
+async def test_health_check_persists_cors_ok(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    sid = (
+        await db_session.execute(
+            text(
+                """
+                INSERT INTO stations (slug, name, status, failed_checks)
+                VALUES ('cors', 'Cors', 'active', 0)
+                RETURNING id
+                """,
+            ),
+        )
+    ).scalar_one()
+    await db_session.execute(
+        text(
+            """
+            INSERT INTO station_streams
+                (station_id, stream_url, codec, bitrate, is_primary, status,
+                 failed_checks)
+            VALUES (:sid, 'https://cors.example/x.mp3', 'mp3', 128,
+                    true, 'active', 0)
+            """,
+        ),
+        {"sid": sid},
+    )
+    await db_session.commit()
+
+    respx.get(url__regex=r"https://cors\.example/.*").respond(
+        status_code=200,
+        headers={"content-type": "audio/mpeg", "access-control-allow-origin": "*"},
+    )
+
+    async with httpx.AsyncClient() as hc:
+        await run_health_check(maker, timeout=2, client=hc)
+
+    row = (
+        await db_session.execute(
+            text(
+                "SELECT cors_ok, browser_playable FROM station_streams WHERE station_id = :sid",
+            ),
+            {"sid": sid},
+        )
+    ).first()
+    assert row is not None
+    assert row[0] is True
+    assert row[1] is True

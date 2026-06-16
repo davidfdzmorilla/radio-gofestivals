@@ -683,6 +683,8 @@ async def run_health_check(
         "failed": 0,
         "marked_broken": 0,
         "recovered": 0,
+        "not_browser_playable": 0,
+        "no_cors": 0,
         "stations_active": 0,
         "stations_broken": 0,
     }
@@ -706,7 +708,15 @@ async def run_health_check(
                     client=client,
                 )
             touched_stations.add(station_id)
-            if result.alive:
+            # "Reachable" is not enough: an <audio> on our https site also
+            # needs valid TLS and no redirect to http. A reachable-but-not-
+            # browser-playable stream is a failure for our users.
+            playable = result.alive and result.browser_playable
+            if not result.browser_playable:
+                stats["not_browser_playable"] += 1
+            if not result.cors_ok:
+                stats["no_cors"] += 1
+            if playable:
                 new_status = "active" if prev == "broken" else prev
                 await session.execute(
                     text(
@@ -715,7 +725,9 @@ async def run_health_check(
                         SET failed_checks = 0,
                             last_check_at = now(),
                             last_error = :err,
-                            status = :st
+                            status = :st,
+                            cors_ok = :cors,
+                            browser_playable = :bp
                         WHERE id = :id
                         """,
                     ),
@@ -723,6 +735,8 @@ async def run_health_check(
                         "id": str(stream_id),
                         "st": new_status,
                         "err": result.error,
+                        "cors": result.cors_ok,
+                        "bp": result.browser_playable,
                     },
                 )
                 # Mirror the success on the station for legacy observability
@@ -755,7 +769,9 @@ async def run_health_check(
                         SET failed_checks = :fc,
                             last_check_at = now(),
                             last_error = :err,
-                            status = :st
+                            status = :st,
+                            cors_ok = :cors,
+                            browser_playable = :bp
                         WHERE id = :id
                         """,
                     ),
@@ -764,6 +780,8 @@ async def run_health_check(
                         "fc": new_failed,
                         "st": new_status,
                         "err": result.error,
+                        "cors": result.cors_ok,
+                        "bp": result.browser_playable,
                     },
                 )
                 await session.execute(

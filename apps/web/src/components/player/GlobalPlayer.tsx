@@ -134,7 +134,6 @@ export function GlobalPlayer() {
           )}
         </button>
         <SpectrumAnalyzer
-          audioRef={audioRef}
           isPlaying={isPlaying}
           barCount={10}
           className="hidden sm:flex"
@@ -188,10 +187,15 @@ export function GlobalPlayer() {
           <X className="h-4 w-4" />
         </Button>
       </div>
+      {/* No crossOrigin: setting it makes the browser require CORS headers
+          from the stream server to even load the audio, and most Icecast/
+          Shoutcast streams send none — that silently broke ~8% of the
+          catalog. The spectrum analyzer is decorative-only precisely so we
+          never need to tap the element through Web Audio (which would
+          re-introduce the cross-origin taint and silence playback). */}
       <audio
         ref={audioRef}
         preload="none"
-        crossOrigin="anonymous"
         onWaiting={() => setBuffering(true)}
         onPlaying={() => setBuffering(false)}
         onError={() => {

@@ -143,3 +143,83 @@ async def test_result_includes_latency_and_content_type() -> None:
         result = await check_stream_alive("http://x/stream.mp3", client=c)
     assert result.latency_ms >= 0
     assert result.content_type == "audio/mpeg"
+
+
+# --- Browser-playability signals (CORS, mixed-content, TLS) ----------------
+
+
+async def test_cors_wildcard_sets_cors_ok() -> None:
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={
+                "content-type": "audio/mpeg",
+                "access-control-allow-origin": "*",
+            },
+        )
+
+    async with _client(handler) as c:
+        result = await check_stream_alive("https://x/stream.mp3", client=c)
+    assert result.cors_ok is True
+    assert result.browser_playable is True
+
+
+async def test_cors_exact_origin_sets_cors_ok() -> None:
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={
+                "content-type": "audio/mpeg",
+                "access-control-allow-origin": "https://radio.gofestivals.eu",
+            },
+        )
+
+    async with _client(handler) as c:
+        result = await check_stream_alive("https://x/stream.mp3", client=c)
+    assert result.cors_ok is True
+
+
+async def test_no_cors_header_is_still_browser_playable() -> None:
+    # Post-fix the player no longer needs CORS; a no-CORS stream plays fine.
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, headers={"content-type": "audio/mpeg"})
+
+    async with _client(handler) as c:
+        result = await check_stream_alive("https://x/stream.mp3", client=c)
+    assert result.cors_ok is False
+    assert result.browser_playable is True
+
+
+async def test_https_redirect_to_http_is_not_browser_playable() -> None:
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.scheme == "https":
+            return httpx.Response(302, headers={"location": "http://x/stream.mp3"})
+        return httpx.Response(200, headers={"content-type": "audio/mpeg"})
+
+    async with _client(handler) as c:
+        result = await check_stream_alive("https://x/stream.mp3", client=c)
+    # Reachable, but a browser on an https page blocks the mixed-content hop.
+    assert result.alive is True
+    assert result.browser_playable is False
+    assert "mixed-content" in (result.error or "")
+
+
+async def test_plain_http_stream_is_browser_playable_flag_independent() -> None:
+    # A stream stored as http:// (not our case after is_https filter) is not
+    # "mixed content" relative to itself — no downgrade detected.
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, headers={"content-type": "audio/mpeg"})
+
+    async with _client(handler) as c:
+        result = await check_stream_alive("http://x/stream.mp3", client=c)
+    assert result.browser_playable is True
+
+
+async def test_dead_stream_is_not_browser_playable() -> None:
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(500)
+
+    async with _client(handler) as c:
+        result = await check_stream_alive("https://x/stream.mp3", client=c)
+    assert result.alive is False
+    assert result.browser_playable is False

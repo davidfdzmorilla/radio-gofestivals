@@ -19,6 +19,7 @@ export function GlobalPlayer() {
   const t = useTranslations('player');
   const tCommon = useTranslations('common');
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const volumeRef = useRef(0);
 
   const station = usePlayerStore((s) => s.currentStation);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
@@ -34,6 +35,7 @@ export function GlobalPlayer() {
   const retry = usePlayerStore((s) => s.retry);
 
   useEffect(() => {
+    volumeRef.current = volume;
     const audio = audioRef.current;
     if (!audio) return;
     audio.volume = volume;
@@ -61,6 +63,10 @@ export function GlobalPlayer() {
     let cancelled = false;
 
     const apply = async () => {
+      // Re-apply volume here too: when the <audio> element remounts (the
+      // key flips on the CORS boundary, see below) the volume-only effect
+      // doesn't re-run, so a fresh element would default to full volume.
+      audio.volume = volumeRef.current;
       if (srcChanged) {
         // pause-reset-load BEFORE assigning new src — switching src on a
         // playing element rejects the in-flight play() with AbortError and
@@ -108,6 +114,14 @@ export function GlobalPlayer() {
 
   if (!station) return null;
 
+  // Real Web Audio spectrum only when the stream sends CORS (health-check
+  // signal). Tapping a no-CORS element silences it, and setting crossOrigin
+  // on it blocks loading — so for those we keep playback plain + decorative.
+  // The element is keyed on this so it remounts when crossing the boundary:
+  // an element tapped by Web Audio can never go back to plain playback
+  // (the source node taint persists), and vice-versa.
+  const realSpectrum = station.primary_stream?.cors_ok === true;
+
   return (
     <div
       className={cn(
@@ -134,7 +148,9 @@ export function GlobalPlayer() {
           )}
         </button>
         <SpectrumAnalyzer
+          audioRef={audioRef}
           isPlaying={isPlaying}
+          realSpectrum={realSpectrum}
           barCount={10}
           className="hidden sm:flex"
         />
@@ -187,15 +203,16 @@ export function GlobalPlayer() {
           <X className="h-4 w-4" />
         </Button>
       </div>
-      {/* No crossOrigin: setting it makes the browser require CORS headers
-          from the stream server to even load the audio, and most Icecast/
-          Shoutcast streams send none — that silently broke ~8% of the
-          catalog. The spectrum analyzer is decorative-only precisely so we
-          never need to tap the element through Web Audio (which would
-          re-introduce the cross-origin taint and silence playback). */}
+      {/* crossOrigin only for CORS streams (realSpectrum). Setting it on a
+          no-CORS stream blocks loading; tapping such a stream via Web Audio
+          silences it. Keying on realSpectrum remounts a fresh element when
+          crossing the boundary so a tapped element never has to play a
+          no-CORS stream. */}
       <audio
+        key={realSpectrum ? 'cors' : 'plain'}
         ref={audioRef}
         preload="none"
+        crossOrigin={realSpectrum ? 'anonymous' : undefined}
         onWaiting={() => setBuffering(true)}
         onPlaying={() => setBuffering(false)}
         onError={() => {

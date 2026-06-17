@@ -26,6 +26,9 @@ class StationStreamRef(BaseModel):
     format: str | None
     is_primary: bool
     status: str
+    # Permite al player activar el espectro real (Web Audio) solo cuando el
+    # stream manda CORS; sin él, crossOrigin rompería la reproducción.
+    cors_ok: bool | None = None
 
 
 class StationSummary(BaseModel):

@@ -42,6 +42,7 @@ export const StationStreamRefSchema = z.object({
   format: z.string().nullable(),
   is_primary: z.boolean(),
   status: z.string().default('active'),
+  cors_ok: z.boolean().nullable().optional(),
 });
 export type StationStreamRef = z.infer<typeof StationStreamRefSchema>;
 

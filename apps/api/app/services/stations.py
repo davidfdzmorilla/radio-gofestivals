@@ -42,6 +42,7 @@ def _stream_ref(s: StationStream) -> StationStreamRef:
         format=s.format,
         is_primary=s.is_primary,
         status=s.status,
+        cors_ok=s.cors_ok,
     )
 
 

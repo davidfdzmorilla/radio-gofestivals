@@ -19,7 +19,7 @@ from scripts.dedupe_stations import normalize_name
 from scripts.logging import get_logger
 from scripts.quality import compute_quality_score, compute_technical_score
 from scripts.rb_client import RadioBrowserClient
-from scripts.stream_check import DEFAULT_TIMEOUT_S, check_stream_alive
+from scripts.stream_check import DEFAULT_TIMEOUT_S, StreamCheckResult, check_stream_alive
 from scripts.taxonomy_mapper import GenreRef, map_rb_tags_to_genre_slugs
 
 if TYPE_CHECKING:
@@ -35,6 +35,11 @@ app = typer.Typer(help="radio.gofestivals · Radio-Browser sync")
 
 HEALTH_CONCURRENCY = 20
 HEALTH_MAX_FAILURES = 3
+# Circuit breaker: a run where most checks die at transport level (timeout,
+# DNS, connect) points at our own network, not at the stations. Baseline in
+# prod is ~3%; the 2026-10-01 outage hit ~98% and marked 1800 streams broken.
+HEALTH_BREAKER_MIN_SAMPLE = 50
+HEALTH_BREAKER_TRANSPORT_RATIO = 0.5
 MAX_HOMEPAGE_LENGTH = 500
 
 
@@ -687,6 +692,7 @@ async def run_health_check(
         "no_cors": 0,
         "stations_active": 0,
         "stations_broken": 0,
+        "aborted": 0,
     }
     sem = asyncio.Semaphore(HEALTH_CONCURRENCY)
 
@@ -694,19 +700,38 @@ async def run_health_check(
         candidates = [c async for c in _iter_health_candidates(session)]
         touched_stations: set[uuid.UUID] = set()
 
+        async def _probe(url: str) -> StreamCheckResult:
+            async with sem:
+                return await check_stream_alive(url, timeout_s=timeout, client=client)
+
+        # Phase 1: probe everything without touching the DB, so a network
+        # outage on our side can be detected before it poisons failed_checks.
+        results = await asyncio.gather(*(_probe(c[2]) for c in candidates))
+        transport_failures = sum(1 for r in results if not r.alive and r.status_code is None)
+        if (
+            len(results) >= HEALTH_BREAKER_MIN_SAMPLE
+            and transport_failures / len(results) > HEALTH_BREAKER_TRANSPORT_RATIO
+        ):
+            stats["aborted"] = 1
+            stats["checked"] = len(results)
+            stats["failed"] = transport_failures
+            log.error(
+                "health_check_aborted",
+                reason="transport_failure_ratio_exceeded",
+                checked=len(results),
+                transport_failures=transport_failures,
+                threshold=HEALTH_BREAKER_TRANSPORT_RATIO,
+            )
+            return stats
+
         async def _one(
             stream_id: uuid.UUID,
             station_id: uuid.UUID,
             url: str,
             failed: int,
             prev: str,
+            result: StreamCheckResult,
         ) -> None:
-            async with sem:
-                result = await check_stream_alive(
-                    url,
-                    timeout_s=timeout,
-                    client=client,
-                )
             touched_stations.add(station_id)
             # "Reachable" is not enough: an <audio> on our https site also
             # needs valid TLS and no redirect to http. A reachable-but-not-
@@ -806,7 +831,7 @@ async def run_health_check(
                 )
             stats["checked"] += 1
 
-        await asyncio.gather(*(_one(*c) for c in candidates))
+        await asyncio.gather(*(_one(*c, r) for c, r in zip(candidates, results, strict=True)))
 
         # Cascade to station status: at least one active stream → active;
         # otherwise (all broken) → broken. Streams in inactive don't count.

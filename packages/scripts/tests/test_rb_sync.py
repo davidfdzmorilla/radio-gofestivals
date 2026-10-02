@@ -659,3 +659,51 @@ async def test_health_check_persists_cors_ok(
     assert row is not None
     assert row[0] is True
     assert row[1] is True
+
+
+@pytest.mark.usefixtures("db_session")
+@respx.mock
+async def test_health_check_aborts_on_transport_outage(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    """Mass timeouts = our network is down: no failed_checks must be written."""
+    await db_session.execute(
+        text(
+            """
+            INSERT INTO stations (slug, name, status)
+            SELECT 'out' || g, 'Out ' || g, 'active' FROM generate_series(1, 60) g
+            """,
+        ),
+    )
+    await db_session.execute(
+        text(
+            """
+            INSERT INTO station_streams
+                (station_id, stream_url, codec, bitrate, is_primary, status, failed_checks)
+            SELECT id, 'https://down.example/' || slug, 'mp3', 128, true, 'active', 2
+            FROM stations WHERE slug LIKE 'out%'
+            """,
+        ),
+    )
+    await db_session.commit()
+
+    respx.get(url__regex=r"https://down\.example/.*").mock(
+        side_effect=httpx.ConnectTimeout("simulated outage"),
+    )
+
+    async with httpx.AsyncClient() as hc:
+        stats = await run_health_check(maker, timeout=2, client=hc)
+
+    assert stats["aborted"] == 1
+    assert stats["marked_broken"] == 0
+    row = (
+        await db_session.execute(
+            text(
+                "SELECT count(*) FILTER (WHERE status = 'active'), "
+                "max(failed_checks) FROM station_streams WHERE stream_url LIKE 'https://down.example/%'",
+            ),
+        )
+    ).first()
+    assert row is not None
+    assert (row[0], row[1]) == (60, 2)

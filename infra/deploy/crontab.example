@@ -10,7 +10,7 @@ SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Sync diario Radio-Browser a las 04:00 UTC
-0 4 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts rb_sync run >> /var/log/radio/rb_sync.log 2>&1
+0 4 * * * /home/david/compose/radio-gofestivals/infra/deploy/run-job.sh rb_sync bash -c 'cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts rb_sync run' >> /var/log/radio/rb_sync.log 2>&1
 
 # Snapshot diario de clickcount post-sync (04:15 UTC)
 15 4 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts snapshot-clickcounts >> /var/log/radio/snapshot.log 2>&1
@@ -34,7 +34,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 0 */6 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts rb_sync health-check >> /var/log/radio/health.log 2>&1
 
 # Backup Postgres diario a las 03:00 UTC
-0 3 * * * /home/david/compose/radio-gofestivals/infra/deploy/backup-postgres.sh >> /var/log/radio/backup.log 2>&1
+0 3 * * * /home/david/compose/radio-gofestivals/infra/deploy/run-job.sh backup /home/david/compose/radio-gofestivals/infra/deploy/backup-postgres.sh >> /var/log/radio/backup.log 2>&1
 
 # Rotación simple de logs propios (14 días)
 0 2 * * * find /var/log/radio -name "*.log" -mtime +14 -delete
@@ -51,7 +51,5 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 0 7 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm -T scripts watchdog summary >> /var/log/radio/watchdog.log 2>&1
 
 # Jobs críticos con aviso si terminan con código != 0: anteponer run-job.sh <nombre>.
-# Para comandos con `cd && docker compose ...` envolverlos en bash -c, p. ej. el sync diario:
-#   0 4 * * * /home/david/compose/radio-gofestivals/infra/deploy/run-job.sh rb_sync bash -c 'cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts rb_sync run' >> /var/log/radio/rb_sync.log 2>&1
-# y el backup (ya es un script):
-#   0 3 * * * /home/david/compose/radio-gofestivals/infra/deploy/run-job.sh backup /home/david/compose/radio-gofestivals/infra/deploy/backup-postgres.sh >> /var/log/radio/backup.log 2>&1
+# rb_sync (04:00) y backup (03:00) ya van envueltos arriba. Para comandos con
+# `cd && docker compose ...` hay que envolverlos en bash -c '...' como en rb_sync.

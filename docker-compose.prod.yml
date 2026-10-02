@@ -208,6 +208,7 @@ services:
     <<: *env-file
     depends_on:
       postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
     networks:
       - radio_internal
     profiles: ["cron"]

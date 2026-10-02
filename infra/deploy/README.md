@@ -182,6 +182,30 @@ docker compose -f docker-compose.prod.yml exec redis \
   redis-cli -a "$REDIS_PASSWORD" PUBSUB CHANNELS 'icy:*'
 ```
 
+## 5b · Alerting por Telegram
+
+Diseño y umbrales en `docs/adr/006-alerting-telegram.md`.
+
+**Alta (una vez)**
+1. En Telegram, `@BotFather` → `/newbot` → guardar el token. Bot propio de radio, no el del
+   monitor de Elasticsearch.
+2. Crear un chat o canal para las alertas, añadir el bot y obtener su `chat_id`
+   (enviar un mensaje y mirar `https://api.telegram.org/bot<TOKEN>/getUpdates`).
+3. Añadir a `.env.production`: `TELEGRAM_ALERT_TOKEN=...` y `TELEGRAM_ALERT_CHAT_ID=...`.
+4. Desplegar (el servicio `scripts` ahora depende de redis) y probar:
+   ```
+   docker compose --env-file .env.production -f docker-compose.prod.yml \
+     run --rm -T scripts watchdog notify --key test --message "prueba de alertas"
+   ```
+5. Instalar las líneas `watchdog` y `summary` de `crontab.example`.
+
+**Qué avisa**: health-check abortado (breaker), caída del catálogo (<80% de la mediana de 7 días),
+health-check parado (>13 h), contenedor caído/unhealthy o en bucle de reinicios, `rb_sync` fallido,
+jobs envueltos con `run-job.sh` que salen con código != 0, y un resumen diario.
+
+**Silenciar/reiniciar el estado de una alerta**: claves `alert:active:*` y `alert:cd:*` en redis
+(`docker exec radio-redis-prod redis-cli --scan --pattern 'alert:*'`).
+
 ## 6 · Seguridad
 
 - `.env.production` **nunca** va al repo (`.gitignore` lo incluye).

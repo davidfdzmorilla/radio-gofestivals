@@ -14,6 +14,7 @@ dependencies = [
     "pydantic>=2.8.0",
     "pydantic-settings>=2.4.0",
     "bcrypt>=4.2.0",
+    "redis>=5.0",
 ]
 
 [dependency-groups]
@@ -38,6 +39,7 @@ run-pending-admin-jobs = "scripts.run_pending_admin_jobs:app"
 export-spam-candidates = "scripts.export_spam_candidates:app"
 retain-plays = "scripts.retain_plays:app"
 compute-station-similarity = "scripts.compute_station_similarity:app"
+watchdog = "scripts.watchdog:app"
 eval-recommendations = "scripts.eval_recommendations:app"
 
 [tool.uv]

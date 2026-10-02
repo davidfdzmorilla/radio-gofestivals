@@ -38,3 +38,20 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Rotación simple de logs propios (14 días)
 0 2 * * * find /var/log/radio -name "*.log" -mtime +14 -delete
+
+# ---------------------------------------------------------------------------
+# Alerting por Telegram (ADR 006). Requiere TELEGRAM_ALERT_TOKEN y
+# TELEGRAM_ALERT_CHAT_ID en .env.production. Sin ellos `watchdog` falla al arrancar.
+# ---------------------------------------------------------------------------
+
+# Watchdog cada 15 min: caída de catálogo, health-check parado, contenedores/reinicios
+*/15 * * * * /home/david/compose/radio-gofestivals/infra/deploy/watchdog.sh >> /var/log/radio/watchdog.log 2>&1
+
+# Resumen diario (07:00 UTC) · sirve también de latido: si deja de llegar, algo falla
+0 7 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm -T scripts watchdog summary >> /var/log/radio/watchdog.log 2>&1
+
+# Jobs críticos con aviso si terminan con código != 0: anteponer run-job.sh <nombre>.
+# Para comandos con `cd && docker compose ...` envolverlos en bash -c, p. ej. el sync diario:
+#   0 4 * * * /home/david/compose/radio-gofestivals/infra/deploy/run-job.sh rb_sync bash -c 'cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts rb_sync run' >> /var/log/radio/rb_sync.log 2>&1
+# y el backup (ya es un script):
+#   0 3 * * * /home/david/compose/radio-gofestivals/infra/deploy/run-job.sh backup /home/david/compose/radio-gofestivals/infra/deploy/backup-postgres.sh >> /var/log/radio/backup.log 2>&1

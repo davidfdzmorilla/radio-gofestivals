@@ -48,6 +48,15 @@ class _TokenLeakFilter(logging.Filter):
 logging.getLogger("httpx").addFilter(_TokenLeakFilter())
 
 
+def _telegram_description(resp: httpx.Response) -> str | None:
+    """Telegram's error text (e.g. 'Bad Request: chat not found'); never contains the token."""
+    try:
+        desc = resp.json().get("description")
+    except ValueError:
+        return None
+    return str(desc)[:200] if desc else None
+
+
 class KeyValueStore(Protocol):
     async def get(self, key: str) -> bytes | str | None: ...
     async def set(
@@ -150,7 +159,11 @@ class Alerter:
             log.warning("telegram_send_failed", error_type=type(exc).__name__)
             return False
         if resp.status_code != httpx.codes.OK:
-            log.warning("telegram_send_failed", status_code=resp.status_code)
+            log.warning(
+                "telegram_send_failed",
+                status_code=resp.status_code,
+                description=_telegram_description(resp),
+            )
             return False
         return True
 

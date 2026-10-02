@@ -63,11 +63,16 @@ async def test_second_alert_within_cooldown_is_suppressed() -> None:
 
 
 @respx.mock
-async def test_failed_send_releases_cooldown_so_next_run_retries() -> None:
-    respx.post(URL).respond(500)
+async def test_failed_send_releases_cooldown_so_next_run_retries(
+    capfd: pytest.CaptureFixture[str],
+) -> None:
+    respx.post(URL).respond(400, json={"ok": False, "description": "Bad Request: chat not found"})
     store = FakeStore()
     async with Alerter(SETTINGS, store=store) as a:
         assert await a.send("k", "one") is False
+    out = capfd.readouterr().out
+    assert "chat not found" in out
+    assert "SECRET" not in out
     assert "alert:cd:k" not in store.data
     assert "alert:active:k" not in store.data
 

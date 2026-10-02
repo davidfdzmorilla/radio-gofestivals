@@ -13,6 +13,7 @@ import typer
 from slugify import slugify
 from sqlalchemy import text
 
+from scripts.alerting import notify_once, resolve_once
 from scripts.constants import ELECTRONIC_TAGS
 from scripts.db import make_engine, make_sessionmaker
 from scripts.dedupe_stations import normalize_name
@@ -41,6 +42,8 @@ HEALTH_MAX_FAILURES = 3
 HEALTH_BREAKER_MIN_SAMPLE = 50
 HEALTH_BREAKER_TRANSPORT_RATIO = 0.5
 MAX_HOMEPAGE_LENGTH = 500
+# A single flaky tag is routine; this many failed tags (or nothing fetched) is an outage.
+SYNC_ALERT_MIN_ERRORS = 3
 
 
 @dataclass
@@ -633,9 +636,15 @@ def cmd_run(
 
     async def _main() -> SyncStats:
         try:
-            return await run_sync(maker, tag=tag, dry_run=dry_run, limit=limit)
+            stats = await run_sync(maker, tag=tag, dry_run=dry_run, limit=limit)
         finally:
             await engine.dispose()
+        if not dry_run and (stats.fetched == 0 or stats.errors >= SYNC_ALERT_MIN_ERRORS):
+            await notify_once(
+                "rb_sync_failed",
+                f"rb_sync terminó mal: fetched={stats.fetched}, errors={stats.errors}",
+            )
+        return stats
 
     asyncio.run(_main())
 
@@ -721,6 +730,12 @@ async def run_health_check(
                 checked=len(results),
                 transport_failures=transport_failures,
                 threshold=HEALTH_BREAKER_TRANSPORT_RATIO,
+            )
+            await notify_once(
+                "health_check_aborted",
+                f"Health-check abortado: {transport_failures}/{len(results)} streams con fallo "
+                "de transporte (timeout/DNS/connect). Posible caída de red del VPS; "
+                "no se ha escrito nada en la BD.",
             )
             return stats
 
@@ -878,6 +893,7 @@ async def run_health_check(
 
         await session.commit()
 
+    await resolve_once("health_check_aborted", "Health-check de nuevo operativo")
     log.info("health_check_done", **stats)
     return stats
 

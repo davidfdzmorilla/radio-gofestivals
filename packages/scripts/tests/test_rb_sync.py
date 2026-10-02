@@ -666,6 +666,7 @@ async def test_health_check_persists_cors_ok(
 async def test_health_check_aborts_on_transport_outage(
     maker: async_sessionmaker[AsyncSession],
     db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Mass timeouts = our network is down: no failed_checks must be written."""
     await db_session.execute(
@@ -691,10 +692,17 @@ async def test_health_check_aborts_on_transport_outage(
     respx.get(url__regex=r"https://down\.example/.*").mock(
         side_effect=httpx.ConnectTimeout("simulated outage"),
     )
+    alerts: list[tuple[str, str]] = []
+
+    async def _fake_notify(key: str, text: str) -> None:
+        alerts.append((key, text))
+
+    monkeypatch.setattr("scripts.rb_sync.notify_once", _fake_notify)
 
     async with httpx.AsyncClient() as hc:
         stats = await run_health_check(maker, timeout=2, client=hc)
 
+    assert [k for k, _ in alerts] == ["health_check_aborted"]
     assert stats["aborted"] == 1
     assert stats["marked_broken"] == 0
     row = (

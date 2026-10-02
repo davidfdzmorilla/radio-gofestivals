@@ -312,3 +312,38 @@ async def test_grace_race_release_twice_then_subscribe(
     await pool.shutdown()
     await client.aclose()
     await redis.aclose()
+
+
+async def test_listen_commands_survives_idle_socket_timeout(
+    db_session: AsyncSession,
+    maker: async_sessionmaker[AsyncSession],
+) -> None:
+    """redis-py 8 defaults socket_timeout=5s; an idle pub/sub channel must not kill the loop.
+
+    Regression: listen_commands raised TimeoutError on idle, the worker shut
+    down with exit 0 and Docker restarted it in a loop.
+    """
+    from redis.asyncio import Redis
+
+    await _insert_station(db_session, "idle1")
+    redis = Redis.from_url(os.environ["REDIS_URL"], decode_responses=False, socket_timeout=0.2)
+    publisher = await _fake_redis()
+    client = httpx.AsyncClient(transport=_no_op_transport())
+    pool = OnDemandPool(redis=redis, maker=maker, client=client, user_agent="t", grace_seconds=1)
+    task = asyncio.create_task(pool.listen_commands())
+    try:
+        await asyncio.sleep(1.0)  # several socket timeouts with no traffic
+        assert not task.done(), task.exception() if task.done() else None
+        await publisher.publish("icy:subscribe", "idle1")
+        for _ in range(50):
+            if "idle1" in pool._tasks:  # noqa: SLF001
+                break
+            await asyncio.sleep(0.1)
+        assert "idle1" in pool._tasks  # noqa: SLF001
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        await pool.shutdown()
+        await client.aclose()
+        await publisher.aclose()
+        await redis.aclose()

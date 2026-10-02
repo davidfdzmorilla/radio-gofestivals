@@ -6,6 +6,8 @@ import uuid
 from typing import TYPE_CHECKING
 
 import httpx
+from redis.exceptions import ConnectionError as RedisConnectionError
+from redis.exceptions import TimeoutError as RedisTimeoutError
 from sqlalchemy import text
 
 from icy_worker.logging import get_logger
@@ -20,6 +22,8 @@ log = get_logger("icy_worker.ondemand")
 
 SUBSCRIBE_CHANNEL = "icy:subscribe"
 RELEASE_CHANNEL = "icy:release"
+LISTEN_RECONNECT_DELAY_S = 1.0
+LISTEN_POLL_TIMEOUT_S = 1.0
 
 
 async def _resolve_station(
@@ -160,11 +164,25 @@ class OnDemandPool:
                 log.info("worker_task_ended", slug=slug, reason="finished")
 
     async def listen_commands(self) -> None:
-        pubsub = self._redis.pubsub()
+        # Idle channels are the normal state. Poll with get_message(timeout=)
+        # instead of listen(): with redis-py 8's default socket_timeout=5s,
+        # listen() raises on an idle channel and the worker (which treats this
+        # task ending as a shutdown signal) restarted in a loop. The outer
+        # loop resubscribes if the connection itself drops.
+        while True:
+            try:
+                await self._listen_once()
+            except (RedisTimeoutError, RedisConnectionError) as exc:
+                log.warning("pubsub_reconnecting", error=str(exc))
+                await asyncio.sleep(LISTEN_RECONNECT_DELAY_S)
+
+    async def _listen_once(self) -> None:
+        pubsub = self._redis.pubsub(ignore_subscribe_messages=True)
         await pubsub.subscribe(SUBSCRIBE_CHANNEL, RELEASE_CHANNEL)
         try:
-            async for msg in pubsub.listen():
-                if msg.get("type") != "message":
+            while True:
+                msg = await pubsub.get_message(timeout=LISTEN_POLL_TIMEOUT_S)
+                if msg is None:
                     continue
                 channel = msg.get("channel")
                 data = msg.get("data")

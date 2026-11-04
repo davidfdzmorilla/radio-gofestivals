@@ -158,6 +158,11 @@ fi
 # ---------- 7. cleanup -----------------------------------------------------
 LOG "pruning old images"
 docker image prune -f --filter "label=org.opencontainers.image.source=https://github.com/gofestivals/radio" >/dev/null || true
+# Cada build deja ~6 GB de caché y el disco del VPS (compartido) es justo: el deploy
+# del 2026-11-04 falló con el disco al 100%. La caché es del daemon entero, así que
+# también limpia la de otros proyectos (solo ralentiza su próximo build).
+LOG "pruning build cache"
+docker builder prune -f >/dev/null || true
 
 # ---------- 8. final log ---------------------------------------------------
 DURATION=$(( $(date -u +%s) - START_TS ))

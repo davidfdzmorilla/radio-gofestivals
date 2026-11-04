@@ -14,11 +14,13 @@ from typing import Any
 import httpx
 
 from app.core.logging import get_logger
+from app.services.alerting import notify
 
 log = get_logger("app.email")
 
 RESEND_FROM = "noreply@davidfdzmorilla.dev"
 RESEND_ENDPOINT = "https://api.resend.com/emails"
+ALERT_KEY = "email-send-failed"
 SUPPORT_URL = "https://github.com/davidfdzmorilla/radio-gofestivals/issues"
 
 _BODY_STYLE = (
@@ -38,6 +40,24 @@ def _api_key() -> str | None:
     return raw or None
 
 
+def _resend_message(response: httpx.Response) -> str:
+    """Resend's error text (e.g. 'domain is not verified'); falls back to the raw body."""
+    try:
+        data = response.json()
+    except ValueError:
+        return response.text[:150]
+    message = data.get("message") if isinstance(data, dict) else None
+    return str(message or response.text)[:150]
+
+
+async def _alert(reason: str) -> None:
+    # No recipient in the text: alerts go to a chat and addresses are personal data.
+    await notify(
+        ALERT_KEY,
+        f"radio.gofestivals: fallo enviando emails (verificación / reset de contraseña). {reason}",
+    )
+
+
 async def send_email(
     *,
     to: str,
@@ -48,6 +68,7 @@ async def send_email(
     api_key = _api_key()
     if api_key is None:
         log.warning("resend_api_key_missing", to=to, subject=subject[:50])
+        await _alert("RESEND_API_KEY no configurada")
         return False
 
     payload: dict[str, Any] = {
@@ -68,6 +89,7 @@ async def send_email(
             )
     except httpx.HTTPError as exc:
         log.exception("resend_http_error", error=str(exc), to=to)
+        await _alert(f"error de red hablando con Resend ({type(exc).__name__})")
         return False
 
     if response.is_error:
@@ -77,6 +99,7 @@ async def send_email(
             body=response.text[:200],
             to=to,
         )
+        await _alert(f"Resend respondió {response.status_code}: {_resend_message(response)}")
         return False
 
     try:

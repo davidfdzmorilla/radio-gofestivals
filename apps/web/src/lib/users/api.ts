@@ -9,12 +9,42 @@ let accessToken: string | null = null;
 
 const LEGACY_TOKEN_KEY = 'user_token';
 
+// La cookie de refresh es httpOnly: el JS no puede saber si hay sesión. Esta
+// marca (no sensible) evita llamar a /auth/refresh en cada carga de un visitante
+// anónimo, que siempre devolvía 401. '1' = hubo sesión, '0' = no la hay, ausente
+// = desconocido (se pregunta una vez). Se autocorrige: si la cookie caduca, el
+// primer refresh da 401 y pasa a '0'. Con localStorage no disponible, se pregunta siempre.
+const SESSION_HINT_KEY = 'rgf_session_hint';
+
+function readSessionHint(): '1' | '0' | null {
+  try {
+    const v = window.localStorage.getItem(SESSION_HINT_KEY);
+    return v === '1' || v === '0' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionHint(value: '1' | '0'): void {
+  try {
+    window.localStorage.setItem(SESSION_HINT_KEY, value);
+  } catch {
+    /* sin localStorage: se pregunta al servidor en cada carga */
+  }
+}
+
+/** Llamar al cerrar sesión: evita el refresh (y su 401) en las siguientes cargas. */
+export function markSessionEnded(): void {
+  writeSessionHint('0');
+}
+
 export function getStoredToken(): string | null {
   return accessToken;
 }
 
 export function setStoredToken(token: string): void {
   accessToken = token;
+  writeSessionHint('1');
 }
 
 export function clearStoredToken(): void {
@@ -38,6 +68,11 @@ let refreshInFlight: Promise<RefreshedSession | null> | null = null;
 export function __resetSessionStateForTests(): void {
   accessToken = null;
   refreshInFlight = null;
+  try {
+    window.localStorage.removeItem(SESSION_HINT_KEY);
+  } catch {
+    /* noop */
+  }
 }
 
 /**
@@ -46,6 +81,7 @@ export function __resetSessionStateForTests(): void {
  * Devuelve null si no hay sesión (sin cookie, caducada o revocada).
  */
 export function tryRefreshSession(): Promise<RefreshedSession | null> {
+  if (readSessionHint() === '0') return Promise.resolve(null);
   refreshInFlight ??= (async () => {
     try {
       const response = await fetch(`${BASE}/api/v1/auth/refresh`, {
@@ -55,6 +91,8 @@ export function tryRefreshSession(): Promise<RefreshedSession | null> {
       });
       if (!response.ok) {
         clearStoredToken();
+        // Solo el 401 prueba que no hay sesión; 429/5xx son fallos transitorios.
+        if (response.status === 401) writeSessionHint('0');
         return null;
       }
       const data = (await response.json()) as {

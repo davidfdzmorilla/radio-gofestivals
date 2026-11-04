@@ -12,6 +12,7 @@ import {
 import {
   clearLegacyStoredToken,
   clearStoredToken,
+  markSessionEnded,
   setStoredToken,
   tryRefreshSession,
 } from './api';
@@ -138,6 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // best-effort — el estado local se limpia igualmente.
     void logoutUser();
     clearStoredToken();
+    markSessionEnded();
     setUser(null);
     // After logout we're anonymous; the local cache may be empty.
     setFavoriteIds(new Set(localProvider.ids()));

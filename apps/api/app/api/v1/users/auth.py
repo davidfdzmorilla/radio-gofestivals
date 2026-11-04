@@ -197,6 +197,17 @@ async def refresh_session(
     Un token ya rotado que vuelve a presentarse es señal de robo/replay:
     se revocan todas las sesiones del usuario y se responde 401.
     """
+    # Sin cookie no hay nada que adivinar: 401 antes del rate limit. Cada carga
+    # anónima de la web llama a este endpoint, y si gastara cuota, ~30 visitas por
+    # minuto desde una IP compartida dejarían sin refresh (429) a los usuarios con
+    # sesión de esa misma IP.
+    raw = request.cookies.get(REFRESH_COOKIE)
+    if not raw:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="missing_refresh_token",
+        )
+
     client_ip = request.client.host if request.client else "unknown"
     allowed, _ = await check_rate_limit(
         redis,
@@ -208,13 +219,6 @@ async def refresh_session(
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="rate_limit_exceeded",
-        )
-
-    raw = request.cookies.get(REFRESH_COOKIE)
-    if not raw:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="missing_refresh_token",
         )
     try:
         user, token, expires_at, new_raw = await auth_service.rotate_session(

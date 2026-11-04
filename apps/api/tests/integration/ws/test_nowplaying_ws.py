@@ -10,6 +10,8 @@ from redis import Redis as SyncRedis
 from sqlalchemy import create_engine, text
 from starlette.websockets import WebSocketDisconnect
 
+from app.api.v1.ws.nowplaying import WS_CONN_LIMIT_PER_IP
+
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
@@ -140,3 +142,24 @@ def test_receives_update_when_state_changes(
         )
         second = json.loads(ws.receive_text())
         assert second["title"] == "Second"
+
+
+def test_ws_connection_limit_allows_zapping_and_still_blocks_floods(
+    sync_client: TestClient,
+    sync_redis: SyncRedis,
+    seed_station,  # type: ignore[no-untyped-def]
+) -> None:
+    seed_station("zap-station")
+    # Página + reproductor global = 2 conexiones por emisora: 3 emisoras en un
+    # minuto (6 conexiones) no pueden dar 403, que es lo que pasaba con límite 5.
+    assert WS_CONN_LIMIT_PER_IP >= 20
+
+    for _ in range(WS_CONN_LIMIT_PER_IP):
+        with sync_client.websocket_connect("/api/v1/ws/nowplaying/zap-station"):
+            pass
+
+    with (
+        pytest.raises(WebSocketDisconnect),
+        sync_client.websocket_connect("/api/v1/ws/nowplaying/zap-station"),
+    ):
+        pass

@@ -127,8 +127,8 @@ services:
       - "traefik.http.routers.radio-api.priority=10"
       - "traefik.http.services.radio-api.loadbalancer.server.port=8000"
       # Middleware compartido de security headers (lo referencia también el
-      # router web). CSP en Report-Only durante la primera semana: revisar
-      # violations en la consola del navegador antes de pasar a enforce.
+      # router web). CSP en enforce desde 2026-11-04 (ADR 007). Si una página
+      # nueva carga recursos externos, hay que añadir su origen aquí.
       # media-src abierto a propósito: los streams de audio viven en hosts
       # arbitrarios (el endpoint /stream hace 302 al stream real).
       - "traefik.http.routers.radio-api.middlewares=radio-sec-headers"
@@ -138,7 +138,7 @@ services:
       - "traefik.http.middlewares.radio-sec-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
       - "traefik.http.middlewares.radio-sec-headers.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
       - "traefik.http.middlewares.radio-sec-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(), geolocation=()"
-      - "traefik.http.middlewares.radio-sec-headers.headers.customResponseHeaders.Content-Security-Policy-Report-Only=default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; media-src * data: blob:; connect-src 'self' wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      - "traefik.http.middlewares.radio-sec-headers.headers.customResponseHeaders.Content-Security-Policy=default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; media-src * data: blob:; connect-src 'self' wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
 
   # ---------------------------------------------------------------------------
   # Web Next.js · expuesto vía Traefik (catch-all del dominio)

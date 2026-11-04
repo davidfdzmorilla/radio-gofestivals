@@ -143,6 +143,19 @@ docker compose --env-file .env.production -f docker-compose.prod.yml \
   --profile cron run --rm scripts eval-recommendations
 ```
 
+## 4b · Rotación de logs
+
+Los logs de `/var/log/radio` se rotan con `infra/deploy/logrotate-radio.conf` (diaria,
+14 copias comprimidas, `maxsize 50M`, `copytruncate`). Corre desde el crontab de `david`
+(no hace falta root; los logs y el directorio son suyos):
+
+```cron
+10 2 * * * /usr/sbin/logrotate -s /home/david/.local/state/radio-logrotate.status /home/david/compose/radio-gofestivals/infra/deploy/logrotate-radio.conf >> /var/log/radio/cleanup.log 2>&1
+```
+
+El `find -mtime +14 -delete` anterior nunca borraba los logs activos (su mtime se renueva
+con cada escritura): `health.log` llegó a 234 MB y `admin-jobs.log` a 97 MB.
+
 ## 5 · Troubleshooting
 
 ### 502 Bad Gateway

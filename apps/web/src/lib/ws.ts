@@ -2,6 +2,9 @@ export type WSListener = (data: unknown) => void;
 
 const MAX_BACKOFF_MS = 30_000;
 const INITIAL_BACKOFF_MS = 1_000;
+// El servidor cierra con 1008 a propósito (p. ej. station_not_available):
+// reconectar solo repetiría la misma respuesta y gastaría el límite por IP.
+const WS_POLICY_VIOLATION = 1008;
 
 export class ReconnectingWebSocket {
   private ws: WebSocket | null = null;
@@ -30,19 +33,31 @@ export class ReconnectingWebSocket {
         /* ignore malformed payload */
       }
     });
-    this.ws.addEventListener('close', () => this.scheduleReconnect());
+    this.ws.addEventListener('close', (ev) => {
+      if (ev.code === WS_POLICY_VIOLATION) {
+        this.closed = true;
+        this.onStatus?.(false);
+        return;
+      }
+      this.scheduleReconnect();
+    });
     this.ws.addEventListener('error', () => this.scheduleReconnect());
   }
 
   private scheduleReconnect(): void {
     this.onStatus?.(false);
-    if (this.closed) return;
+    // Un fallo dispara 'error' y luego 'close': sin esta guarda programaría
+    // dos reconexiones (el doble de conexiones contra el límite por IP).
+    if (this.closed || this.reconnectTimer !== null) return;
     const delay = Math.min(
       MAX_BACKOFF_MS,
       INITIAL_BACKOFF_MS * 2 ** this.retries,
     );
     this.retries += 1;
-    this.reconnectTimer = window.setTimeout(() => this.connect(), delay);
+    this.reconnectTimer = window.setTimeout(() => {
+      this.reconnectTimer = null;
+      this.connect();
+    }, delay);
   }
 
   close(): void {

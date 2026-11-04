@@ -113,6 +113,49 @@ describe('ReconnectingWebSocket', () => {
     ws.close();
   });
 
+  it('schedules a single reconnect when error and close both fire', () => {
+    const ws = new ReconnectingWebSocket('ws://x', () => {});
+    ws.connect();
+
+    instances[0]!.dispatch('error');
+    instances[0]!.dispatch('close');
+    vi.advanceTimersByTime(1000);
+    expect(instances).toHaveLength(2); // antes: 3 (dos temporizadores)
+
+    // El backoff avanza una vez por fallo, no dos.
+    instances[1]!.dispatch('error');
+    instances[1]!.dispatch('close');
+    vi.advanceTimersByTime(1999);
+    expect(instances).toHaveLength(2);
+    vi.advanceTimersByTime(1);
+    expect(instances).toHaveLength(3);
+
+    ws.close();
+  });
+
+  it('does not reconnect after a 1008 policy-violation close', () => {
+    const onStatus = vi.fn();
+    const ws = new ReconnectingWebSocket('ws://x', () => {}, onStatus);
+    ws.connect();
+
+    instances[0]!.dispatch('close', { code: 1008 });
+    vi.advanceTimersByTime(60_000);
+
+    expect(instances).toHaveLength(1);
+    expect(onStatus).toHaveBeenLastCalledWith(false);
+  });
+
+  it('still reconnects after an abnormal close (1006)', () => {
+    const ws = new ReconnectingWebSocket('ws://x', () => {});
+    ws.connect();
+
+    instances[0]!.dispatch('close', { code: 1006 });
+    vi.advanceTimersByTime(1000);
+    expect(instances).toHaveLength(2);
+
+    ws.close();
+  });
+
   it('close() is idempotent and stops reconnects', () => {
     const ws = new ReconnectingWebSocket('ws://x', () => {});
     ws.connect();

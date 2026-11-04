@@ -14,7 +14,10 @@ from app.services.rate_limit import check_rate_limit
 router = APIRouter()
 log = get_logger("app.ws.nowplaying")
 
-WS_CONN_LIMIT_PER_IP = 5
+# Cada página de emisora abre 2 conexiones (página + reproductor global), así que
+# 5/min dejaba sin now-playing a quien cambia de emisora tres veces en un minuto
+# (y a todos los que comparten IP). Las conexiones son baratas: esto solo frena floods.
+WS_CONN_LIMIT_PER_IP = 30
 WS_CONN_WINDOW_SECONDS = 60
 STATE_KEY_PREFIX = "np:state:"
 POLL_INTERVAL_SECONDS = 2.0

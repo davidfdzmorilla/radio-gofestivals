@@ -4,6 +4,8 @@ from httpx import AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.v1.users.auth import REFRESH_LIMIT
+
 REFRESH_COOKIE = "rgf_refresh"
 
 
@@ -68,6 +70,32 @@ async def test_refresh_rotates_and_old_token_is_rejected(
 async def test_refresh_without_cookie_401(client: AsyncClient) -> None:
     resp = await client.post("/api/v1/auth/refresh")
     assert resp.status_code == 401
+
+
+async def test_anonymous_refreshes_do_not_consume_rate_limit(client: AsyncClient) -> None:
+    # Cada carga anónima de la web llama a /auth/refresh. Si gastaran cuota, una IP
+    # compartida con >30 visitas/min dejaría sin refresh (429) a sus usuarios con sesión.
+    for _ in range(REFRESH_LIMIT + 5):
+        resp = await client.post("/api/v1/auth/refresh")
+        assert resp.status_code == 401
+        assert resp.json()["detail"] == "missing_refresh_token"
+
+    await _register(client)
+    resp = await client.post("/api/v1/auth/refresh")
+    assert resp.status_code == 200, resp.text
+
+
+async def test_refresh_with_cookie_is_still_rate_limited(client: AsyncClient) -> None:
+    await _register(client)
+    cookie = client.cookies.get(REFRESH_COOKIE)
+    assert cookie
+    # Un token falso sí cuenta: sigue protegido frente a probar tokens a ciegas.
+    statuses = []
+    for _ in range(REFRESH_LIMIT + 3):
+        client.cookies.set(REFRESH_COOKIE, "forged", path="/api/v1/auth")
+        statuses.append((await client.post("/api/v1/auth/refresh")).status_code)
+    assert statuses[0] == 401
+    assert statuses[-1] == 429
 
 
 async def test_logout_revokes_and_clears_cookie(

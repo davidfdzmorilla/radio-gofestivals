@@ -13,18 +13,20 @@
 
 - Con ~9 usuarios, lo social (perfiles, follows, comentarios) rinde poco hoy. Pesa más lo que
   atrae tráfico nuevo y lo que mejora la experiencia del visitante anónimo.
-- El proyecto promete "vínculo con festivales del ecosistema". En el código web solo aparece la
-  marca (no hay páginas de festival). `gofestivals_db_url` existe en la config, y hay un Postgres de
-  gofestivals en el mismo VPS.
+- El proyecto promete "vínculo con festivales del ecosistema". Hasta el 2026-11-05 el código web solo
+  mostraba la marca. El proyecto hermano (`/home/david/compose/gofestivals`) ya tiene un plan de
+  cross-links (`RADIO-CROSSLINKS-PLAN.md`) cuya Fase D, la reciprocidad en la radio, es lo de este
+  bloque. La integración va por su **API HTTP pública** (ADR 009), no por su base de datos.
 
 ## 1 · Festivales (el diferenciador)
 
-**Bloqueada por una pregunta abierta**: casi todo este bloque depende de poder leer la base de
-datos de gofestivals desde este proyecto (acceso de lectura, esquema de festivales/carteles).
+**Desbloqueada** (2026-11-05): se consume `https://api.gofestivals.es/api/festivals?genre=&upcoming=true`
+(100 festivales próximos, 15 de 20 géneros de la radio con datos). Ver ADR 009.
 
 | Idea | Valor | Esfuerzo | Notas |
 |---|---|---|---|
-| Radio del festival: página por festival con emisoras de sus géneros y cuenta atrás | Alto | M | Reutiliza taxonomía de géneros y páginas SEO |
+| **Hecho (rama `feat/festivals-genre-hub`)**: módulo "Próximos festivales de {género}" en `/genres/[slug]` | Alto | M | Fase D del plan de cross-links. Pendiente: hubs de país (backfill de `country_code` incompleto, ~57 %) y medir clics |
+| Radio del festival: página por festival con emisoras de sus géneros y cuenta atrás | Alto | M | Reutiliza taxonomía de géneros y páginas SEO. Limitación: no se sabe el género principal de un festival (lista de 10-30 géneros sin orden) |
 | Coincidencia con el cartel: si el tema emitido coincide con un artista del cartel, insignia "en el cartel de X" | Muy alto | M-L | `pg_trgm` ya está; hay que normalizar nombres de artista |
 | Emisoras cerca del festival | Medio | S | Reutiliza `/nearby` (PostGIS) |
 | Widget/insignia embebible para gofestivals.eu/.es | Alto | S-M | Ya hay `BadgeSnippetGenerator` para emisoras; devuelve tráfico a gofestivals |
@@ -106,4 +108,5 @@ WebSocket y refresh anónimo, hidratación de la búsqueda, tres tandas de maque
 
 1. **Objetivo ahora**: ¿crecer en tráfico, retener a los usuarios actuales o reforzar la unión
    con gofestivals?
-2. **Acceso a la base de datos de gofestivals** (para el bloque 1).
+2. ~~Acceso a la base de datos de gofestivals~~ — resuelta: se usa su API pública (ADR 009).
+3. ¿Retirar `gofestivals_db_url` de la config del API, que nunca se usó?

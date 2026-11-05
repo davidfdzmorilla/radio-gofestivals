@@ -7,6 +7,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { Link } from '@/i18n/navigation';
 import { getGenresTree } from '@/lib/api';
+import { festivalEventLd } from '@/lib/festival-jsonld';
 import { festivalGenreWeights, rollUpToRoots } from '@/lib/festival-genres';
 import { stationsForFestival } from '@/lib/festival-stations';
 import {
@@ -82,6 +83,7 @@ export default async function FestivalPage({ params }: { params: Promise<Params>
   const mainGenres = weights.slice(0, 6).flatMap((w) => genresBySlug[w.slug] ?? []);
   const color = mainGenres[0]?.color_hex ?? DEFAULT_COLOR;
 
+  const eventLd = festivalEventLd(festival, locale);
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -137,6 +139,7 @@ export default async function FestivalPage({ params }: { params: Promise<Params>
       )}
 
       <JsonLd data={breadcrumbLd} />
+      {eventLd && <JsonLd data={eventLd} />}
     </div>
   );
 }

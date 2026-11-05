@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { StationCover } from '@/components/stations/StationCover';
 import { readableOnDark } from '@/lib/color';
+import { stationLogoUrl } from '@/lib/logo';
 import { SITE_URL } from '@/lib/site';
 import {
   buildAlternates,
@@ -156,6 +157,11 @@ export default async function StationPage({
       .filter(Boolean)
       .join(' · '),
     ...(station.homepage_url ? { sameAs: station.homepage_url } : {}),
+    // Solo el logo real (ADR 011): sin logo no se inventa uno. Googlebot debe poder
+    // descargarlo, por eso robots.ts permite este path concreto dentro de /api/.
+    ...(station.logo_hash
+      ? { logo: stationLogoUrl(station.slug, station.logo_hash, 'lg') }
+      : {}),
     ...(station.city || station.country_code
       ? {
           address: {

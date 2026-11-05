@@ -11,8 +11,8 @@ import { HeartButton } from '@/components/auth/HeartButton';
 import { LikeButton } from '@/components/auth/LikeButton';
 import { Badge } from '@/components/ui/badge';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { readableOnDark, readableTextOn } from '@/lib/color';
-import { initials } from '@/lib/utils';
+import { StationCover } from '@/components/stations/StationCover';
+import { readableOnDark } from '@/lib/color';
 import { SITE_URL } from '@/lib/site';
 import {
   buildAlternates,
@@ -121,6 +121,7 @@ export default async function StationPage({
     quality_score: station.quality_score,
     votes_local: station.votes_local ?? 0,
     genres: station.genres.map((g) => g.slug),
+    logo_hash: station.logo_hash ?? null,
     is_favorite: station.is_favorite ?? null,
     user_voted: station.user_voted ?? null,
   };
@@ -182,12 +183,16 @@ export default async function StationPage({
       </nav>
 
       <section className="flex flex-col items-start gap-8 sm:flex-row">
-        <div
-          className="flex h-44 w-44 shrink-0 -rotate-1 items-center justify-center rounded-2xl font-display text-6xl font-semibold shadow-sticker-lg"
-          style={{ backgroundColor: primaryColor, color: readableTextOn(primaryColor) }}
-        >
-          {initials(station.name)}
-        </div>
+        <StationCover
+          slug={station.slug}
+          name={station.name}
+          logoHash={station.logo_hash}
+          color={primaryColor}
+          size="lg"
+          className="h-44 w-44 -rotate-1 rounded-2xl shadow-sticker-lg"
+          textClassName="text-6xl font-semibold"
+          paddingClassName="p-4"
+        />
         <div className="flex-1 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             {station.curated && (

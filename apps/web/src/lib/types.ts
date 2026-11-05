@@ -57,6 +57,8 @@ export const StationSummarySchema = z.object({
   votes_local: z.number().default(0),
   genres: z.array(z.string()),
   primary_stream: StationStreamRefSchema.nullable().optional(),
+  // Hash del logo procesado (ADR 011); null = sin logo propio.
+  logo_hash: z.string().nullable().optional(),
   is_favorite: z.boolean().nullable().optional(),
   user_voted: z.boolean().nullable().optional(),
   updated_at: z.string().nullable().optional(),
@@ -119,6 +121,7 @@ export const StationDetailSchema = z.object({
   quality_score: z.number(),
   status: z.string(),
   votes_local: z.number().default(0),
+  logo_hash: z.string().nullable().optional(),
   genres: z.array(StationGenreRefSchema),
   streams: z.array(StationStreamRefSchema).default([]),
   now_playing: z.array(NowPlayingEntrySchema),

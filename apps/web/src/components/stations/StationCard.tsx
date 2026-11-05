@@ -2,10 +2,11 @@ import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { HeartButton } from '@/components/auth/HeartButton';
 import { LikeButton } from '@/components/auth/LikeButton';
-import { readableOnDark, readableTextOn } from '@/lib/color';
-import { cn, initials } from '@/lib/utils';
+import { readableOnDark } from '@/lib/color';
+import { cn } from '@/lib/utils';
 import type { StationSummary, Genre } from '@/lib/types';
 import { PlayButton } from './PlayButton';
+import { StationCover } from './StationCover';
 
 interface Props {
   station: StationSummary;
@@ -44,12 +45,15 @@ export function StationCard({ station, genresBySlug, index = 0, labels }: Props)
         href={`/stations/${station.slug}`}
         className="flex min-w-0 items-center gap-3 outline-hidden"
       >
-        <div
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg font-display text-xl font-bold shadow-sticker-sm"
-          style={{ backgroundColor: color, color: readableTextOn(color) }}
-        >
-          {initials(station.name)}
-        </div>
+        <StationCover
+          slug={station.slug}
+          name={station.name}
+          logoHash={station.logo_hash}
+          color={color}
+          size="sm"
+          className="h-14 w-14 rounded-lg shadow-sticker-sm"
+          textClassName="text-xl"
+        />
         <div className="min-w-0 flex-1">
           <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-fg-0">
             {station.name}

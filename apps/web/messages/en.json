@@ -12,8 +12,9 @@
   },
   "home": {
     "title": "radio.gofestivals",
+    "metaTitle": "radio.gofestivals · Online Electronic Music Radio",
     "tagline": "Electronic music, curated.",
-    "seoDescription": "Discover hand-picked electronic music radio stations. Techno, house, trance, drum & bass and more, streaming live from across the world, connected to the gofestivals ecosystem.",
+    "seoDescription": "Online electronic music radio: techno, house, trance, drum & bass and more. Hand-picked stations, live and free.",
     "featured": "Featured",
     "featuredEmpty": "No curated stations yet. Stay tuned.",
     "forYou": "For you"
@@ -46,7 +47,7 @@
     "count": "{count, plural, =0 {no genres} =1 {1 genre} other {# genres}}",
     "exploreTitle": "Explore {name}",
     "stationCount": "{count, plural, =0 {no stations} =1 {1 station} other {# stations}}",
-    "metaTitle": "Online {name} Radio · {count, plural, =0 {No Stations} =1 {1 Station} other {# Stations}} Live · radio.gofestivals",
+    "metaTitle": "Online {name} Radio · {count, plural, =0 {No Stations} =1 {1 Station} other {# Stations}} Live",
     "metaDescription": "{count, plural, =0 {No {name} radio stations yet on radio.gofestivals.} =1 {1 hand-picked online {name} radio station, streaming live. Listen free on radio.gofestivals.} other {# hand-picked online {name} radio stations, streaming live from across the world. Listen free on radio.gofestivals.}}",
     "indexTitle": "Electronic music genres · radio.gofestivals",
     "indexDescription": "Browse every electronic music genre: techno, house, trance, drum & bass, dubstep and more. Curated stations, streaming live on radio.gofestivals.",
@@ -202,7 +203,7 @@
   "search": {
     "title": "Search",
     "metaTitle": "Search electronic radio stations",
-    "metaDescription": "Search every electronic music station in the directory by name.",
+    "metaDescription": "Search every electronic music station in the directory by name: techno, house, trance, drum & bass and more, live and free.",
     "placeholder": "Search for a station…",
     "resultsFor": "Results for “{query}”",
     "noResults": "No results for “{query}”.",

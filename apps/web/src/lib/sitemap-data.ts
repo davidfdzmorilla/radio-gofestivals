@@ -143,7 +143,6 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
     ...localizedEntries('/new', 'daily', 0.7),
     ...localizedEntries('/search', 'monthly', 0.4),
     ...localizedEntries('/for-stations', 'monthly', 0.4),
-    ...localizedEntries('/support', 'monthly', 0.3),
     ...(festivals.length > 0 ? localizedEntries('/festivals', 'daily', 0.7) : []),
     // Solo los próximos: el índice y las fichas pasadas (noindex) no se listan.
     ...festivals.flatMap((fest) => localizedEntries(festivalPath(fest), 'weekly', 0.6)),

@@ -163,6 +163,10 @@ docker image prune -f --filter "label=org.opencontainers.image.source=https://gi
 # también limpia la de otros proyectos (solo ralentiza su próximo build).
 LOG "pruning build cache"
 docker builder prune -f >/dev/null || true
+# Las versiones viejas de nuestras imágenes se acumulaban (~0,5 GB por deploy): se
+# conservan las 3 últimas por servicio (KEEP_IMAGES). El rollback usa IDs de imagen.
+LOG "pruning old release images"
+"$SCRIPT_DIR/prune-images.sh" || true
 
 # ---------- 8. final log ---------------------------------------------------
 DURATION=$(( $(date -u +%s) - START_TS ))

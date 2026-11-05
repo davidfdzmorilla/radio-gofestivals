@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import uuid
 from typing import Annotated, Literal
 
@@ -133,6 +134,43 @@ async def list_trending(
         session,
         genre=genre,
         limit=limit,
+    )
+
+
+FOR_GENRES_MAX = 30
+FOR_GENRES_TTL = 300
+FOR_GENRES_RATE_LIMIT = 60
+FOR_GENRES_RATE_WINDOW = 60
+_GENRE_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,49}$")
+
+
+@router.get("/for-genres", response_model=StationsPage)
+async def list_for_genres(
+    request: Request,
+    session: SessionDep,
+    redis: RedisDep,
+    genres: Annotated[str, Query(min_length=1, max_length=1000)],
+    limit: Annotated[int, Query(ge=1, le=12)] = 6,
+) -> StationsPage:
+    """Emisoras que cubren más de los géneros dados (CSV de slugs).
+
+    Pensado para consumidores externos (fichas de festival de gofestivals):
+    cuantos más géneros del festival cubre una emisora, más arriba sale.
+    """
+    slugs = list(dict.fromkeys(g.strip().lower() for g in genres.split(",") if g.strip()))
+    if not slugs or len(slugs) > FOR_GENRES_MAX or not all(_GENRE_SLUG_RE.match(g) for g in slugs):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "invalid_genres")
+    client_ip = request.client.host if request.client else "unknown"
+    allowed, _count = await check_rate_limit(
+        redis,
+        f"for-genres:{client_ip}",
+        limit=FOR_GENRES_RATE_LIMIT,
+        window_seconds=FOR_GENRES_RATE_WINDOW,
+    )
+    if not allowed:
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "rate_limit_exceeded")
+    return await stations_service.list_stations_for_genres(
+        session, redis, genres=slugs, limit=limit, ttl=FOR_GENRES_TTL
     )
 
 

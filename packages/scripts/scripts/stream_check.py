@@ -38,6 +38,8 @@ from dataclasses import dataclass
 
 import httpx
 
+from scripts.url_guard import guard_request
+
 DEFAULT_TIMEOUT_S = 12.0
 _USER_AGENT = "radio.gofestivals/1.0 (+https://radio.gofestivals.eu)"
 _ORIGIN = "https://radio.gofestivals.eu"
@@ -119,6 +121,7 @@ async def check_stream_alive(
         follow_redirects=True,
         verify=verify_ssl,
         headers=_HEADERS,
+        event_hooks={"request": [guard_request]},
     )
 
     start = time.monotonic()

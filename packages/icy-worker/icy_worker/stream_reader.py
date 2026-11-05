@@ -9,6 +9,7 @@ from sqlalchemy import text
 from icy_worker.icy_parser import parse_icy_metadata
 from icy_worker.logging import get_logger
 from icy_worker.np_state import publish_if_changed, state_key
+from icy_worker.url_guard import BlockedAddressError
 
 if TYPE_CHECKING:
     from redis.asyncio import Redis
@@ -153,6 +154,8 @@ async def read_icy_stream(
                             mode = "audio"
                             audio_remaining = metaint
                             buffer.clear()
+    except BlockedAddressError as exc:
+        log.warning("stream_blocked_non_public", slug=slug, detail=str(exc))
     except httpx.HTTPError as exc:
         log.info("stream_error", slug=slug, error_type=type(exc).__name__, detail=str(exc))
     except Exception as exc:  # noqa: BLE001

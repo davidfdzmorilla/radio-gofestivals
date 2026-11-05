@@ -13,30 +13,45 @@ from icy_worker.config import WorkerConfig, load_config
 from icy_worker.db import make_engine, make_sessionmaker
 from icy_worker.logging import get_logger
 from icy_worker.ondemand_pool import OnDemandPool
+from icy_worker.url_guard import guard_request
 
 log = get_logger("icy_worker.main")
 app = typer.Typer(help="radio.gofestivals · ICY metadata worker")
+
+
+def build_http_clients(cfg: WorkerConfig) -> tuple[httpx.AsyncClient, httpx.AsyncClient]:
+    """Clientes (on-demand, ambient) que piden las `stream_url` de emisoras.
+
+    follow_redirects: many Radio-Browser URLs 301/302 to CDN-rewritten
+    endpoints (rautemusik.fm → stream37.radiohost.de, technolovers.fm,
+    piratefm.net, …). Without this, ~30 popular stations were dropped on
+    the first hop and never produced NowPlaying metadata. max_redirects=3
+    caps cycles; legitimate streams resolve in 1-2 hops.
+
+    guard_request: las URLs vienen de un tercero (Radio-Browser) y este proceso
+    ve Postgres y Redis; se rechaza cualquier salto a una dirección no pública
+    (SSRF, ADR 008).
+    """
+    client = httpx.AsyncClient(
+        timeout=httpx.Timeout(connect=10.0, read=30.0, write=5.0, pool=5.0),
+        follow_redirects=True,
+        max_redirects=3,
+        event_hooks={"request": [guard_request]},
+    )
+    ambient_client = httpx.AsyncClient(
+        timeout=httpx.Timeout(connect=5.0, read=cfg.ambient_probe_timeout, write=2.0, pool=2.0),
+        follow_redirects=True,
+        max_redirects=3,
+        event_hooks={"request": [guard_request]},
+    )
+    return client, ambient_client
 
 
 async def _run(cfg: WorkerConfig) -> None:
     engine = make_engine(cfg.database_url)
     maker = make_sessionmaker(engine)
     redis: Redis[bytes] = Redis.from_url(cfg.redis_url, decode_responses=False)
-    # follow_redirects: many Radio-Browser URLs 301/302 to CDN-rewritten
-    # endpoints (rautemusik.fm → stream37.radiohost.de, technolovers.fm,
-    # piratefm.net, …). Without this, ~30 popular stations were dropped on
-    # the first hop and never produced NowPlaying metadata. max_redirects=3
-    # caps cycles; legitimate streams resolve in 1-2 hops.
-    client = httpx.AsyncClient(
-        timeout=httpx.Timeout(connect=10.0, read=30.0, write=5.0, pool=5.0),
-        follow_redirects=True,
-        max_redirects=3,
-    )
-    ambient_client = httpx.AsyncClient(
-        timeout=httpx.Timeout(connect=5.0, read=cfg.ambient_probe_timeout, write=2.0, pool=2.0),
-        follow_redirects=True,
-        max_redirects=3,
-    )
+    client, ambient_client = build_http_clients(cfg)
 
     pool = OnDemandPool(
         redis=redis,

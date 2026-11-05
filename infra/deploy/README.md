@@ -156,6 +156,29 @@ Los logs de `/var/log/radio` se rotan con `infra/deploy/logrotate-radio.conf` (d
 El `find -mtime +14 -delete` anterior nunca borraba los logs activos (su mtime se renueva
 con cada escritura): `health.log` llegó a 234 MB y `admin-jobs.log` a 97 MB.
 
+## 4c · Imágenes viejas y espacio en disco
+
+Cada deploy construye `api`, `web`, `icy-worker` y `scripts` con el tag del SHA de git. `docker image
+prune` solo borra las huérfanas, así que los tags viejos se acumulaban (60 tras ~15 deploys).
+`deploy.sh` ejecuta ahora `prune-images.sh` al terminar: conserva las últimas 3 versiones por servicio
+(`KEEP_IMAGES`, por defecto 3) y borra el resto. Solo toca tags tipo SHA de `radio-gofestivals/*`: nunca
+`latest` ni otros proyectos, y docker se niega a borrar una imagen en uso. El rollback automático usa
+IDs de imagen y no depende de esos tags.
+
+**No es la solución a un disco lleno.** Medido el 2026-11-05 (disco al 89 %, 9 GB libres): las
+versiones comparten casi todas sus capas, así que borrar 48 tags liberó menos de 0,1 GB. Lo de la
+radio es pequeño: imágenes ~1 GB únicos, base de datos 187 MB, backups 232 MB, logs 54 MB. El grueso del
+VPS compartido son imágenes de otros proyectos (`wedding-page-frontend` 1,9 GB, `docker-kaleido-web`
+1,8 GB…) y 3,9 GB de volúmenes sin usar. La caché de build (6,7 GB) no se puede podar: sus entradas
+están en uso por imágenes existentes.
+
+```bash
+infra/deploy/prune-images.sh --dry-run   # qué borraría
+infra/deploy/prune-images.sh             # borrar de verdad
+bash infra/deploy/tests/prune-images.test.sh   # pruebas con un docker simulado
+docker system df                         # qué ocupa Docker en el VPS (todos los proyectos)
+```
+
 ## 5 · Troubleshooting
 
 ### 502 Bad Gateway

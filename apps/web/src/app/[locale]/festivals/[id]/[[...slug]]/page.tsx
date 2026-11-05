@@ -44,7 +44,14 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     alternates: buildAlternates(locale, path),
     // Una edición ya celebrada sigue siendo útil para quien llega, pero no merece indexarse.
     ...(festivalPhase(festival) === 'ended' ? { robots: { index: false, follow: true } } : {}),
-    openGraph: { title, description, url: `${SITE_URL}/${locale}${path}`, type: 'website' },
+    // openGraph propio anula la imagen heredada del file convention: se indica la de marca.
+    openGraph: {
+      title,
+      description,
+      url: `${SITE_URL}/${locale}${path}`,
+      type: 'website',
+      images: [{ url: `${SITE_URL}/${locale}/opengraph-image`, width: 1200, height: 630 }],
+    },
   };
 }
 

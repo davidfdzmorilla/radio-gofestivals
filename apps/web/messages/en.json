@@ -20,8 +20,26 @@
   },
   "festivals": {
     "title": "Upcoming {name} festivals",
-    "viewAll": "Full calendar",
-    "source": "Festival data from gofestivals"
+    "viewAll": "All festivals",
+    "source": "Festival data from gofestivals",
+    "pageTitle": "{name} {year}: dates, genres and radio",
+    "pageDescription": "{name} ({details}). Listen to {genres} radio stations while you wait for the festival.",
+    "pageDescriptionPlain": "{name} ({details}). Electronic music festival with the radio stations that match its sound.",
+    "startsIn": "Starts {relative}",
+    "ongoing": "Happening now",
+    "ended": "This edition has ended",
+    "genresTitle": "Festival genres",
+    "warmUpTitle": "Radio stations to warm up",
+    "warmUpIntro": "Stations that match the festival's main genres.",
+    "viewOnGofestivals": "View on gofestivals",
+    "officialSite": "Official website",
+    "home": "Home",
+    "crumb": "Festivals",
+    "indexTitle": "Upcoming electronic music festivals",
+    "indexIntro": "Festivals from the gofestivals calendar, with the radio stations that match their sound.",
+    "indexMetaTitle": "Electronic music festivals: calendar and radio · radio.gofestivals",
+    "fullCalendar": "Full calendar on gofestivals",
+    "empty": "No upcoming festivals right now."
   },
   "genres": {
     "title": "Genres",
@@ -72,7 +90,8 @@
     "trending": "Trending",
     "new": "New",
     "search": "Search",
-    "forStations": "Run a station?"
+    "forStations": "Run a station?",
+    "festivals": "Festivals"
   },
   "pagination": {
     "pageOf": "Page {current} of {total}",

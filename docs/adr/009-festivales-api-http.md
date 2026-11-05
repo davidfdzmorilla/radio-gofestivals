@@ -10,7 +10,7 @@ fases A-C sí están: enlaces desde sus fichas y un endpoint público
 
 En la config de la radio existe `gofestivals_db_url`, de un enfoque anterior de acceso directo a su
 base de datos que nunca se usó. Comprobado el 2026-11-05: `upcoming=true` devuelve 100 festivales entre
-2026-11-21 y 2027-08-27, y 15 de los 20 géneros de la radio tienen al menos uno (14 tienen 3 o más).
+2026-11-21 y 2027-08-27, y 15 de los 20 géneros raíz de la radio tienen al menos uno (14 tienen 3 o más).
 
 ## Decisión
 
@@ -28,7 +28,7 @@ valor contextual), con el slug generado igual que su `generateSlug`. URL base co
 - Positivas: sin credenciales ni acoplamiento al esquema de su base de datos; su API ya está
   pensada para esto; el módulo no puede romper la página (fail-soft) ni retrasarla más de 3 s en
   una regeneración.
-- Positivas: 15 de 20 géneros muestran el módulo; los 5 sin festivales (`makina`, `noise`,
+- Positivas: 15 de los 20 géneros raíz muestran el módulo; los 5 sin festivales (`makina`, `noise`,
   `old-school`, `schranz`, `uptempo`) no pintan nada.
 - Negativas: **relevancia limitada**. Cada festival lista entre 10 y 30 géneros y el orden de esa
   lista cambia entre consultas, así que no se puede saber su género principal. "Ambient" incluirá

@@ -21,11 +21,11 @@
 ## 1 · Festivales (el diferenciador)
 
 **Desbloqueada** (2026-11-05): se consume `https://api.gofestivals.es/api/festivals?genre=&upcoming=true`
-(100 festivales próximos, 15 de 20 géneros de la radio con datos). Ver ADR 009.
+(100 festivales próximos, 15 de los 20 géneros raíz de la radio con datos). Ver ADR 009 y 010.
 
 | Idea | Valor | Esfuerzo | Notas |
 |---|---|---|---|
-| **Hecho (rama `feat/festivals-genre-hub`)**: módulo "Próximos festivales de {género}" en `/genres/[slug]` | Alto | M | Fase D del plan de cross-links. Pendiente: hubs de país (backfill de `country_code` incompleto, ~57 %) y medir clics |
+| **Hecho**: módulo "Próximos festivales de {género}" en `/genres/[slug]` y **páginas de festival** (`/festivals`, `/festivals/[id]/[slug]`, ADR 010) | Alto | M | Fase D del plan de cross-links. Pendiente: hubs de país (`country_code` en ~78 % de los próximos), medir clics, y que gofestivals recupere sus imágenes (bucket S3 caído) |
 | Radio del festival: página por festival con emisoras de sus géneros y cuenta atrás | Alto | M | Reutiliza taxonomía de géneros y páginas SEO. Limitación: no se sabe el género principal de un festival (lista de 10-30 géneros sin orden) |
 | Coincidencia con el cartel: si el tema emitido coincide con un artista del cartel, insignia "en el cartel de X" | Muy alto | M-L | `pg_trgm` ya está; hay que normalizar nombres de artista |
 | Emisoras cerca del festival | Medio | S | Reutiliza `/nearby` (PostGIS) |

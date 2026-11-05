@@ -156,7 +156,7 @@ export default async function GenrePage({
     }),
     getCountryFacets({ genre: genre.slug }).catch(() => []),
     showFestivals
-      ? getUpcomingFestivals({ genre: genre.slug, locale })
+      ? getUpcomingFestivals({ genre: genre.slug })
       : Promise.resolve([]),
   ]);
 

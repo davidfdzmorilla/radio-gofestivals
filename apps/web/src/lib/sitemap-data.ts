@@ -4,6 +4,7 @@ import {
   COUNTRY_GATE_MIN_STATIONS,
   TRENDING_GENRE_GATE_MIN,
 } from './seo';
+import { festivalPath, getAllUpcomingFestivals } from './festivals';
 
 const SITE = 'https://radio.gofestivals.eu';
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -105,10 +106,13 @@ async function fetchCountryFacets(genre?: string): Promise<CountryFacet[]> {
  * without existing nor vice versa.
  */
 export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
-  const [stations, genres, countries] = await Promise.all([
+  // getAllUpcomingFestivals es fail-soft: si gofestivals no responde, el sitemap
+  // omite los festivales y se rellenan al revalidar (como el resto de fuentes).
+  const [stations, genres, countries, festivals] = await Promise.all([
     fetchAllStations(),
     fetchAllGenres(),
     fetchCountryFacets(),
+    getAllUpcomingFestivals(),
   ]);
 
   const gatedCountries = countries.filter(
@@ -140,6 +144,9 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
     ...localizedEntries('/search', 'monthly', 0.4),
     ...localizedEntries('/for-stations', 'monthly', 0.4),
     ...localizedEntries('/support', 'monthly', 0.3),
+    ...(festivals.length > 0 ? localizedEntries('/festivals', 'daily', 0.7) : []),
+    // Solo los próximos: el índice y las fichas pasadas (noindex) no se listan.
+    ...festivals.flatMap((fest) => localizedEntries(festivalPath(fest), 'weekly', 0.6)),
     ...genres.flatMap((g) =>
       localizedEntries(`/genres/${g.slug}`, 'weekly', 0.7),
     ),

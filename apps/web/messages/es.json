@@ -12,8 +12,9 @@
   },
   "home": {
     "title": "radio.gofestivals",
+    "metaTitle": "radio.gofestivals · Radio de música electrónica online",
     "tagline": "Música electrónica, curada.",
-    "seoDescription": "Descubre estaciones de radio de música electrónica seleccionadas a mano. Techno, house, trance, drum & bass y más, sonando en vivo desde todo el mundo, conectadas al ecosistema gofestivals.",
+    "seoDescription": "Radio de música electrónica online: techno, house, trance, drum & bass y más. Emisoras seleccionadas a mano, en directo y gratis.",
     "featured": "Destacadas",
     "featuredEmpty": "Todavía no hay estaciones curadas. Pronto sonarán.",
     "forYou": "Para ti"
@@ -46,7 +47,7 @@
     "count": "{count, plural, =0 {sin géneros} =1 {1 género} other {# géneros}}",
     "exploreTitle": "Explorar {name}",
     "stationCount": "{count, plural, =0 {sin estaciones} =1 {1 estación} other {# estaciones}}",
-    "metaTitle": "Radio {name} Online · {count, plural, =0 {Sin emisoras} =1 {1 Emisora} other {# Emisoras}} en Vivo · radio.gofestivals",
+    "metaTitle": "Radio {name} Online · {count, plural, =0 {Sin emisoras} =1 {1 Emisora} other {# Emisoras}} en Vivo",
     "metaDescription": "{count, plural, =0 {Aún no hay emisoras de radio {name} disponibles en radio.gofestivals.} =1 {1 emisora de radio {name} online curada, sonando en vivo. Escucha gratis en radio.gofestivals.} other {# emisoras de radio {name} online curadas, sonando en vivo desde todo el mundo. Escucha gratis en radio.gofestivals.}}",
     "indexTitle": "Géneros de música electrónica · radio.gofestivals",
     "indexDescription": "Explora todos los géneros de música electrónica: techno, house, trance, drum & bass, dubstep y más. Emisoras curadas, sonando en vivo en radio.gofestivals.",
@@ -202,7 +203,7 @@
   "search": {
     "title": "Buscar",
     "metaTitle": "Buscar radios de electrónica",
-    "metaDescription": "Busca entre todas las emisoras de música electrónica del directorio por nombre.",
+    "metaDescription": "Busca entre todas las emisoras de música electrónica del directorio por nombre: techno, house, trance, drum & bass y más, en directo y gratis.",
     "placeholder": "Busca una emisora…",
     "resultsFor": "Resultados para “{query}”",
     "noResults": "Sin resultados para “{query}”.",

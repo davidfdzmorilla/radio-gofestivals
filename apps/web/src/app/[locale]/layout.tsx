@@ -61,7 +61,7 @@ export async function generateMetadata({
     // (localhost:3000) en vez del dominio público.
     metadataBase: new URL(SITE_URL),
     title: {
-      default: t('title'),
+      default: t('metaTitle'),
       template: `%s · ${t('title')}`,
     },
     description: t('seoDescription'),

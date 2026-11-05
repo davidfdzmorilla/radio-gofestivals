@@ -70,7 +70,7 @@ export async function generateMetadata({
   const url = `${SITE_URL}/${locale}/genres/${slug}`;
   try {
     const genres = await getGenresTree();
-    const genre = genres.find((g) => g.slug === slug);
+    const genre = indexBySlug(genres)[slug];
     if (!genre) return { alternates };
     const title =
       tGenres('metaTitle', {

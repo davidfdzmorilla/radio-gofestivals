@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { PlayButton } from './PlayButton';
 import { QualitySelector } from '@/components/player/QualitySelector';
 import { usePlayerStore } from '@/lib/player-store';
@@ -14,9 +14,16 @@ interface Props {
   baseSummary: Omit<StationSummary, 'primary_stream'>;
   streams: StationStreamRef[];
   color: string;
+  /** Acciones (me gusta, favorito) que van en la misma fila que el play. */
+  children?: ReactNode;
 }
 
-export function StationPlayerControls({ baseSummary, streams, color }: Props) {
+export function StationPlayerControls({
+  baseSummary,
+  streams,
+  color,
+  children,
+}: Props) {
   const initialStream = useMemo(() => {
     if (streams.length === 0) return null;
     return findPreferredStream(streams);
@@ -61,7 +68,10 @@ export function StationPlayerControls({ baseSummary, streams, color }: Props) {
 
   return (
     <div className="space-y-4">
-      <PlayButton station={summary} color={color} size="lg" streams={streams} />
+      <div className="flex flex-wrap items-center gap-3">
+        <PlayButton station={summary} color={color} size="lg" streams={streams} />
+        {children}
+      </div>
       <QualitySelector
         streams={streams}
         activeStreamId={activeStreamId ?? ''}

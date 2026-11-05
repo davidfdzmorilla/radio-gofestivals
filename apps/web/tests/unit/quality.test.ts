@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  dedupeStreamsByLabel,
   findPreferredStream,
   inferQualityTier,
   persistQualityPreference,
   readQualityPreference,
+  streamLabel,
 } from '@/lib/quality';
 import type { StationStreamRef } from '@/lib/types';
 
@@ -102,5 +104,37 @@ describe('findPreferredStream', () => {
     window.localStorage.setItem(KEY, 'high');
     const onlyLow = [mk('a', 64, true), mk('b', 32)];
     expect(findPreferredStream(onlyLow).id).toBe('a');
+  });
+});
+
+describe('streamLabel / dedupeStreamsByLabel', () => {
+  const aac = (id: string, bitrate: number): StationStreamRef => ({
+    ...mk(id, bitrate),
+    codec: 'aac',
+    format: 'aac',
+  });
+
+  it('formats "<bitrate> <codec>" and falls back for missing data', () => {
+    expect(streamLabel(aac('a', 320))).toBe('320 aac');
+    expect(streamLabel({ ...mk('b', null), codec: null, format: null })).toBe('— ?');
+  });
+
+  it('collapses mirrors with the same codec and bitrate into one option', () => {
+    const out = dedupeStreamsByLabel([aac('a', 320), aac('b', 320), aac('c', 128)], 'a');
+    expect(out.map((s) => s.id)).toEqual(['a', 'c']);
+  });
+
+  it('keeps the active stream as representative of its group', () => {
+    const out = dedupeStreamsByLabel([aac('a', 320), aac('b', 320)], 'b');
+    expect(out.map((s) => s.id)).toEqual(['b']);
+  });
+
+  it('preserves the order of first appearance', () => {
+    const out = dedupeStreamsByLabel([aac('a', 128), aac('b', 320), aac('c', 128)], null);
+    expect(out.map((s) => s.id)).toEqual(['a', 'b']);
+  });
+
+  it('returns a single option when every stream has the same quality', () => {
+    expect(dedupeStreamsByLabel([aac('a', 320), aac('b', 320)], null)).toHaveLength(1);
   });
 });

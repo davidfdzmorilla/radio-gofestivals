@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { dedupeStreamsByLabel, streamLabel } from '@/lib/quality';
 import { cn } from '@/lib/utils';
 import type { StationStreamRef } from '@/lib/types';
 
@@ -10,22 +11,17 @@ interface Props {
   onSelect: (stream: StationStreamRef) => void;
 }
 
-function formatLabel(stream: StationStreamRef): string {
-  const codec = stream.codec ?? stream.format ?? '?';
-  const bitrate = stream.bitrate != null ? String(stream.bitrate) : '—';
-  return `${bitrate} ${codec}`;
-}
-
 export function QualitySelector({ streams, activeStreamId, onSelect }: Props) {
   const t = useTranslations('player');
-  if (streams.length <= 1) return null;
+  const options = dedupeStreamsByLabel(streams, activeStreamId);
+  if (options.length <= 1) return null;
 
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('quality')}>
       <span className="font-mono text-[12px] uppercase tracking-widest text-fg-2">
         {t('quality')}
       </span>
-      {streams.map((stream) => {
+      {options.map((stream) => {
         const isActive = stream.id === activeStreamId;
         return (
           <button
@@ -41,7 +37,7 @@ export function QualitySelector({ streams, activeStreamId, onSelect }: Props) {
                 : 'border-fg-3 bg-bg-2 text-fg-2 hover:border-fg-2 hover:text-fg-1',
             )}
           >
-            {formatLabel(stream)}
+            {streamLabel(stream)}
           </button>
         );
       })}

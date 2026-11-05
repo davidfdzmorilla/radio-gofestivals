@@ -16,7 +16,7 @@ from io import BytesIO
 from typing import TYPE_CHECKING
 
 import httpx
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageChops, ImageOps, UnidentifiedImageError
 
 from scripts.url_guard import BlockedAddressError
 
@@ -33,6 +33,11 @@ WEBP_QUALITY = 82
 # Formatos raster que Pillow decodifica de forma segura. SVG no está (es XML, no raster).
 ALLOWED_FORMATS = frozenset({"PNG", "JPEG", "WEBP", "GIF", "ICO", "BMP"})
 HASH_LENGTH = 12
+# El logo se muestra sobre un recuadro claro (--fg-0 de la web). Uno casi blanco o casi
+# transparente se perdería: se rechaza si menos de un 2 % de sus píxeles se distingue.
+TILE_RGB = (250, 250, 249)
+VISIBLE_DIFF = 24
+MIN_VISIBLE_FRACTION = 0.02
 HTTP_OK = 200
 USER_AGENT = "radio.gofestivals/1.0 (+https://radio.gofestivals.eu; logo fetcher)"
 
@@ -61,6 +66,14 @@ def _encode(img: Image.Image, side: int) -> bytes:
     return out.getvalue()
 
 
+def _visible_on_light(rgba: Image.Image) -> bool:
+    background = Image.new("RGBA", rgba.size, (*TILE_RGB, 255))
+    flat = Image.alpha_composite(background, rgba).convert("RGB")
+    diff = ImageChops.difference(flat, Image.new("RGB", flat.size, TILE_RGB)).convert("L")
+    visible = sum(diff.histogram()[VISIBLE_DIFF + 1 :])
+    return visible / (rgba.width * rgba.height) >= MIN_VISIBLE_FRACTION
+
+
 def process_image(data: bytes) -> ProcessedLogo:
     """Valida `data` y devuelve dos copias WebP propias. Lanza `LogoRejectedError` si no sirve."""
     try:
@@ -82,6 +95,9 @@ def process_image(data: bytes) -> ProcessedLogo:
     try:
         img.seek(0)  # GIF animado: primer fotograma
         rgba = ImageOps.exif_transpose(img).convert("RGBA")
+        if not _visible_on_light(rgba):
+            msg = "invisible on a light background"
+            raise LogoRejectedError(msg)
         sm = _encode(rgba, SIZES["sm"])
         lg = _encode(rgba, SIZES["lg"])
     except (OSError, ValueError, SyntaxError, Image.DecompressionBombError) as exc:

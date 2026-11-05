@@ -56,3 +56,50 @@ que ya había; una URL nueva descarta el anterior.
   iniciales de las emisoras sin logo.
 - Pendiente: la página de favoritos (su payload no lleva `logo_hash`), las imágenes OG de emisora y el
   admin para ocultar un logo. Si un host bloquea de forma sistemática, se documenta, no se evade.
+
+## Addendum · fuente alternativa: el icono de la web de la emisora (2026-11-05)
+
+**Contexto.** Con solo el favicon de Radio-Browser, el backfill dejó logo en 715 de 1.651 emisoras
+activas (43 %): 963 tenían favicon (58 %) y de esas se aprovechó el 74 %. De las 936 sin logo, 907
+(96 %) tienen `homepage_url`.
+
+**Medición previa** sobre una muestra real de 120 de esas webs (mismo guard y mismo procesado):
+80 (66 %) dieron un icono utilizable: 58 por `apple-touch-icon`, 17 por `og:image` y 5 por
+`<link rel=icon>`. Se montó una hoja de contactos con los 80 y se miró a ojo: el `apple-touch-icon`
+da logos reales y reconocibles; el `og:image` da fotos y banners, no logos; y salían falsos
+positivos evidentes (el logo de Wix en 3 webs, el de la plataforma `laut.fm`, un icono blanco sobre
+el recuadro blanco).
+
+**Decisión.** Escalera de fuentes en `fetch-logos`: 1) favicon de Radio-Browser; 2) si no sirve, el
+icono de marca de la web (`homepage_url`): se lee la web una vez (300 KB máx., con el guard SSRF y el
+User-Agent honesto) y se prueban, por este orden, `apple-touch-icon` (mayor lado declarado primero),
+`<link rel=icon>` (se omiten los declarados de menos de 64 px) y `/apple-touch-icon.png`. **No se usa
+`og:image`** (calidad), ni SVG, ni `mask-icon`. Se descartan las webs de redes sociales, plataformas de
+radio y constructores genéricos (lista por dominio, no por subcadena: `xlukradio.com` no es
+`radio.co`), y todo icono que se perdería sobre el recuadro claro (menos de un 2 % de píxeles se
+distingue de él: blanco sobre transparente, fondo casi blanco…); esta última comprobación también
+afecta a los favicons.
+
+Migración 0022: `station_logos` guarda `favicon_seen` y `homepage_seen` (las URLs que había al
+intentarlo; si cambian, la emisora vuelve a la cola) y `source_kind` (`favicon`/`homepage`). Las
+filas existentes con logo no se tocan; las `failed` y `rejected` quedan con `homepage_seen` vacío y
+entran solas a probar la web. Una web que responde pero no tiene icono es un fallo reintentable
+(backoff hasta 30 días, puede añadirlo); una web social, de plataforma o que apunta a una dirección
+interna es un rechazo definitivo hasta que cambie la URL.
+
+**Resultado medido** (386 emisoras reales de Radio-Browser: techno, house, trance, ambient): cobertura
+del **52 % con solo favicon al 70 % con la escalera** (+72 logos desde la web, 48 s). Revisados a ojo,
+los 72 son logos de marca reconocibles; no aparece ningún logo de plataforma.
+
+**Consecuencias.**
+- Positivas: unos +440 logos esperados en el catálogo completo (de ~43 % a ~70 %) con calidad de marca.
+- Negativas: una petición más por emisora sin logo (la web) y otra por icono probado, como mucho una
+  vez al mes por emisora tras el primer intento. No se consulta `robots.txt`: se lee una página
+  pública con un User-Agent identificable, y un host que responde 403/429 se respeta (fallo con
+  backoff), no se evade.
+- Negativas: falsos positivos que no se pueden detectar de forma fiable, como una web que usa el icono
+  por defecto de su framework (visto: el logo de React en una emisora). Varias emisoras de una misma
+  marca comparten logo, lo que es correcto.
+- Negativas: la lista de dominios denegados es manual; hay que ampliarla si aparecen plataformas nuevas.
+- Pendiente: `og:image` descartado a propósito; revisar si en el catálogo completo compensa una regla
+  más fina (por ejemplo, solo si es casi cuadrada).

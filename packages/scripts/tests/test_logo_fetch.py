@@ -67,8 +67,12 @@ def test_keeps_aspect_ratio_and_never_upscales_beyond_the_target() -> None:
 
 def test_preserves_transparency() -> None:
     out = BytesIO()
-    Image.new("RGBA", (128, 128), (0, 0, 0, 0)).save(out, format="PNG")
-    assert _decode(process_image(out.getvalue()).lg).convert("RGBA").getpixel((5, 5))[3] == 0
+    canvas = Image.new("RGBA", (128, 128), (0, 0, 0, 0))
+    canvas.paste(Image.new("RGBA", (80, 80), (200, 30, 60, 255)), (24, 24))  # logo con forma
+    canvas.save(out, format="PNG")
+    corner = _decode(process_image(out.getvalue()).lg).convert("RGBA").getpixel((2, 2))
+    assert corner is not None
+    assert corner[3] == 0  # fuera del logo sigue siendo transparente
 
 
 def test_ico_uses_the_largest_size_and_accepts_it() -> None:
@@ -294,3 +298,59 @@ async def test_garbage_bytes_served_as_an_image_are_rejected(
     async with _client(handler) as c:
         with pytest.raises(LogoRejectedError):
             await fetch_logo(c, "https://cdn.example/logo.svg")
+
+
+# --- visibilidad sobre el recuadro claro --------------------------------------
+
+
+def _png(canvas: Image.Image) -> bytes:
+    out = BytesIO()
+    canvas.save(out, format="PNG")
+    return out.getvalue()
+
+
+def _on_transparent(shape_color: tuple[int, int, int, int], shape: int, side: int = 128) -> bytes:
+    canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    offset = (side - shape) // 2
+    canvas.paste(Image.new("RGBA", (shape, shape), shape_color), (offset, offset))
+    return _png(canvas)
+
+
+@pytest.mark.parametrize(
+    ("data", "why"),
+    [
+        (_png(Image.new("RGBA", (128, 128), (0, 0, 0, 0))), "totalmente transparente"),
+        (_on_transparent((255, 255, 255, 255), 100), "logo blanco sobre transparente"),
+        (_on_transparent((248, 248, 247, 255), 100), "logo casi blanco"),
+        (_png(Image.new("RGB", (128, 128), (255, 255, 255))), "fondo blanco liso"),
+        (_png(Image.new("RGB", (128, 128), (252, 251, 250))), "casi del color del recuadro"),
+        (_on_transparent((20, 20, 20, 255), 8), "un punto de menos del 2 % del área"),
+    ],
+)
+def test_a_logo_that_would_vanish_on_the_light_tile_is_rejected(data: bytes, why: str) -> None:
+    with pytest.raises(LogoRejectedError, match="invisible"):
+        process_image(data)
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        _on_transparent((20, 20, 20, 255), 100),
+        _on_transparent((200, 30, 60, 255), 100),
+        _on_transparent((30, 140, 220, 255), 40),
+        _png(Image.new("RGB", (128, 128), (10, 10, 10))),
+        _png(Image.new("RGB", (128, 128), (0, 180, 90))),
+    ],
+)
+def test_dark_and_colored_logos_are_accepted(data: bytes) -> None:
+    process_image(data)
+
+
+def test_a_white_logo_on_a_dark_background_is_accepted() -> None:
+    canvas = Image.new("RGBA", (128, 128), (15, 15, 15, 255))
+    canvas.paste(Image.new("RGBA", (60, 60), (255, 255, 255, 255)), (34, 34))
+    process_image(_png(canvas))  # el fondo oscuro es parte del logo: se ve sobre el recuadro
+
+
+def test_a_semi_transparent_dark_logo_is_still_visible() -> None:
+    process_image(_on_transparent((0, 0, 0, 140), 100))

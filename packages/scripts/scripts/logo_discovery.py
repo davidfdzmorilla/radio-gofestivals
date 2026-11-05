@@ -121,6 +121,22 @@ def is_eligible_homepage(url: str | None) -> bool:
     return not any(host == d or host.endswith(f".{d}") for d in DENIED_DOMAINS)
 
 
+# Segundos niveles habituales ("radio.co.uk" -> "radio.co.uk", no "co.uk"). Es una aproximación
+# sin la Public Suffix List: basta para agrupar sitios de una misma marca.
+_SECOND_LEVEL = frozenset({"co", "com", "org", "net", "gov", "edu", "ac", "ne", "or"})
+
+
+def registrable_domain(url: str) -> str:
+    """Dominio de la web sin subdominios: `www.es.radio.example.co.uk` -> `example.co.uk`."""
+    host = (urlsplit(url).hostname or "").lower().removeprefix("www.")
+    labels = host.split(".")
+    if len(labels) <= 2:  # noqa: PLR2004
+        return host
+    if len(labels[-1]) == 2 and labels[-2] in _SECOND_LEVEL:  # noqa: PLR2004
+        return ".".join(labels[-3:])
+    return ".".join(labels[-2:])
+
+
 @dataclass(frozen=True)
 class IconCandidate:
     kind: str  # "apple-touch-icon" | "link-icon" | "convention"

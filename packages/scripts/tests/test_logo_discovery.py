@@ -15,6 +15,7 @@ from scripts.logo_discovery import (
     extract_icon_candidates,
     fetch_html,
     is_eligible_homepage,
+    registrable_domain,
 )
 from scripts.logo_fetch import USER_AGENT, LogoFetchError, LogoRejectedError
 from scripts.url_guard import guard_request
@@ -385,3 +386,38 @@ async def test_a_homepage_that_redirects_to_an_internal_address_is_rejected(
         with pytest.raises(LogoRejectedError, match="blocked"):
             await fetch_html(c, "https://radio.example/")
     assert seen == ["radio.example"]
+
+
+# --- dominio registrable ----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("https://radiorecord.ru/radio/x", "radiorecord.ru"),
+        ("https://www.radiorecord.ru", "radiorecord.ru"),
+        ("https://pc.costa-server.info.pl:11020/x", "info.pl"),
+        ("https://a6.asurahosting.com/public/x", "asurahosting.com"),
+        ("https://r.bgp.rodeo/public/after_hours", "bgp.rodeo"),
+        ("https://es.radio.example.co.uk/live", "example.co.uk"),
+        ("https://www.energy106.co.uk/", "energy106.co.uk"),
+        ("https://radio.example.com.br/", "example.com.br"),
+        ("http://localhost:8000/", "localhost"),
+        ("https://nts.live", "nts.live"),
+        ("", ""),
+    ],
+)
+def test_registrable_domain_groups_subdomains_of_one_site(url: str, expected: str) -> None:
+    assert registrable_domain(url) == expected
+
+
+def test_subdomains_of_the_same_site_are_one_domain() -> None:
+    assert (
+        len(
+            {
+                registrable_domain(u)
+                for u in ("https://a.brand.fm/", "https://b.brand.fm/x", "https://www.brand.fm")
+            }
+        )
+        == 1
+    )

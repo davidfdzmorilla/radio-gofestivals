@@ -4,6 +4,7 @@ from app.models.base import Base
 from app.models.genre import Genre
 from app.models.station import NowPlaying, Station, StationGenre
 from app.models.station_clickcount_history import StationClickcountHistory
+from app.models.station_logo import StationLogo
 from app.models.station_stream import StationStream
 from app.models.user import (
     PasswordResetToken,
@@ -23,6 +24,7 @@ __all__ = [
     "Station",
     "StationClickcountHistory",
     "StationGenre",
+    "StationLogo",
     "StationStream",
     "User",
     "UserFavorite",

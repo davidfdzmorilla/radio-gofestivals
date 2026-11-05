@@ -16,6 +16,7 @@ from sqlalchemy import (
     Numeric,
     PrimaryKeyConstraint,
     SmallInteger,
+    String,
     Text,
 )
 from sqlalchemy.dialects.postgresql import ENUM, UUID
@@ -27,6 +28,7 @@ from app.models.base import Base
 if TYPE_CHECKING:
     from app.models.genre import Genre
     from app.models.station_clickcount_history import StationClickcountHistory
+    from app.models.station_logo import StationLogo
     from app.models.station_stream import StationStream
 
 
@@ -61,6 +63,11 @@ class Station(Base):
     # stream_url, codec, bitrate were moved to station_streams in migration
     # 0005. The columns are kept on the table only until 0007 drops them.
     homepage_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Logo según Radio-Browser (campo `favicon`): solo la URL de origen, nunca se sirve
+    # tal cual. `logo_hash` copia el hash de station_logos cuando hay imagen propia ya
+    # procesada: lo leen los listados para saber si pedir el logo (ADR 011).
+    favicon_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    logo_hash: Mapped[str | None] = mapped_column(String(16), nullable=True)
     country_code: Mapped[str | None] = mapped_column(CHAR(2), nullable=True)
     city: Mapped[str | None] = mapped_column(Text, nullable=True)
     geo: Mapped[str | None] = mapped_column(
@@ -127,6 +134,14 @@ class Station(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
         order_by="(StationStream.is_primary.desc(), StationStream.bitrate.desc())",
+    )
+    # lazy="noload": las imágenes (bytea) nunca deben cargarse con la emisora.
+    logo: Mapped[StationLogo | None] = relationship(
+        "StationLogo",
+        back_populates="station",
+        cascade="all, delete-orphan",
+        uselist=False,
+        lazy="noload",
     )
 
 

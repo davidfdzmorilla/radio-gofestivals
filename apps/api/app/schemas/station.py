@@ -42,6 +42,8 @@ class StationSummary(BaseModel):
     votes_local: int = 0
     genres: list[str] = Field(default_factory=list)
     primary_stream: StationStreamRef | None = None
+    # Hash del logo ya procesado (ADR 011); None = sin logo. Versiona la URL del logo.
+    logo_hash: str | None = None
     # Para el lastmod del sitemap; None en constructores que no cargan la fila.
     updated_at: datetime | None = None
     # Populated only when the request carries a valid user JWT.
@@ -61,6 +63,7 @@ class StationDetail(BaseModel):
     quality_score: int
     status: str
     votes_local: int = 0
+    logo_hash: str | None = None
     genres: list[StationGenreRef] = Field(default_factory=list)
     streams: list[StationStreamRef] = Field(default_factory=list)
     now_playing: list[NowPlayingEntry] = Field(default_factory=list)

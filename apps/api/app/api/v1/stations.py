@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 
 from app.api.deps import (
     OptionalUserDep,
@@ -298,6 +298,36 @@ async def register_play(
             detail="station_not_found",
         )
     return PlayRegisterResponse(accepted=True, deduplicated=not was_new)
+
+
+# El logo se versiona con `?v=<hash>`: si coincide con el actual el contenido de esa URL
+# no cambiará nunca (inmutable, 1 año); sin versión o con una vieja se revalida cada hora.
+LOGO_CACHE_IMMUTABLE = "public, max-age=31536000, immutable"
+LOGO_CACHE_REVALIDATE = "public, max-age=3600, stale-while-revalidate=86400"
+
+
+@router.get("/{slug}/logo")
+async def station_logo(
+    slug: str,
+    request: Request,
+    session: SessionDep,
+    size: Annotated[Literal["sm", "lg"], Query()] = "lg",
+    v: Annotated[str | None, Query(max_length=32)] = None,
+) -> Response:
+    """Logo de la emisora, ya procesado a WebP por `fetch-logos` (nunca el original)."""
+    logo = await stations_service.get_station_logo(session, slug, size)
+    if logo is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="logo_not_found")
+    content_hash, data = logo
+    etag = f'"{content_hash}-{size}"'
+    headers = {
+        "ETag": etag,
+        "Cache-Control": LOGO_CACHE_IMMUTABLE if v == content_hash else LOGO_CACHE_REVALIDATE,
+        "X-Content-Type-Options": "nosniff",
+    }
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers=headers)
+    return Response(content=data, media_type="image/webp", headers=headers)
 
 
 @router.get("/{slug}/stream")

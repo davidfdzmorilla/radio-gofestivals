@@ -66,6 +66,7 @@ def _to_summary(station: Station) -> StationSummary:
         votes_local=int(station.votes_local or 0),
         genres=[g.slug for g in station.genres],
         primary_stream=_stream_ref(primary) if primary else None,
+        logo_hash=station.logo_hash,
         updated_at=station.updated_at,
     )
 
@@ -317,6 +318,7 @@ async def get_station_detail(
             quality_score=station.quality_score,
             status=station.status,
             votes_local=int(station.votes_local or 0),
+            logo_hash=station.logo_hash,
             genres=[
                 StationGenreRef(
                     slug=g.slug,
@@ -402,6 +404,15 @@ async def get_stream_url(session: AsyncSession, slug: str) -> tuple[str, str] | 
     if primary is None:
         return None
     return str(station.id), primary.stream_url
+
+
+async def get_station_logo(
+    session: AsyncSession,
+    slug: str,
+    size: str,
+) -> tuple[str, bytes] | None:
+    """(hash, bytes WebP) del logo de una emisora activa y visible, o None."""
+    return await stations_repo.get_logo_data(session, slug, size)
 
 
 async def find_nearby(

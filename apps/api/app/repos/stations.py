@@ -6,6 +6,7 @@ from sqlalchemy import ColumnElement, bindparam, func, select, text
 
 from app.models.genre import Genre
 from app.models.station import NowPlaying, Station, StationGenre
+from app.models.station_logo import StationLogo
 
 if TYPE_CHECKING:
     import uuid
@@ -334,6 +335,29 @@ async def get_active_station_by_slug(session: AsyncSession, slug: str) -> Statio
     stmt = select(Station).where(Station.slug == slug, Station.status == "active")
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
+
+
+async def get_logo_data(
+    session: AsyncSession,
+    slug: str,
+    size: str,
+) -> tuple[str, bytes] | None:
+    """Logo procesado (hash, WebP) de una emisora activa, no oculta, con logo `ok`."""
+    column = StationLogo.data_sm if size == "sm" else StationLogo.data_lg
+    stmt = (
+        select(StationLogo.content_hash, column)
+        .join(Station, Station.id == StationLogo.station_id)
+        .where(
+            Station.slug == slug,
+            Station.status == "active",
+            Station.hidden.is_(False),
+            StationLogo.status == "ok",
+        )
+    )
+    row = (await session.execute(stmt)).first()
+    if row is None or row[0] is None or row[1] is None:
+        return None
+    return str(row[0]), bytes(row[1])
 
 
 async def get_station_by_slug_any_status(session: AsyncSession, slug: str) -> Station | None:

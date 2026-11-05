@@ -5,9 +5,10 @@ import { Play, Pause, X, Volume2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
-import { cn, initials } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { usePlayerStore } from '@/lib/player-store';
 import { recordPlay } from '@/lib/plays';
+import { StationCover } from '@/components/stations/StationCover';
 import { NowPlaying } from './NowPlaying';
 import { SpectrumAnalyzer } from './SpectrumAnalyzer';
 
@@ -129,11 +130,16 @@ export function GlobalPlayer() {
       )}
     >
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-        <div
-          aria-hidden
-          className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-wave font-display text-lg font-bold text-bg-0 shadow-sticker-sm sm:flex"
-        >
-          {initials(station.name)}
+        <div aria-hidden className="hidden sm:block">
+          <StationCover
+            slug={station.slug}
+            name={station.name}
+            logoHash={station.logo_hash}
+            color="#8B4EE8"
+            size="sm"
+            className="h-12 w-12 rounded-lg shadow-sticker-sm"
+            textClassName="text-lg"
+          />
         </div>
         <button
           type="button"

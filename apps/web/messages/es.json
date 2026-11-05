@@ -18,6 +18,11 @@
     "featuredEmpty": "Todavía no hay estaciones curadas. Pronto sonarán.",
     "forYou": "Para ti"
   },
+  "festivals": {
+    "title": "Próximos festivales de {name}",
+    "viewAll": "Calendario completo",
+    "source": "Datos de festivales: gofestivals"
+  },
   "genres": {
     "title": "Géneros",
     "count": "{count, plural, =0 {sin géneros} =1 {1 género} other {# géneros}}",

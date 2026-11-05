@@ -4,6 +4,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { getCountryFacets, getGenresTree, listStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
+import { UpcomingFestivals } from '@/components/festivals/UpcomingFestivals';
+import { getUpcomingFestivals } from '@/lib/festivals';
 import { SidebarFilters } from '@/components/layout/SidebarFilters';
 import { PublicPagination } from '@/components/PublicPagination';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -138,8 +140,12 @@ export default async function GenrePage({
   const tHome = await getTranslations('home');
   const tNav = await getTranslations('nav');
   const tPagination = await getTranslations('pagination');
+  const tFestivals = await getTranslations('festivals');
 
-  const [stationsPage, countryFacets] = await Promise.all([
+  // Festivales solo en la primera página y sin filtro de país: evita repetir el
+  // módulo en cada paginación y mostrarlo recortado por el backfill de países.
+  const showFestivals = (Number.isFinite(page) ? page : 1) <= 1 && !country;
+  const [stationsPage, countryFacets, festivals] = await Promise.all([
     listStations({
       genre: genre.slug,
       country,
@@ -149,6 +155,9 @@ export default async function GenrePage({
       revalidate: 300,
     }),
     getCountryFacets({ genre: genre.slug }).catch(() => []),
+    showFestivals
+      ? getUpcomingFestivals({ genre: genre.slug, locale })
+      : Promise.resolve([]),
   ]);
 
   // Países reales del género (antes lista hardcodeada con 'UK' no-ISO).
@@ -281,6 +290,16 @@ export default async function GenrePage({
           />
         </div>
       </div>
+
+      <UpcomingFestivals
+        festivals={festivals}
+        locale={locale}
+        labels={{
+          title: tFestivals('title', { name: genre.name }),
+          viewAll: tFestivals('viewAll'),
+          source: tFestivals('source'),
+        }}
+      />
 
       {comboFacets.length > 0 && (
         <section className="space-y-3">

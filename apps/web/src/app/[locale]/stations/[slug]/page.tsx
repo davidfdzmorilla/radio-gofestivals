@@ -230,23 +230,26 @@ export default async function StationPage({
               )}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-3 pt-2">
+          <div className="pt-2">
             <StationPlayerControls
               baseSummary={baseSummary}
               streams={station.streams}
               color={primaryColor}
-            />
-            <LikeButton
-              stationId={station.id}
-              initialUserVoted={station.user_voted ?? null}
-              initialVotesLocal={station.votes_local ?? 0}
-              size="md"
-            />
-            <HeartButton
-              stationId={station.id}
-              initialIsFavorite={station.is_favorite ?? null}
-              size="md"
-            />
+            >
+              <LikeButton
+                stationId={station.id}
+                initialUserVoted={station.user_voted ?? null}
+                initialVotesLocal={station.votes_local ?? 0}
+                size="md"
+                className="h-11"
+              />
+              <HeartButton
+                stationId={station.id}
+                initialIsFavorite={station.is_favorite ?? null}
+                size="md"
+                className="h-11 w-11"
+              />
+            </StationPlayerControls>
           </div>
         </div>
       </section>

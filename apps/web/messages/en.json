@@ -20,7 +20,7 @@
   },
   "festivals": {
     "title": "Upcoming {name} festivals",
-    "viewAll": "Full calendar",
+    "viewAll": "All festivals",
     "source": "Festival data from gofestivals"
   },
   "genres": {

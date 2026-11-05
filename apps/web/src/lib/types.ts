@@ -132,3 +132,36 @@ export interface NowPlayingState {
   artist: string | null;
   at: string;
 }
+
+// Festivales de gofestivals (proyecto hermano, ADR 009). La API usa snake_case
+// y mezcla nombres; aquí se normaliza al forma que usa la web.
+export const FestivalSchema = z
+  .object({
+    id: z.union([z.number(), z.string()]).transform(String),
+    name: z.string().min(1),
+    start_date: z.string(),
+    end_date: z.string().nullish(),
+    location: z.string().nullish(),
+    location_en: z.string().nullish(),
+    country_code: z.string().nullish(),
+    website: z.string().nullish(),
+    imageUrl: z.string().nullish(),
+    description: z.string().nullish(),
+    description_en: z.string().nullish(),
+    Genres: z.array(z.object({ name: z.string() })).nullish(),
+  })
+  .transform((f) => ({
+    id: f.id,
+    name: f.name,
+    startDate: f.start_date,
+    endDate: f.end_date ?? null,
+    location: f.location ?? null,
+    locationEn: f.location_en ?? null,
+    countryCode: f.country_code ? f.country_code.toUpperCase() : null,
+    website: f.website ?? null,
+    imageUrl: f.imageUrl ?? null,
+    description: f.description ?? null,
+    descriptionEn: f.description_en ?? null,
+    genres: (f.Genres ?? []).map((g) => g.name),
+  }));
+export type Festival = z.infer<typeof FestivalSchema>;

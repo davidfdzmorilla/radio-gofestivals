@@ -1,8 +1,9 @@
-import { z } from 'zod';
+import { apiFetch, ApiError } from '@/lib/api';
+import { FestivalSchema, type Festival } from '@/lib/types';
 
-// Festivales de gofestivals (proyecto hermano). Se consume su API HTTP pública
-// (Fase D de RADIO-CROSSLINKS-PLAN.md en ese repo), no su base de datos.
-// Fail-soft: si la API falla o tarda, el módulo simplemente no se muestra.
+// Festivales de gofestivals (proyecto hermano, ADR 009). Se consume su API HTTP
+// pública, no su base de datos. Los listados son fail-soft (si la API falla, no
+// se muestran); el detalle propaga los fallos para no cachear un 404 falso.
 
 // Cadena vacía (p. ej. copiada de .env.example) cuenta como no definida.
 const API_BASE =
@@ -11,22 +12,7 @@ const TIMEOUT_MS = 3000;
 const REVALIDATE_S = 3600;
 const DAY_MS = 86_400_000;
 
-const FestivalSchema = z.object({
-  id: z.union([z.number(), z.string()]).transform(String),
-  name: z.string().min(1),
-  start_date: z.string(),
-  end_date: z.string().nullish(),
-  location: z.string().nullish(),
-  location_en: z.string().nullish(),
-});
-
-export interface Festival {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string | null;
-  location: string | null;
-}
+export type { Festival };
 
 type FestivalLocale = 'es' | 'en';
 
@@ -57,6 +43,25 @@ export function festivalCalendarUrl(locale: string): string {
   return `${siteFor(locale)}/calendar`;
 }
 
+/** Ruta interna de la ficha de la radio (sin prefijo de idioma: la añade el Link/redirect de next-intl). */
+export function festivalPath(festival: Pick<Festival, 'id' | 'name'>): string {
+  return `/festivals/${festival.id}/${festivalSlug(festival.name) || 'festival'}`;
+}
+
+export function festivalLocation(
+  festival: Pick<Festival, 'location' | 'locationEn'>,
+  locale: string,
+): string | null {
+  return (locale === 'en' ? (festival.locationEn ?? festival.location) : festival.location) ?? null;
+}
+
+export function festivalDescription(
+  festival: Pick<Festival, 'description' | 'descriptionEn'>,
+  locale: string,
+): string | null {
+  return (locale === 'en' ? (festival.descriptionEn ?? festival.description) : festival.description) ?? null;
+}
+
 /** Las fechas de la API son medianoche UTC de un día natural: se formatean en UTC para no correrlas un día. */
 export function formatFestivalDates(
   locale: string,
@@ -78,64 +83,85 @@ export function formatFestivalDates(
   return fmt.formatRange(start, end);
 }
 
-function localizedLocation(locale: string, f: z.infer<typeof FestivalSchema>): string | null {
-  return (locale === 'en' ? (f.location_en ?? f.location) : f.location) ?? null;
+export type FestivalPhase = 'upcoming' | 'ongoing' | 'ended';
+
+/** end_date es el último día a las 00:00Z: el festival sigue en curso durante todo ese día. */
+export function festivalPhase(
+  festival: Pick<Festival, 'startDate' | 'endDate'>,
+  now: Date = new Date(),
+): FestivalPhase {
+  const start = Date.parse(festival.startDate);
+  const endRaw = festival.endDate ? Date.parse(festival.endDate) : start;
+  const end = (Number.isNaN(endRaw) ? start : endRaw) + DAY_MS;
+  if (now.getTime() >= end) return 'ended';
+  return now.getTime() >= start ? 'ongoing' : 'upcoming';
 }
 
-interface Options {
-  genre: string;
-  locale: string;
+async function fetchRaw(path: string): Promise<unknown> {
+  return apiFetch<unknown>(path, {
+    baseUrl: API_BASE,
+    timeoutMs: TIMEOUT_MS,
+    revalidate: REVALIDATE_S,
+  });
+}
+
+function parseFestivals(raw: unknown): Festival[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item): Festival[] => {
+    const parsed = FestivalSchema.safeParse(item);
+    return parsed.success && !Number.isNaN(Date.parse(parsed.data.startDate)) ? [parsed.data] : [];
+  });
+}
+
+interface ListOptions {
+  genre?: string;
   limit?: number;
   now?: Date;
 }
 
+/** Próximos festivales (fail-soft: ante cualquier fallo, lista vacía), ordenados por fecha. */
 export async function getUpcomingFestivals({
   genre,
-  locale,
   limit = 4,
   now = new Date(),
-}: Options): Promise<Festival[]> {
-  const params = new URLSearchParams({
-    genre,
-    upcoming: 'true',
-    // Margen sobre `limit`: se re-filtra y re-ordena aquí por si la API devolviera algo pasado.
-    limit: String(limit * 2),
-  });
+}: ListOptions = {}): Promise<Festival[]> {
+  const params = new URLSearchParams({ upcoming: 'true' });
+  if (genre) params.set('genre', genre);
+  // Margen sobre `limit`: se re-filtra y re-ordena aquí por si la API devolviera algo pasado.
+  params.set('limit', String(Math.min(limit * 2, 100)));
   let raw: unknown;
   try {
-    const res = await fetch(`${API_BASE}/api/festivals?${params.toString()}`, {
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      next: { revalidate: REVALIDATE_S },
-    });
-    if (!res.ok) return [];
-    raw = await res.json();
+    raw = await fetchRaw(`/api/festivals?${params.toString()}`);
   } catch {
     return [];
   }
-  if (!Array.isArray(raw)) return [];
-
-  const today = now.getTime();
-  return raw
-    .flatMap((item): Festival[] => {
-      const parsed = FestivalSchema.safeParse(item);
-      if (!parsed.success) return [];
-      const f = parsed.data;
-      const start = Date.parse(f.start_date);
-      if (Number.isNaN(start)) return [];
-      const end = f.end_date ? Date.parse(f.end_date) : start;
-      // end_date es el último día a las 00:00Z: sigue en curso durante todo ese día.
-      if ((Number.isNaN(end) ? start : end) + DAY_MS <= today) return [];
-      return [
-        {
-          id: f.id,
-          name: f.name,
-          startDate: f.start_date,
-          endDate: f.end_date ?? null,
-          location: localizedLocation(locale, f),
-        },
-      ];
-    })
+  return parseFestivals(raw)
+    .filter((f) => festivalPhase(f, now) !== 'ended')
     .sort((a, b) => Date.parse(a.startDate) - Date.parse(b.startDate))
     .slice(0, limit);
+}
+
+/** Todos los próximos (100, el tope de la API): índice, sitemap y rutas estáticas. */
+export function getAllUpcomingFestivals(now: Date = new Date()): Promise<Festival[]> {
+  return getUpcomingFestivals({ limit: 100, now });
+}
+
+/**
+ * Detalle de un festival. `null` solo si no existe (id no numérico o 404): la
+ * API devuelve 500 para ids no numéricos, así que se descartan antes de llamar.
+ * Cualquier otro fallo (red, 5xx, JSON raro) se PROPAGA: la página no debe
+ * convertir una caída de la API en un 404 cacheado.
+ */
+export async function getFestival(id: string): Promise<Festival | null> {
+  if (!/^\d{1,9}$/.test(id)) return null;
+  let raw: unknown;
+  try {
+    raw = await fetchRaw(`/api/festivals/${id}`);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return null;
+    throw err;
+  }
+  const parsed = FestivalSchema.safeParse(raw);
+  if (!parsed.success) throw new Error(`Festival ${id}: payload inválido`);
+  return parsed.data;
 }

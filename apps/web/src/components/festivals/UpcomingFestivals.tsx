@@ -1,4 +1,10 @@
-import { festivalCalendarUrl, festivalUrl, formatFestivalDates, type Festival } from '@/lib/festivals';
+import { Link } from '@/i18n/navigation';
+import {
+  festivalLocation,
+  festivalPath,
+  formatFestivalDates,
+  type Festival,
+} from '@/lib/festivals';
 
 interface Props {
   festivals: Festival[];
@@ -9,7 +15,8 @@ interface Props {
 /**
  * Próximos festivales de un género (datos de gofestivals). Presentacional:
  * recibe los festivales ya cargados y no pinta nada si no hay ninguno.
- * Enlaces normales (mismo propietario, valor contextual): sin nofollow.
+ * Cada tarjeta lleva a la ficha del festival en la radio (enlazado interno); el
+ * calendario completo está en gofestivals (mismo propietario, sin nofollow).
  */
 export function UpcomingFestivals({ festivals, locale, labels }: Props) {
   if (festivals.length === 0) return null;
@@ -22,18 +29,18 @@ export function UpcomingFestivals({ festivals, locale, labels }: Props) {
         >
           {labels.title}
         </h2>
-        <a
-          href={festivalCalendarUrl(locale)}
+        <Link
+          href="/festivals"
           className="-my-2 shrink-0 py-2 font-mono text-[12px] uppercase tracking-widest text-fg-2 transition-colors hover:text-fg-0"
         >
           {labels.viewAll}
-        </a>
+        </Link>
       </div>
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {festivals.map((f) => (
           <li key={f.id}>
-            <a
-              href={festivalUrl(locale, f)}
+            <Link
+              href={festivalPath(f)}
               className="flex h-full flex-col gap-1 rounded-xl border border-fg-3/50 bg-bg-2 p-4 transition-colors hover:border-fg-3 hover:bg-bg-3"
             >
               <span className="font-mono text-[12px] uppercase tracking-widest text-cyan">
@@ -42,10 +49,10 @@ export function UpcomingFestivals({ festivals, locale, labels }: Props) {
               <span className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-fg-0">
                 {f.name}
               </span>
-              {f.location && (
-                <span className="truncate text-sm text-fg-2">{f.location}</span>
+              {festivalLocation(f, locale) && (
+                <span className="truncate text-sm text-fg-2">{festivalLocation(f, locale)}</span>
               )}
-            </a>
+            </Link>
           </li>
         ))}
       </ul>

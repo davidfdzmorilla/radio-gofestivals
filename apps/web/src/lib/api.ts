@@ -32,13 +32,21 @@ interface FetchOpts<T> {
   schema?: z.ZodType<T, unknown>;
   revalidate?: number;
   signal?: AbortSignal;
+  /** Otra API (p. ej. gofestivals). Por defecto, la API de la radio. */
+  baseUrl?: string;
+  /** Corta la petición pasado este tiempo (lanza como cualquier otro fallo de red). */
+  timeoutMs?: number;
 }
 
 export async function apiFetch<T>(path: string, opts: FetchOpts<T> = {}): Promise<T> {
-  const url = `${BASE}${path}`;
+  const url = `${opts.baseUrl ?? BASE}${path}`;
+  const timeout =
+    opts.timeoutMs === undefined ? undefined : AbortSignal.timeout(opts.timeoutMs);
+  const signal =
+    timeout && opts.signal ? AbortSignal.any([opts.signal, timeout]) : (timeout ?? opts.signal);
   const res = await fetch(url, {
     headers: { Accept: 'application/json' },
-    signal: opts.signal,
+    signal,
     ...(opts.revalidate !== undefined
       ? { next: { revalidate: opts.revalidate } }
       : {}),

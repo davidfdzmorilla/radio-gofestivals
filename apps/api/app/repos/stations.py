@@ -313,6 +313,42 @@ async def list_trending_stations(
     return list(result.scalars().unique().all())
 
 
+async def list_stations_for_genres(
+    session: AsyncSession,
+    *,
+    genres: list[str],
+    limit: int,
+) -> list[Station]:
+    """Active visible stations ranked by how many of ``genres`` they cover.
+
+    Ties break on click_trend, then quality. Unlike ``list_trending_stations``
+    stations without trend signal are kept: a festival page prefers a decent
+    station of its styles over an empty module.
+    """
+    matched = func.count(Genre.id).label("matched")
+    ranked = (
+        select(StationGenre.station_id, matched)
+        .join(Genre, Genre.id == StationGenre.genre_id)
+        .where(Genre.slug.in_(genres))
+        .group_by(StationGenre.station_id)
+        .subquery()
+    )
+    stmt = (
+        select(Station)
+        .join(ranked, ranked.c.station_id == Station.id)
+        .where(Station.status == "active", Station.hidden.is_(False))
+        .order_by(
+            ranked.c.matched.desc(),
+            Station.click_trend.desc(),
+            Station.quality_score.desc(),
+            Station.name.asc(),
+        )
+        .limit(limit)
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().unique().all())
+
+
 async def list_newest_stations(
     session: AsyncSession,
     *,

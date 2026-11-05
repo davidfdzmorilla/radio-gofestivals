@@ -223,6 +223,30 @@ async def list_trending_stations(
     return _single_page([_to_summary(s) for s in items])
 
 
+def _for_genres_cache_key(genres: list[str], limit: int) -> str:
+    return f"stations:for-genres:{','.join(genres)}:{limit}:v1"
+
+
+async def list_stations_for_genres(
+    session: AsyncSession,
+    redis: Redis[str],
+    *,
+    genres: list[str],
+    limit: int,
+    ttl: int,
+) -> StationsPage:
+    # Orden canónico: ["house","techno"] y ["techno","house"] comparten caché.
+    norm = sorted(set(genres))
+    cache_key = _for_genres_cache_key(norm, limit)
+    cached = await redis.get(cache_key)
+    if cached is not None:
+        return StationsPage.model_validate_json(cached)
+    items = await stations_repo.list_stations_for_genres(session, genres=norm, limit=limit)
+    page = _single_page([_to_summary(s) for s in items])
+    await redis.set(cache_key, page.model_dump_json(), ex=ttl)
+    return page
+
+
 async def list_new_stations(
     session: AsyncSession,
     *,

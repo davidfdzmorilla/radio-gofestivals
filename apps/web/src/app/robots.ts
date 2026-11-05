@@ -7,7 +7,9 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
+        // Googlebot aplica la regla más específica: el logo (que va en el JSON-LD de
+        // la emisora) tiene que poder rastrearse aunque /api/ esté vetado.
+        allow: ['/', '/api/v1/stations/*/logo'],
         disallow: [
           '/admin',
           '/api/',

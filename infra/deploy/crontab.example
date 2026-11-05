@@ -24,6 +24,11 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Similitud emisora-emisora para recomendaciones (tras quality, 04:40 UTC)
 40 4 * * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts compute-station-similarity >> /var/log/radio/similarity.log 2>&1
 
+# Logos de emisoras (ADR 011): descarga y procesa los favicon que rb_sync acaba de guardar.
+# Tras rb_sync y similitud (04:50 UTC); envuelto en run-job.sh para avisar si falla.
+# Solo toca lo pendiente (nuevo, URL cambiada, reintento con backoff, refresco mensual).
+50 4 * * * /home/david/compose/radio-gofestivals/infra/deploy/run-job.sh fetch-logos bash -c 'cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts fetch-logos' >> /var/log/radio/fetch_logos.log 2>&1
+
 # Cleanup mensual de history (día 1 de cada mes, 04:45 UTC)
 45 4 1 * * cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm scripts cleanup-clickcount-history >> /var/log/radio/cleanup.log 2>&1
 

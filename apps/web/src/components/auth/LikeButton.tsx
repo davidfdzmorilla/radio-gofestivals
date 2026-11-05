@@ -71,7 +71,7 @@ export function LikeButton({
     }
   }
 
-  const sizeClass = size === 'sm' ? 'h-8 px-2 text-[11px]' : 'h-9 px-3';
+  const sizeClass = size === 'sm' ? 'h-8 px-2 text-[12px]' : 'h-9 px-3';
   const icon = size === 'sm' ? 13 : 16;
 
   return (

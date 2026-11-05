@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
           {t('forgotPassword')}
         </h1>
         <p className="text-fg-2 text-sm">{t('resetEmailSent')}</p>
-        <p className="text-fg-3 font-mono text-xs">
+        <p className="text-fg-2 font-mono text-xs">
           <Link href="/login" className="hover:text-fg-0">
             {t('signIn')}
           </Link>

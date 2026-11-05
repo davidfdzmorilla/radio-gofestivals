@@ -83,7 +83,7 @@ export function BadgeSnippetGenerator() {
                 className="flex w-full items-baseline justify-between gap-4 bg-bg-2 px-4 py-2.5 text-left transition-colors hover:bg-bg-3"
               >
                 <span className="truncate font-medium text-fg-0">{s.name}</span>
-                <span className="shrink-0 font-mono text-[11px] uppercase text-fg-2">
+                <span className="shrink-0 font-mono text-[12px] uppercase text-fg-2">
                   {s.country_code ?? ''}
                 </span>
               </button>
@@ -108,7 +108,7 @@ export function BadgeSnippetGenerator() {
             />
           </a>
           <div>
-            <p className="mb-1.5 font-mono text-[11px] font-semibold uppercase tracking-widest text-fg-2">
+            <p className="mb-1.5 font-mono text-[12px] font-semibold uppercase tracking-widest text-fg-2">
               {t('snippetLabel')} — {selected.name}
             </p>
             <textarea

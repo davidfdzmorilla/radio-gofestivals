@@ -29,7 +29,7 @@ export async function LegalDocument({ title, content, locale }: Props) {
         <h1 className="font-display text-3xl font-semibold text-fg-0 sm:text-4xl">
           {title}
         </h1>
-        <p className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+        <p className="font-mono text-[12px] uppercase tracking-widest text-fg-2">
           {t('lastUpdated', { date: content.lastUpdated })}
         </p>
       </header>

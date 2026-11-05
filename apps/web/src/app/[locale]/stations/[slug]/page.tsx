@@ -11,6 +11,7 @@ import { HeartButton } from '@/components/auth/HeartButton';
 import { LikeButton } from '@/components/auth/LikeButton';
 import { Badge } from '@/components/ui/badge';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { readableOnDark, readableTextOn } from '@/lib/color';
 import { initials } from '@/lib/utils';
 import { SITE_URL } from '@/lib/site';
 import {
@@ -172,8 +173,8 @@ export default async function StationPage({
 
   return (
     <div className="space-y-10">
-      <nav className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-fg-2">
-        <Link href="/" className="transition-colors hover:text-fg-0">
+      <nav className="flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-fg-2">
+        <Link href="/" className="-my-2 py-2 transition-colors hover:text-fg-0">
           {tNav('home')}
         </Link>
         <span>/</span>
@@ -182,8 +183,8 @@ export default async function StationPage({
 
       <section className="flex flex-col items-start gap-8 sm:flex-row">
         <div
-          className="flex h-44 w-44 shrink-0 -rotate-1 items-center justify-center rounded-2xl font-display text-6xl font-semibold text-bg-0 shadow-sticker-lg"
-          style={{ backgroundColor: primaryColor }}
+          className="flex h-44 w-44 shrink-0 -rotate-1 items-center justify-center rounded-2xl font-display text-6xl font-semibold shadow-sticker-lg"
+          style={{ backgroundColor: primaryColor, color: readableTextOn(primaryColor) }}
         >
           {initials(station.name)}
         </div>
@@ -198,7 +199,7 @@ export default async function StationPage({
               <Link key={g.slug} href={`/genres/${g.slug}`}>
                 <Badge
                   className="border-fg-3 bg-bg-2 transition-colors hover:border-fg-2 hover:bg-bg-3"
-                  style={{ color: g.color_hex }}
+                  style={{ color: readableOnDark(g.color_hex) }}
                 >
                   {g.name}
                 </Badge>
@@ -223,7 +224,7 @@ export default async function StationPage({
                 (station.country_code ?? '')
               )}
               {primaryStream?.codec && primaryStream.bitrate && (
-                <span className="ml-3 text-fg-2/80">
+                <span className="ml-3 text-fg-2">
                   {primaryStream.codec.toUpperCase()} · {primaryStream.bitrate}kbps
                 </span>
               )}
@@ -251,7 +252,7 @@ export default async function StationPage({
       </section>
 
       <section className="relative overflow-hidden rounded-2xl border border-fg-3 bg-bg-2 p-6">
-        <h2 className="mb-4 font-mono text-[11px] font-semibold uppercase tracking-widest text-fg-2">
+        <h2 className="mb-4 font-mono text-[12px] font-semibold uppercase tracking-widest text-fg-2">
           <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cyan align-middle" />
           {tStation('nowPlaying')}
         </h2>
@@ -279,7 +280,7 @@ export default async function StationPage({
                     </span>
                   )}
                 </span>
-                <time className="shrink-0 font-mono text-[11px] uppercase text-fg-2">
+                <time className="shrink-0 font-mono text-[12px] uppercase text-fg-2">
                   {new Date(entry.captured_at).toLocaleTimeString(locale)}
                 </time>
               </li>

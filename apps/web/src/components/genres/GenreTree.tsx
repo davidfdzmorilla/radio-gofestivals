@@ -37,7 +37,7 @@ export function GenreTree({ genres, countLabel }: Props) {
             <p className="font-display text-lg font-semibold text-fg-0">
               {g.name}
             </p>
-            <p className="mt-1 font-mono text-[11px] uppercase tracking-wide text-fg-2">
+            <p className="mt-1 font-mono text-[12px] uppercase tracking-wide text-fg-2">
               {countLabel(g.station_count)}
             </p>
           </div>

@@ -164,7 +164,7 @@ export function SearchBox({ variant = 'header', onNavigate }: SearchBoxProps) {
                   e.preventDefault();
                   navigate(`/search?q=${encodeURIComponent(trimmed)}`);
                 }}
-                className="block px-3 py-2 font-mono text-[11px] uppercase tracking-widest text-fg-2 transition-colors hover:text-fg-0"
+                className="block px-3 py-2 font-mono text-[12px] uppercase tracking-widest text-fg-2 transition-colors hover:text-fg-0"
               >
                 {t('viewAll', { query: trimmed })}
               </Link>

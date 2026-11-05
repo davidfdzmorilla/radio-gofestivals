@@ -68,7 +68,7 @@ export default function ProfilePage() {
           <p className="text-fg-0 font-mono text-sm">{user.email}</p>
           {!user.email_verified && (
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <span className="text-warm font-mono text-[11px] uppercase tracking-widest">
+              <span className="text-warm font-mono text-[12px] uppercase tracking-widest">
                 {t('emailUnverified')}
               </span>
               <button
@@ -154,7 +154,7 @@ export default function ProfilePage() {
         )}
       </section>
 
-      <p className="text-fg-3 text-center font-mono text-xs">
+      <p className="text-fg-2 text-center font-mono text-xs">
         <Link href="/support" className="hover:text-fg-1">
           {tNav('support')}
         </Link>

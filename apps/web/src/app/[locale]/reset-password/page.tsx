@@ -26,7 +26,7 @@ function ResetInner() {
           {t('resetPassword')}
         </h1>
         <p className="text-warm text-sm">{t('tokenMissing')}</p>
-        <p className="text-fg-3 font-mono text-xs">
+        <p className="text-fg-2 font-mono text-xs">
           <Link href="/forgot-password" className="hover:text-fg-0">
             {t('forgotPassword')}
           </Link>

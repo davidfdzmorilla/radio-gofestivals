@@ -65,7 +65,7 @@ export default function FavoritesPage() {
           <Heart className="text-fg-3 mx-auto" size={32} />
           <p className="text-fg-2 text-sm">{t('empty')}</p>
           {!isAuthenticated ? (
-            <p className="text-fg-3 text-xs">
+            <p className="text-fg-2 text-xs">
               <Link
                 href="/signup"
                 className="text-magenta hover:text-warm"
@@ -74,7 +74,7 @@ export default function FavoritesPage() {
               </Link>
             </p>
           ) : null}
-          <p className="text-fg-3 text-xs">
+          <p className="text-fg-2 text-xs">
             <Link href="/" className="hover:text-fg-1">
               ← {tNav('home')}
             </Link>
@@ -99,7 +99,7 @@ export default function FavoritesPage() {
                 >
                   {fav.name}
                 </Link>
-                <p className="text-fg-2 truncate font-mono text-[11px] uppercase tracking-widest">
+                <p className="text-fg-2 truncate font-mono text-[12px] uppercase tracking-widest">
                   {fav.country_code ?? '—'}
                   {fav.curated ? (
                     <Badge tone="magenta" sticker className="ml-2">

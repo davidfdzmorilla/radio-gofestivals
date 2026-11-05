@@ -16,10 +16,13 @@ from sqlalchemy import text
 from scripts import url_guard
 from scripts.logo_cmd import (
     BACKOFF_DAYS,
+    GENERIC_ICON_MIN_SITES,
     PER_HOST_CONCURRENCY,
     Candidate,
     backoff,
+    find_unwanted_homepage_logos,
     process_candidates,
+    purge_unwanted_logos,
     select_candidates,
 )
 from scripts.url_guard import guard_request
@@ -940,3 +943,189 @@ async def test_dry_run_of_the_ladder_writes_nothing(
     row = await _logo_row(db_session, sid)
     assert row is not None
     assert row["status"] is None
+
+
+# --- depuración: iconos genéricos y dominios denegados --------------------------
+
+
+async def _ok_logo(
+    session: AsyncSession,
+    slug: str,
+    *,
+    homepage: str,
+    content_hash: str,
+    kind: str = "homepage",
+    favicon: str | None = None,
+) -> str:
+    sid = await _station(session, slug, favicon=favicon, homepage=homepage)
+    await session.execute(
+        text(
+            """
+            INSERT INTO station_logos
+                (station_id, source_url, source_kind, favicon_seen, homepage_seen, status,
+                 content_hash, data_sm, data_lg)
+            VALUES (:id, 'https://x.example/i.png', :kind, :fav, :home, 'ok', :hash, :sm, :lg)
+            """,
+        ),
+        {
+            "id": sid,
+            "kind": kind,
+            "fav": favicon,
+            "home": homepage,
+            "hash": content_hash,
+            "sm": b"\x01",
+            "lg": b"\x02",
+        },
+    )
+    await session.execute(
+        text("UPDATE stations SET logo_hash = :h WHERE id = :id"), {"h": content_hash, "id": sid}
+    )
+    await session.commit()
+    return sid
+
+
+async def test_one_image_on_three_unrelated_sites_is_a_generic_icon_and_is_purged(
+    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession
+) -> None:
+    ids = [
+        await _ok_logo(
+            db_session, f"s{i}", homepage=f"https://{host}/x", content_hash="generic000000"
+        )
+        for i, host in enumerate(["r.bgp.rodeo", "a6.asurahosting.com", "pc.costa-server.info.pl"])
+    ]
+    assert GENERIC_ICON_MIN_SITES == 3
+    assert await purge_unwanted_logos(maker) == 3
+    for sid in ids:
+        row = await _logo_row(db_session, sid)
+        assert row is not None
+        assert (
+            row["status"],
+            row["source_kind"],
+            row["logo_hash"],
+            row["has_sm"],
+            row["has_lg"],
+        ) == ("rejected", None, None, False, False)
+        assert "generic icon shared by 3 different sites" in str(row["last_error"])
+        assert row["retry_in_future"] is None
+
+
+async def test_a_brand_with_many_channels_on_one_site_keeps_its_logo(
+    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession
+) -> None:
+    ids = [
+        await _ok_logo(
+            db_session,
+            f"rr{i}",
+            homepage=f"https://radiorecord.ru/radio/ch{i}",
+            content_hash="brand0000000",
+        )
+        for i in range(23)
+    ]
+    ids += [
+        await _ok_logo(
+            db_session,
+            "rr-sub",
+            homepage="https://www.radiorecord.ru/",
+            content_hash="brand0000000",
+        )
+    ]
+    assert await purge_unwanted_logos(maker) == 0
+    assert (await _logo_row(db_session, ids[0]))["status"] == "ok"  # type: ignore[index]
+
+
+async def test_two_sites_sharing_an_image_is_not_enough_to_call_it_generic(
+    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession
+) -> None:
+    for i, host in enumerate(["brand-a.example", "brand-b.example"]):
+        await _ok_logo(
+            db_session, f"s{i}", homepage=f"https://{host}/", content_hash="pair00000000"
+        )
+    assert await purge_unwanted_logos(maker) == 0
+
+
+async def test_the_threshold_counts_registrable_domains_not_hosts(
+    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession
+) -> None:
+    for i, host in enumerate(["a.brand.fm", "b.brand.fm", "c.brand.fm", "www.brand.fm"]):
+        await _ok_logo(
+            db_session, f"s{i}", homepage=f"https://{host}/", content_hash="sub000000000"
+        )
+    assert await purge_unwanted_logos(maker) == 0  # 4 hosts, pero un solo sitio
+
+
+async def test_a_logo_from_a_domain_added_to_the_denylist_later_is_purged(
+    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession
+) -> None:
+    sid = await _ok_logo(
+        db_session, "wix", homepage="https://usuario.wixsite.com/radio", content_hash="wix000000000"
+    )
+    assert await purge_unwanted_logos(maker) == 1
+    row = await _logo_row(db_session, sid)
+    assert row is not None
+    assert (row["status"], row["logo_hash"]) == ("rejected", None)
+    assert "denied domain" in str(row["last_error"])
+
+
+async def test_favicon_logos_are_never_purged_even_if_shared(
+    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession
+) -> None:
+    for i, host in enumerate(["a.example", "b.example", "c.example", "d.example"]):
+        await _ok_logo(
+            db_session,
+            f"f{i}",
+            homepage=f"https://{host}/",
+            content_hash="fav000000000",
+            kind="favicon",
+            favicon=f"https://cdn{i}.example/f.png",
+        )
+    assert await purge_unwanted_logos(maker) == 0
+
+
+async def test_purged_stations_do_not_come_back_to_the_queue_until_their_urls_change(
+    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession
+) -> None:
+    for i, host in enumerate(["a.example", "b.example", "c.example"]):
+        await _ok_logo(
+            db_session, f"s{i}", homepage=f"https://{host}/", content_hash="generic000000"
+        )
+    await purge_unwanted_logos(maker)
+    async with maker() as session:
+        assert await select_candidates(session, limit=100) == []
+
+
+async def test_purge_is_idempotent_and_ignores_stations_that_failed_or_were_rejected(
+    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession
+) -> None:
+    for i, host in enumerate(["a.example", "b.example", "c.example"]):
+        await _ok_logo(
+            db_session, f"s{i}", homepage=f"https://{host}/", content_hash="generic000000"
+        )
+    assert await purge_unwanted_logos(maker) == 3
+    assert await purge_unwanted_logos(maker) == 0
+
+
+async def test_dry_run_reports_but_does_not_purge(
+    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession
+) -> None:
+    ids = [
+        await _ok_logo(db_session, f"s{i}", homepage=f"https://{h}/", content_hash="generic000000")
+        for i, h in enumerate(["a.example", "b.example", "c.example"])
+    ]
+    assert await purge_unwanted_logos(maker, dry_run=True) == 3
+    assert (await _logo_row(db_session, ids[0]))["status"] == "ok"  # type: ignore[index]
+    async with maker() as session:
+        assert len(await find_unwanted_homepage_logos(session)) == 3
+
+
+async def test_a_fresh_generic_icon_found_by_the_ladder_is_purged_in_the_same_run(
+    maker: async_sessionmaker[AsyncSession], db_session: AsyncSession
+) -> None:
+    """Fin a fin: tres webs sin relación sirven el mismo icono por defecto."""
+    for i, host in enumerate(["a.example", "b.example", "c.example"]):
+        await _station(db_session, f"s{i}", favicon=None, homepage=f"https://{host}/")
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        return _page(ATI) if req.url.path == "/" else _img((30, 140, 220, 255))
+
+    assert await _run(maker, handler) == (3, 0, 0)
+    assert await purge_unwanted_logos(maker) == 3

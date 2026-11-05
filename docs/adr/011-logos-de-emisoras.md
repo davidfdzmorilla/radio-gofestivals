@@ -91,6 +91,20 @@ interna es un rechazo definitivo hasta que cambie la URL.
 del **52 % con solo favicon al 70 % con la escalera** (+72 logos desde la web, 48 s). Revisados a ojo,
 los 72 son logos de marca reconocibles; no aparece ningún logo de plataforma.
 
+
+**Control de calidad tras el backfill (2026-11-05).** Con la cobertura ya en 72 % (1.199 de 1.651), se
+agruparon los logos por hash para buscar imágenes repetidas. De los 114 hashes compartidos casi todos
+eran marcas legítimas con muchos canales (Radio Record 23, rautemusik 16, DFM 16, NTS 9, SomaFM 8…).
+Pero uno, una nota musical azul, estaba en 8 emisoras de hosts sin relación (`r.bgp.rodeo`,
+`asurahosting.com`, `costa-server.info.pl`): el icono por defecto de un software de gestión de radio.
+Regla añadida, y aplicada en cada pasada de `fetch-logos` (`purge_unwanted_logos`): **una misma imagen
+en 3 o más sitios distintos** (dominio registrable aproximado, para que `a.marca.fm` y `b.marca.fm`
+cuenten como uno) se considera icono genérico y se rechaza. La misma pasada vuelve retroactiva la
+lista de dominios denegados: un logo de la web cuyo dominio se añade después a la lista se retira. Los
+logos que vienen del favicon de Radio-Browser no se tocan. Límite: el umbral es una heurística; una
+marca con 3 dominios distintos y el mismo logo, o dos sitios con el mismo icono genérico, no se
+distinguen de forma fiable.
+
 **Consecuencias.**
 - Positivas: unos +440 logos esperados en el catálogo completo (de ~43 % a ~70 %) con calidad de marca.
 - Negativas: una petición más por emisora sin logo (la web) y otra por icono probado, como mucho una

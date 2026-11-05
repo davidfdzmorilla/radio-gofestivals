@@ -30,7 +30,12 @@ from sqlalchemy import text
 
 from scripts.db import make_engine, make_sessionmaker
 from scripts.logging import get_logger
-from scripts.logo_discovery import extract_icon_candidates, fetch_html, is_eligible_homepage
+from scripts.logo_discovery import (
+    extract_icon_candidates,
+    fetch_html,
+    is_eligible_homepage,
+    registrable_domain,
+)
 from scripts.logo_fetch import LogoFetchError, LogoRejectedError, ProcessedLogo, fetch_logo
 from scripts.url_guard import guard_request
 
@@ -51,6 +56,10 @@ PER_HOST_CONCURRENCY = 2
 MAX_ERROR_LENGTH = 300
 KIND_FAVICON = "favicon"
 KIND_HOMEPAGE = "homepage"
+# Una misma imagen en tantos sitios distintos no es de una emisora: es el icono por defecto de
+# un software de gestión de radio (AzuraCast…) o de una plataforma. Medido en producción: una
+# nota musical azul repetida en 8 emisoras de hosts sin relación.
+GENERIC_ICON_MIN_SITES = 3
 
 
 @dataclass(frozen=True)
@@ -77,6 +86,7 @@ class Stats:
     failed: int = 0
     rejected: int = 0
     via_homepage: int = 0
+    purged: int = 0
 
 
 @dataclass(frozen=True)
@@ -310,6 +320,68 @@ async def _save_rejected(session: AsyncSession, cand: Candidate, error: str) -> 
     )
 
 
+async def find_unwanted_homepage_logos(session: AsyncSession) -> dict[uuid.UUID, str]:
+    """Logos obtenidos de la web que ya no deben servirse, con el motivo.
+
+    1. La web ahora está en la lista de dominios denegados (la lista crece con el tiempo).
+    2. La misma imagen sale en `GENERIC_ICON_MIN_SITES` o más sitios distintos: icono genérico.
+    Los logos que vienen del favicon de Radio-Browser no se tocan.
+    """
+    rows = (
+        await session.execute(
+            text(
+                """
+                SELECT station_id, content_hash, homepage_seen
+                FROM station_logos
+                WHERE status = 'ok' AND source_kind = 'homepage' AND content_hash IS NOT NULL
+                """,
+            ),
+        )
+    ).all()
+    unwanted: dict[uuid.UUID, str] = {}
+    sites: defaultdict[str, set[str]] = defaultdict(set)
+    for sid, content_hash, homepage in rows:
+        if not is_eligible_homepage(homepage):
+            unwanted[uuid.UUID(str(sid))] = "homepage is now a denied domain"
+        sites[str(content_hash)].add(registrable_domain(str(homepage or "")))
+    generic = {h for h, domains in sites.items() if len(domains) >= GENERIC_ICON_MIN_SITES}
+    for sid, content_hash, _ in rows:
+        if str(content_hash) in generic:
+            n = len(sites[str(content_hash)])
+            unwanted.setdefault(uuid.UUID(str(sid)), f"generic icon shared by {n} different sites")
+    return unwanted
+
+
+async def purge_unwanted_logos(
+    maker: async_sessionmaker[AsyncSession],
+    *,
+    dry_run: bool = False,
+) -> int:
+    """Pasa a `rejected` los logos de la web que no deben servirse. Devuelve cuántos."""
+    async with maker() as session:
+        unwanted = await find_unwanted_homepage_logos(session)
+        if unwanted and not dry_run:
+            for sid, why in unwanted.items():
+                await session.execute(
+                    text(
+                        """
+                        UPDATE station_logos SET
+                            status = 'rejected', source_kind = NULL, content_hash = NULL,
+                            data_sm = NULL, data_lg = NULL, last_error = :why,
+                            next_retry_at = NULL, updated_at = now()
+                        WHERE station_id = :id
+                        """,
+                    ),
+                    {"id": str(sid), "why": why},
+                )
+                await session.execute(
+                    text("UPDATE stations SET logo_hash = NULL WHERE id = :id"),
+                    {"id": str(sid)},
+                )
+            await session.commit()
+    return len(unwanted)
+
+
 async def _try_logo(
     client: httpx.AsyncClient,
     limiter: Limiter,
@@ -466,6 +538,9 @@ def fetch_logos(
                     concurrency=concurrency,
                     dry_run=dry_run,
                 )
+            # Tras descargar: el logo nuevo puede ser un icono genérico repetido, y la lista de
+            # dominios denegados puede haber crecido desde que se guardaron los antiguos.
+            stats.purged = await purge_unwanted_logos(maker, dry_run=dry_run)
             log.info(
                 "fetch_logos_done",
                 dry_run=dry_run,
@@ -474,6 +549,7 @@ def fetch_logos(
                 failed=stats.failed,
                 rejected=stats.rejected,
                 via_homepage=stats.via_homepage,
+                purged=stats.purged,
                 seconds=round(time.monotonic() - started, 1),
             )
         finally:

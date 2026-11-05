@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   festivalCalendarUrl,
   festivalDescription,
+  festivalImageSrc,
   festivalLocation,
   festivalPath,
   festivalPhase,
@@ -11,6 +12,7 @@ import {
   getAllUpcomingFestivals,
   getFestival,
   getUpcomingFestivals,
+  safeHttpUrl,
 } from '@/lib/festivals';
 import { ApiError } from '@/lib/api';
 
@@ -257,5 +259,50 @@ describe('getFestival', () => {
   it('throws on a payload that is not a festival', async () => {
     mockFetch({ id: 17 });
     await expect(getFestival('17')).rejects.toThrow(/payload inválido/);
+  });
+});
+
+describe('festivalImageSrc (next/image throws on unconfigured hosts)', () => {
+  const ok = 'https://proyecto-images-gofestivals.s3.eu-west-3.amazonaws.com/festivals/x/y.webp';
+  it('accepts only the gofestivals bucket over https under /festivals/', () => {
+    expect(festivalImageSrc({ imageUrl: ok })).toBe(ok);
+  });
+  it.each([
+    [null],
+    [''],
+    ['not a url'],
+    ['http://proyecto-images-gofestivals.s3.eu-west-3.amazonaws.com/festivals/x.webp'],
+    ['https://images.unsplash.com/photo-1'],
+    ['https://evil.example/festivals/x.webp'],
+    ['https://proyecto-images-gofestivals.s3.eu-west-3.amazonaws.com.evil.example/festivals/x.webp'],
+    ['https://proyecto-images-gofestivals.s3.eu-west-3.amazonaws.com/other/x.webp'],
+    ['https://user:pw@proyecto-images-gofestivals.s3.eu-west-3.amazonaws.com@evil.example/festivals/x.webp'],
+  ])('rejects %j', (imageUrl) => {
+    expect(festivalImageSrc({ imageUrl })).toBeNull();
+  });
+});
+
+describe('safeHttpUrl (the official website ends up in an href)', () => {
+  it('keeps http and https URLs', () => {
+    expect(safeHttpUrl('https://raveonsnow.com')).toBe('https://raveonsnow.com/');
+    expect(safeHttpUrl('  http://example.org/path?x=1 ')).toBe('http://example.org/path?x=1');
+  });
+  it.each([
+    'javascript:alert(1)',
+    'JaVaScRiPt:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)',
+    'file:///etc/passwd',
+    '//evil.example',
+    '/relative/path',
+    'raveonsnow.com',
+    '',
+    '   ',
+  ])('rejects %j', (value) => {
+    expect(safeHttpUrl(value)).toBeNull();
+  });
+  it('rejects null and undefined', () => {
+    expect(safeHttpUrl(null)).toBeNull();
+    expect(safeHttpUrl(undefined)).toBeNull();
   });
 });

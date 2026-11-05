@@ -35,6 +35,34 @@ export function festivalSlug(name: string): string {
     .replace(/^-|-$/g, '');
 }
 
+// Debe coincidir con `images.remotePatterns` de next.config.mjs: next/image LANZA
+// en el render si recibe un host no configurado, así que solo se admite este.
+const IMAGE_HOST = 'proyecto-images-gofestivals.s3.eu-west-3.amazonaws.com';
+const IMAGE_PATH_PREFIX = '/festivals/';
+
+/** URL de imagen apta para next/image (https, bucket de gofestivals, ruta de festivales) o null. */
+export function festivalImageSrc(festival: Pick<Festival, 'imageUrl'>): string | null {
+  if (!festival.imageUrl) return null;
+  try {
+    const u = new URL(festival.imageUrl);
+    const ok = u.protocol === 'https:' && u.hostname === IMAGE_HOST && u.pathname.startsWith(IMAGE_PATH_PREFIX);
+    return ok ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Solo http(s): la web oficial viene de una base de datos ajena y acaba en un href (un `javascript:` sería XSS). */
+export function safeHttpUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export function festivalUrl(locale: string, festival: Pick<Festival, 'id' | 'name'>): string {
   return `${siteFor(locale)}/festival/${festival.id}/${festivalSlug(festival.name) || 'festival'}`;
 }

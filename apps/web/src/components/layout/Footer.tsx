@@ -22,6 +22,15 @@ export async function Footer({ locale }: { locale: 'es' | 'en' }) {
             ·
           </span>
           <a
+            href={`/${locale}/festivals`}
+            className="py-2 transition-colors hover:text-fg-0"
+          >
+            {tNav('festivals')}
+          </a>
+          <span aria-hidden className="hidden sm:inline">
+            ·
+          </span>
+          <a
             href={`/${locale}/trending`}
             className="py-2 transition-colors hover:text-fg-0"
           >

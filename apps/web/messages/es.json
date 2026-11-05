@@ -21,7 +21,25 @@
   "festivals": {
     "title": "Próximos festivales de {name}",
     "viewAll": "Todos los festivales",
-    "source": "Datos de festivales: gofestivals"
+    "source": "Datos de festivales: gofestivals",
+    "pageTitle": "{name} {year}: fechas, géneros y radio",
+    "pageDescription": "{name} ({details}). Escucha radios de {genres} mientras esperas al festival.",
+    "pageDescriptionPlain": "{name} ({details}). Festival de música electrónica con las radios que encajan con su sonido.",
+    "startsIn": "Empieza {relative}",
+    "ongoing": "Ocurre ahora",
+    "ended": "Esta edición ya terminó",
+    "genresTitle": "Géneros del festival",
+    "warmUpTitle": "Radios para calentar",
+    "warmUpIntro": "Emisoras que encajan con los géneros principales del festival.",
+    "viewOnGofestivals": "Ver en gofestivals",
+    "officialSite": "Web oficial",
+    "home": "Inicio",
+    "crumb": "Festivales",
+    "indexTitle": "Próximos festivales de música electrónica",
+    "indexIntro": "Festivales del calendario de gofestivals, con las radios que encajan con su sonido.",
+    "indexMetaTitle": "Festivales de música electrónica: calendario y radio · radio.gofestivals",
+    "fullCalendar": "Calendario completo en gofestivals",
+    "empty": "No hay festivales próximos ahora mismo."
   },
   "genres": {
     "title": "Géneros",
@@ -72,7 +90,8 @@
     "trending": "Tendencias",
     "new": "Nuevas",
     "search": "Buscar",
-    "forStations": "¿Tienes una emisora?"
+    "forStations": "¿Tienes una emisora?",
+    "festivals": "Festivales"
   },
   "pagination": {
     "pageOf": "Página {current} de {total}",

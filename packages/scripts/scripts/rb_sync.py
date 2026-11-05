@@ -42,6 +42,7 @@ HEALTH_MAX_FAILURES = 3
 HEALTH_BREAKER_MIN_SAMPLE = 50
 HEALTH_BREAKER_TRANSPORT_RATIO = 0.5
 MAX_HOMEPAGE_LENGTH = 500
+MAX_FAVICON_LENGTH = 2048
 # A single flaky tag is routine; this many failed tags (or nothing fetched) is an outage.
 SYNC_ALERT_MIN_ERRORS = 3
 
@@ -79,6 +80,22 @@ class SyncStats:
 
 
 _SPAM_PREFIX_RE = re.compile(r"^[#*>\-]\s")
+
+
+def parse_favicon_url(raw: object) -> str | None:
+    """URL del logo de Radio-Browser (`favicon`) si es utilizable; None si no.
+
+    Solo http(s), sin espacios ni caracteres de control y de longitud acotada. No decide
+    si es una imagen válida ni si es segura de pedir: eso lo hace `fetch-logos`.
+    """
+    value = str(raw or "").strip()
+    if not value or len(value) > MAX_FAVICON_LENGTH:
+        return None
+    if not value.lower().startswith(("http://", "https://")):
+        return None
+    if any(c.isspace() or not c.isprintable() for c in value):
+        return None
+    return value
 
 
 def is_likely_spam(name: str, stream_url: str | None) -> bool:
@@ -237,6 +254,7 @@ async def upsert_station(
         and len(homepage_raw) <= MAX_HOMEPAGE_LENGTH
         else None
     )
+    favicon_url = parse_favicon_url(item.get("favicon"))
 
     def _to_float(v: Any) -> float | None:
         if v in (None, ""):
@@ -329,6 +347,7 @@ async def upsert_station(
             "city": city,
             "language": language,
             "homepage_url": homepage_url,
+            "favicon_url": favicon_url,
             "quality_score": quality_score,
             "clickcount": clickcount,
             "votes": votes,
@@ -344,12 +363,12 @@ async def upsert_station(
             f"""
             INSERT INTO stations (
                 rb_uuid, slug, name, country_code, city, language,
-                homepage_url, quality_score, clickcount, votes,
+                homepage_url, favicon_url, quality_score, clickcount, votes,
                 last_changeuuid, last_local_checktime,
                 source, last_sync_at, hidden, geo
             ) VALUES (
                 :rb, :slug, :name, :country_code, :city, :language,
-                :homepage_url, :quality_score, :clickcount, :votes,
+                :homepage_url, :favicon_url, :quality_score, :clickcount, :votes,
                 CAST(:last_changeuuid AS uuid), :last_local_checktime,
                 'radio-browser', :now, :hidden, {geo_expr}
             )
@@ -405,6 +424,7 @@ async def upsert_station(
         "city": city,
         "language": language,
         "homepage_url": homepage_url,
+        "favicon_url": favicon_url,
         "quality_score": update_quality,
         "clickcount": clickcount,
         "votes": votes,
@@ -428,6 +448,8 @@ async def upsert_station(
             -- RB manda cuando trae homepage; si no trae, conserva la
             -- existente (posiblemente editorial) en lugar de pisarla a NULL.
             homepage_url = COALESCE(:homepage_url, homepage_url),
+            -- Igual que homepage: si RB no trae favicon se conserva el anterior.
+            favicon_url = COALESCE(:favicon_url, favicon_url),
             quality_score = :quality_score,
             clickcount = :clickcount,
             votes = :votes,

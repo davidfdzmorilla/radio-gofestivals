@@ -56,9 +56,9 @@ export function ConsentChoiceClient({ labels }: { labels: Labels }) {
       role="dialog"
       aria-modal="false"
       aria-labelledby="rgf-consent-title"
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-fg-3 bg-bg-1 px-4 py-4 shadow-[0_-4px_20px_rgba(0,0,0,0.25)] sm:px-6"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-fg-3 bg-bg-1 py-4 shadow-[0_-4px_20px_rgba(0,0,0,0.25)]"
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 sm:flex-row sm:items-start sm:gap-6">
         <div className="flex-1 space-y-1.5">
           <p
             id="rgf-consent-title"

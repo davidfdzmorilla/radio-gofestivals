@@ -45,7 +45,7 @@ export default async function HomePage({
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-magenta" />
           {tCommon('curated')} · 2026
         </span>
-        <h1 className="font-display text-[clamp(2.75rem,7vw,5rem)] font-semibold leading-[1.02] tracking-tight text-fg-0">
+        <h1 className="font-display text-[clamp(2rem,10vw,5rem)] font-semibold leading-[1.02] tracking-tight text-fg-0">
           {tHome('title')}
         </h1>
         <p className="max-w-xl font-display text-xl font-medium text-fg-1">
@@ -60,7 +60,9 @@ export default async function HomePage({
             {tGenres('title')}
           </h2>
           <span className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
-            {genres.filter((g) => g.parent_id === null).length} / 9
+            {tGenres('count', {
+              count: genres.filter((g) => g.parent_id === null).length,
+            })}
           </span>
         </div>
         <GenreTree

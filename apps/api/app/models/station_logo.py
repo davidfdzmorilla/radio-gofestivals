@@ -36,6 +36,10 @@ class StationLogo(Base):
     __tablename__ = "station_logos"
     __table_args__ = (
         CheckConstraint("status IN ('ok', 'failed', 'rejected')", name="ck_station_logos_status"),
+        CheckConstraint(
+            "source_kind IS NULL OR source_kind IN ('favicon', 'homepage')",
+            name="ck_station_logos_source_kind",
+        ),
         Index("idx_station_logos_status_retry", "status", "next_retry_at"),
     )
 
@@ -46,6 +50,11 @@ class StationLogo(Base):
     )
     # URL que se descargó; si `stations.favicon_url` cambia, el job vuelve a descargar.
     source_url: Mapped[str] = mapped_column(Text, nullable=False)
+    # `favicon` (el de Radio-Browser) u `homepage` (apple-touch-icon / link icon de la web).
+    source_kind: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # stations.favicon_url y homepage_url al hacer el último intento: si cambian, se reintenta.
+    favicon_seen: Mapped[str | None] = mapped_column(Text, nullable=True)
+    homepage_seen: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
     # Hash corto del contenido: versiona la URL pública (caché inmutable) y da el ETag.
     content_hash: Mapped[str | None] = mapped_column(String(16), nullable=True)

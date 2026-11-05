@@ -15,6 +15,25 @@ describe('cn', () => {
   });
 });
 
+describe('initials · caracteres fuera del plano básico', () => {
+  it.each([
+    ['𝗥𝗔𝗗𝗜𝗢 𝗧𝗘𝗖𝗛𝗡𝗢', '𝗥𝗧'],
+    ['🎵 Radio Techno', '🎵R'],
+    ['Radio 𝗧𝗘𝗖𝗛', 'R𝗧'],
+    ['𝙏𝙚𝙘𝙝𝙣𝙤', '𝙏𝙚'],
+  ])('%s -> %s sin partir ningún carácter', (name, expected) => {
+    const out = initials(name);
+    expect(out).toBe(expected);
+    expect(out.isWellFormed()).toBe(true);
+  });
+
+  it('never returns a lone surrogate for any mix of emoji and text', () => {
+    for (const name of ['🔥', '🔥🔥 Mix', 'A 🔥', '🇪🇸 Radio', '👨‍👩‍👧 Familia']) {
+      expect(initials(name).isWellFormed()).toBe(true);
+    }
+  });
+});
+
 describe('initials', () => {
   it('returns first two letters for single word', () => {
     expect(initials('Techno')).toBe('TE');

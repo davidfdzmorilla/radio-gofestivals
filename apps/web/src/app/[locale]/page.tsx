@@ -60,7 +60,9 @@ export default async function HomePage({
             {tGenres('title')}
           </h2>
           <span className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
-            {genres.filter((g) => g.parent_id === null).length} / 9
+            {tGenres('count', {
+              count: genres.filter((g) => g.parent_id === null).length,
+            })}
           </span>
         </div>
         <GenreTree

@@ -20,6 +20,7 @@
   },
   "genres": {
     "title": "Genres",
+    "count": "{count, plural, =0 {no genres} =1 {1 genre} other {# genres}}",
     "exploreTitle": "Explore {name}",
     "stationCount": "{count, plural, =0 {no stations} =1 {1 station} other {# stations}}",
     "metaTitle": "Online {name} Radio · {count, plural, =0 {No Stations} =1 {1 Station} other {# Stations}} Live · radio.gofestivals",

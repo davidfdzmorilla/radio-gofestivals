@@ -41,7 +41,7 @@ export default async function HomePage({
     <div className="space-y-16">
       {/* Hero */}
       <section className="space-y-5">
-        <span className="inline-flex -rotate-1 items-center gap-2 rounded-full border border-magenta/40 bg-magenta-soft px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-fg-0 shadow-sticker-magenta">
+        <span className="inline-flex -rotate-1 items-center gap-2 rounded-full border border-magenta/40 bg-magenta-soft px-3 py-1 font-mono text-[12px] uppercase tracking-widest text-fg-0 shadow-sticker-magenta">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-magenta" />
           {tCommon('curated')} · 2026
         </span>
@@ -59,7 +59,7 @@ export default async function HomePage({
           <h2 className="font-display text-3xl font-semibold text-fg-0">
             {tGenres('title')}
           </h2>
-          <span className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+          <span className="font-mono text-[12px] uppercase tracking-widest text-fg-2">
             {tGenres('count', {
               count: genres.filter((g) => g.parent_id === null).length,
             })}
@@ -82,7 +82,7 @@ export default async function HomePage({
               {tHome('featured')}
             </span>
           </h2>
-          <span className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+          <span className="font-mono text-[12px] uppercase tracking-widest text-fg-2">
             {stationsPage.total} total
           </span>
         </div>

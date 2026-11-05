@@ -214,8 +214,8 @@ export default async function GenrePage({
   return (
     <div className="space-y-8">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-fg-2">
-        <Link href="/" className="transition-colors hover:text-fg-0">
+      <nav className="flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-fg-2">
+        <Link href="/" className="-my-2 py-2 transition-colors hover:text-fg-0">
           {tNav('home')}
         </Link>
         <span>/</span>
@@ -234,7 +234,7 @@ export default async function GenrePage({
           className="absolute inset-0 bg-linear-to-br from-bg-0/80 via-bg-0/70 to-bg-0/85"
         />
         <div className="relative px-6 py-10 sm:px-10">
-          <p className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+          <p className="font-mono text-[12px] uppercase tracking-widest text-fg-2">
             {tGenres('title')}
           </p>
           <h1 className="mt-2 font-display text-[clamp(2.25rem,5vw,3.75rem)] font-semibold leading-tight text-fg-0">

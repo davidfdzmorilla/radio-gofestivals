@@ -17,7 +17,7 @@ export function Badge({ className, sticker = false, tone = 'neutral', ...props }
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium tracking-wide',
+        'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[12px] font-medium tracking-wide',
         toneMap[tone],
         sticker && 'shadow-sticker-sm -rotate-1',
         className,

@@ -157,7 +157,7 @@ export function GlobalPlayer() {
         <div className="min-w-0 flex-1">
           <Link
             href={`/stations/${station.slug}`}
-            className="block truncate font-mono text-[11px] uppercase tracking-wide text-fg-2 underline decoration-transparent decoration-2 underline-offset-2 transition-colors hover:text-fg-0 hover:decoration-magenta"
+            className="block truncate font-mono text-[12px] uppercase tracking-wide text-fg-2 underline decoration-transparent decoration-2 underline-offset-2 transition-colors hover:text-fg-0 hover:decoration-magenta"
           >
             {station.name}
           </Link>

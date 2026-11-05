@@ -45,7 +45,7 @@ function VerifyInner() {
       {token && status === 'done' && (
         <>
           <p className="text-fg-1 text-sm">{t('verifyEmailDone')}</p>
-          <p className="text-fg-3 font-mono text-xs">
+          <p className="text-fg-2 font-mono text-xs">
             <Link href="/" className="hover:text-fg-0">
               {t('backToHome')}
             </Link>

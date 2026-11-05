@@ -22,7 +22,7 @@ export function QualitySelector({ streams, activeStreamId, onSelect }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('quality')}>
-      <span className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+      <span className="font-mono text-[12px] uppercase tracking-widest text-fg-2">
         {t('quality')}
       </span>
       {streams.map((stream) => {
@@ -34,7 +34,7 @@ export function QualitySelector({ streams, activeStreamId, onSelect }: Props) {
             aria-pressed={isActive}
             onClick={() => onSelect(stream)}
             className={cn(
-              'rounded-full border px-3 py-1 font-mono text-[11px] uppercase tracking-widest transition-all',
+              'rounded-full border px-3 py-1 font-mono text-[12px] uppercase tracking-widest transition-all',
               'hover:-translate-y-0.5 hover:shadow-sticker-sm',
               isActive
                 ? '-rotate-1 border-magenta/60 bg-magenta-soft text-fg-0 shadow-sticker-sm'

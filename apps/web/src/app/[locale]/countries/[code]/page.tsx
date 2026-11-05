@@ -162,12 +162,12 @@ export default async function CountryPage({
 
   return (
     <div className="space-y-8">
-      <nav className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-fg-2">
-        <Link href="/" className="transition-colors hover:text-fg-0">
+      <nav className="flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-fg-2">
+        <Link href="/" className="-my-2 py-2 transition-colors hover:text-fg-0">
           {tNav('home')}
         </Link>
         <span>/</span>
-        <Link href="/countries" className="transition-colors hover:text-fg-0">
+        <Link href="/countries" className="-my-2 py-2 transition-colors hover:text-fg-0">
           {t('title')}
         </Link>
         <span>/</span>

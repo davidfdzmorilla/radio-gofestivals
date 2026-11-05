@@ -202,18 +202,18 @@ export default async function CountryGenrePage({
 
   return (
     <div className="space-y-8">
-      <nav className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-fg-2">
-        <Link href="/" className="transition-colors hover:text-fg-0">
+      <nav className="flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest text-fg-2">
+        <Link href="/" className="-my-2 py-2 transition-colors hover:text-fg-0">
           {tNav('home')}
         </Link>
         <span>/</span>
-        <Link href="/countries" className="transition-colors hover:text-fg-0">
+        <Link href="/countries" className="-my-2 py-2 transition-colors hover:text-fg-0">
           {t('title')}
         </Link>
         <span>/</span>
         <Link
           href={`/countries/${codeLower}`}
-          className="transition-colors hover:text-fg-0"
+          className="-my-2 py-2 transition-colors hover:text-fg-0"
         >
           {name}
         </Link>
@@ -232,7 +232,7 @@ export default async function CountryGenrePage({
           className="absolute inset-0 bg-linear-to-br from-bg-0/80 via-bg-0/70 to-bg-0/85"
         />
         <div className="relative px-6 py-10 sm:px-10">
-          <p className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+          <p className="font-mono text-[12px] uppercase tracking-widest text-fg-2">
             {name}
           </p>
           <h1 className="mt-2 font-display text-[clamp(2.25rem,5vw,3.75rem)] font-semibold leading-tight text-fg-0">

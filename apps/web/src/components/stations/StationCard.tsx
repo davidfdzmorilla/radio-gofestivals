@@ -2,6 +2,7 @@ import { Link } from '@/i18n/navigation';
 import { Badge } from '@/components/ui/badge';
 import { HeartButton } from '@/components/auth/HeartButton';
 import { LikeButton } from '@/components/auth/LikeButton';
+import { readableOnDark, readableTextOn } from '@/lib/color';
 import { cn, initials } from '@/lib/utils';
 import type { StationSummary, Genre } from '@/lib/types';
 import { PlayButton } from './PlayButton';
@@ -44,8 +45,8 @@ export function StationCard({ station, genresBySlug, index = 0, labels }: Props)
         className="flex min-w-0 flex-1 items-center gap-3 outline-hidden"
       >
         <div
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg font-display text-xl font-bold text-bg-0 shadow-sticker-sm"
-          style={{ backgroundColor: color }}
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg font-display text-xl font-bold shadow-sticker-sm"
+          style={{ backgroundColor: color, color: readableTextOn(color) }}
         >
           {initials(station.name)}
         </div>
@@ -53,7 +54,7 @@ export function StationCard({ station, genresBySlug, index = 0, labels }: Props)
           <h3 className="truncate font-display text-[15px] font-semibold text-fg-0">
             {station.name}
           </h3>
-          <p className="truncate font-mono text-[11px] uppercase tracking-wide text-fg-2">
+          <p className="truncate font-mono text-[12px] uppercase tracking-wide text-fg-2">
             {loc}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
@@ -69,7 +70,7 @@ export function StationCard({ station, genresBySlug, index = 0, labels }: Props)
                 <Badge
                   key={slug}
                   className="border-fg-3 bg-bg-3"
-                  style={{ color: g.color_hex }}
+                  style={{ color: readableOnDark(g.color_hex) }}
                 >
                   {g.name}
                 </Badge>

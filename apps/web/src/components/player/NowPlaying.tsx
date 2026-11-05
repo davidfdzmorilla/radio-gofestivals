@@ -34,7 +34,7 @@ export function NowPlaying({ slug, size = 'sm' }: Props) {
   const subClass =
     size === 'lg'
       ? 'mt-1 font-mono text-sm uppercase tracking-wide text-warm'
-      : 'font-mono text-[11px] uppercase tracking-wide text-warm';
+      : 'font-mono text-[12px] uppercase tracking-wide text-warm';
 
   return (
     <div key={key} className="min-w-0 animate-np">

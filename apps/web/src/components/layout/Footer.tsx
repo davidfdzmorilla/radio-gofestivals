@@ -11,10 +11,10 @@ export async function Footer({ locale }: { locale: 'es' | 'en' }) {
           <span className="mr-2 inline-block h-2 w-2 -translate-y-0.5 rounded-full bg-magenta align-middle" />
           {tHome('title')}
         </p>
-        <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-fg-2">
+        <nav className="flex flex-wrap items-center justify-center gap-x-4 font-mono text-[12px] uppercase tracking-widest text-fg-2">
           <a
             href={`/${locale}/countries`}
-            className="transition-colors hover:text-fg-0"
+            className="py-2 transition-colors hover:text-fg-0"
           >
             {tNav('countries')}
           </a>
@@ -23,7 +23,7 @@ export async function Footer({ locale }: { locale: 'es' | 'en' }) {
           </span>
           <a
             href={`/${locale}/trending`}
-            className="transition-colors hover:text-fg-0"
+            className="py-2 transition-colors hover:text-fg-0"
           >
             {tNav('trending')}
           </a>
@@ -32,7 +32,7 @@ export async function Footer({ locale }: { locale: 'es' | 'en' }) {
           </span>
           <a
             href={`/${locale}/new`}
-            className="transition-colors hover:text-fg-0"
+            className="py-2 transition-colors hover:text-fg-0"
           >
             {tNav('new')}
           </a>
@@ -41,7 +41,7 @@ export async function Footer({ locale }: { locale: 'es' | 'en' }) {
           </span>
           <a
             href={`/${locale}/for-stations`}
-            className="transition-colors hover:text-fg-0"
+            className="py-2 transition-colors hover:text-fg-0"
           >
             {tNav('forStations')}
           </a>
@@ -50,7 +50,7 @@ export async function Footer({ locale }: { locale: 'es' | 'en' }) {
           </span>
           <a
             href={`/${locale}/legal/privacy`}
-            className="transition-colors hover:text-fg-0"
+            className="py-2 transition-colors hover:text-fg-0"
           >
             {tLegal('privacyLink')}
           </a>
@@ -59,12 +59,12 @@ export async function Footer({ locale }: { locale: 'es' | 'en' }) {
           </span>
           <a
             href={`/${locale}/legal/cookies`}
-            className="transition-colors hover:text-fg-0"
+            className="py-2 transition-colors hover:text-fg-0"
           >
             {tLegal('cookiesLink')}
           </a>
         </nav>
-        <p className="font-mono text-[11px] uppercase tracking-widest text-fg-2">
+        <p className="font-mono text-[12px] uppercase tracking-widest text-fg-2">
           © {new Date().getFullYear()} · gofestivals
         </p>
       </div>

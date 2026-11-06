@@ -61,13 +61,14 @@ export default async function HomePage({
           </h2>
           <span className="font-mono text-[12px] uppercase tracking-widest text-fg-2">
             {tGenres('count', {
-              count: genres.filter((g) => g.parent_id === null).length,
+              count: genres.filter((g) => g.parent_id === null && g.station_count > 0).length,
             })}
           </span>
         </div>
         <GenreTree
           genres={genres}
           countLabel={(count) => tGenres('stationCount', { count })}
+          moreLabel={tGenres('moreGenres')}
         />
       </section>
 

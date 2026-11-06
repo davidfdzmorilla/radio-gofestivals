@@ -39,6 +39,24 @@ CLAUDE_BIN="${CLAUDE_BIN:-claude}"
 APPLY_FLAGS=()
 [[ "${CLASSIFY_LLM_DRY_RUN:-0}" == "1" ]] && APPLY_FLAGS=(--dry-run)
 
+# cron arranca con un PATH mínimo (/usr/bin:/bin) y claude suele vivir en ~/.nvm o ~/.local/bin:
+# si no resuelve con el PATH actual se busca ahí (el nvm más reciente) y, si no está, se falla
+# pronto y claro en vez de a mitad de la ejecución.
+if ! command -v "$CLAUDE_BIN" > /dev/null 2>&1; then
+  for candidate in \
+    "$(ls -d "$HOME"/.nvm/versions/node/*/bin/claude 2> /dev/null | sort -V | tail -n 1)" \
+    "$HOME/.local/bin/claude" "/usr/local/bin/claude"; do
+    if [[ -n "$candidate" && -x "$candidate" ]]; then
+      CLAUDE_BIN="$candidate"
+      break
+    fi
+  done
+fi
+if ! command -v "$CLAUDE_BIN" > /dev/null 2>&1; then
+  echo "classify-llm: no se encuentra 'claude' (PATH=$PATH). Instálalo o define CLAUDE_BIN." >&2
+  exit 1
+fi
+
 for v in LIMIT BATCH TIMEOUT_S; do
   if ! [[ "${!v}" =~ ^[1-9][0-9]*$ ]]; then
     echo "classify-llm: $v debe ser un entero >= 1 (valor: '${!v}')" >&2

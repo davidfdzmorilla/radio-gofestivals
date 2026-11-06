@@ -109,5 +109,19 @@ ok "CLASSIFY_LLM_DRY_RUN=1 pasa --dry-run a apply-llm" "$(grep -c -- '--dry-run'
 reset; stations 2
 ok "CLASSIFY_LLM_BATCH inválido: sale 1" "$(CLASSIFY_LLM_BATCH=abc bash "$SCRIPT" >/dev/null 2>&1; echo $?)" "1"
 
+# claude fuera del PATH (como en cron): se busca en ~/.nvm y, si no está, falla pronto con 1.
+reset; stations 2
+fakehome="$TMP/home"; mkdir -p "$fakehome/.nvm/versions/node/v20.1.0/bin" "$fakehome/.nvm/versions/node/v24.2.0/bin"
+cp "$TMP/bin/claude" "$fakehome/.nvm/versions/node/v24.2.0/bin/claude"
+echo '#!/usr/bin/env bash
+echo OLD >> "$STUB_DIR/old-claude-used"; exit 1' > "$fakehome/.nvm/versions/node/v20.1.0/bin/claude"; chmod +x "$fakehome/.nvm/versions/node/v20.1.0/bin/claude"
+nopath="$TMP/nopath"; mkdir -p "$nopath"; ln -sf "$TMP/bin/docker" "$nopath/docker"
+for t in bash python3 timeout cat ls sort tail mktemp rm mkdir dirname grep tr head; do ln -sf "$(command -v $t)" "$nopath/$t"; done
+out="$(HOME="$fakehome" PATH="$nopath" CLASSIFY_LLM_BATCH=2 bash "$SCRIPT" 2>&1 >/dev/null; echo "rc=$?")"
+ok "claude fuera del PATH: lo encuentra en ~/.nvm (el más reciente) y sale 0" "$(echo "$out" | grep -c 'rc=0') $(calls) $([[ -f $TMP/old-claude-used ]] && echo viejo || echo nuevo)" "1 1 nuevo"
+reset; stations 2
+out="$(HOME="$TMP/nohome" PATH="$nopath" bash "$SCRIPT" 2>&1; echo "rc=$?")"
+ok "sin claude en ningún sitio: falla pronto con 1 y mensaje claro" "$(echo "$out" | grep -c 'no se encuentra .claude.') $(echo "$out" | grep -c 'rc=1') $(calls)" "1 1 0"
+
 echo
 if [[ "$FAILS" -eq 0 ]]; then echo "OK"; else echo "$FAILS fallo(s)"; exit 1; fi

@@ -275,6 +275,8 @@ clasificador (`classify-llm.sh`, 05:10 UTC). Fase 2: solo registran veredicto, n
 - Requiere `claude` instalado y con sesión de suscripción iniciada para el usuario del cron
   (`claude` interactivo una vez; para un servidor sin navegador, `claude setup-token` y
   `CLAUDE_CODE_OAUTH_TOKEN` en el entorno del cron). No debe haber `ANTHROPIC_API_KEY`.
+- Cada emisora se juzga con su web (título, descripción) y sus últimos temas cuando los hay.
+  Las descargas pasan por el guard SSRF; una web caída no falla la ejecución.
 - Ensayo sin escribir: `CLASSIFY_LLM_DRY_RUN=1 infra/deploy/classify-llm.sh`.
 - Salida 3 = algún lote falló (límite de uso o sesión caducada); salida 1 = fallo previo (sin
   `claude`, exportación, guardado). En ambos casos `run-job.sh` avisa por Telegram **con la

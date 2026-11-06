@@ -70,3 +70,20 @@ prohibido (consultar a Anthropic Sales si se quiere certeza). Es un riesgo de t�
   caducada, timeout o extracto del error; la clasificación del texto es heurística porque los
   mensajes de `claude -p` no están documentados); hay aviso de recuperación y un latido que
   `watchdog.sh` vigila (36 h) para el caso de que el job deje de ejecutarse.
+
+### Addendum · Fase 2b (2026-11-06): evidencia de la web y de los últimos temas
+
+Medido sobre las 287 emisoras que las reglas dejan en `review`, comparando el modelo con solo
+nombre y tags contra el modelo con además la web de la emisora (`<title>`, meta-descripción,
+palabras clave) y sus últimos temas (`now_playing`): las dudosas bajan del 52 % (148) al 41 %
+(117). 54 se resuelven con razón (p. ej. una web que se presenta como "Electronic Music" o como
+prog rock) y 23 emisoras decididas con solo nombre y tags pasan a `review` porque la web las
+contradice (`90s90s - TECHNO`, cuya web describe "de grunge a RnB"), así que el segundo pase
+**sustituye** al primero, no lo completa. No hubo ni un vuelco aceptada <-> rechazada. El 41 %
+restante son emisoras mixtas de verdad, no falta de datos.
+
+- `review-export --with-evidence` descarga la web (guard SSRF, tope de bytes, 25 s por página;
+  cualquier fallo se ignora) y añade los últimos temas.
+- `EVIDENCE_VERSION` entra en la huella: los veredictos con menos evidencia quedan obsoletos y se
+  reevalúan una vez.
+- Cobertura medida: web utilizable en el 80 % de las dudosas, temas en el 33 %.

@@ -14,6 +14,7 @@ FAILS=0
 cat > "$TMP/bin/docker" <<'STUB'
 #!/usr/bin/env bash
 if [[ " $* " == *" review-export "* ]]; then
+  echo "$*" > "$STUB_DIR/export.args"
   [[ -n "${STUB_EXPORT_FAIL:-}" ]] && { echo "boom" >&2; exit 1; }
   cat "$STUB_DIR/export.json"
 elif [[ " $* " == *" watchdog resolve "* ]]; then
@@ -62,7 +63,7 @@ n = int(sys.argv[1])
 print(json.dumps({"stations": [{"slug": f"s{i}", "name": f"S {i}", "country": "ES", "tags": ["house"]} for i in range(1, n + 1)]}))
 PY
 }
-reset() { rm -f "$TMP"/{claude.count,claude.calls,applied.json,apply.args,resolve.calls,hb,detail,old-claude-used}; : > "$TMP/detail"; unset STUB_EXPORT_FAIL STUB_CLAUDE_MODE ANTHROPIC_API_KEY CLASSIFY_LLM_DRY_RUN; }
+reset() { rm -f "$TMP"/{export.args,claude.count,claude.calls,applied.json,apply.args,resolve.calls,hb,detail,old-claude-used}; : > "$TMP/detail"; unset STUB_EXPORT_FAIL STUB_CLAUDE_MODE ANTHROPIC_API_KEY CLASSIFY_LLM_DRY_RUN; }
 ok() { if [[ "$2" == "$3" ]]; then echo "  ok   - $1"; else echo "  FAIL - $1"; echo "         esperado: $3"; echo "         obtenido: $2"; FAILS=$((FAILS + 1)); fi; }
 calls() { cat "$TMP/claude.count" 2>/dev/null || echo 0; }
 applied_slugs() { python3 -c "import json;print(','.join(r['slug'] for r in json.load(open('$TMP/applied.json'))['results']))" 2>/dev/null || echo "-"; }
@@ -73,6 +74,24 @@ echo "classify-llm.sh"
 reset; stations 5
 ok "5 candidatas en lotes de 2 -> 3 llamadas, sale 0" "$(run) $(calls)" "0 3"
 ok "se guardan los 5 veredictos juntos" "$(applied_slugs)" "s1,s2,s3,s4,s5"
+
+reset; stations 3
+{ echo 'HTTP Request: GET https://x.example/ "HTTP/1.1 200 OK"'; cat "$TMP/export.json"; echo '{"event": "ruido", "level": "info"}'; } > "$TMP/export2.json" && mv "$TMP/export2.json" "$TMP/export.json"
+ok "líneas de log en stdout alrededor del JSON no rompen la exportación" "$(run) $(calls)" "0 2"
+ok "y se guardan las 3 emisoras" "$(applied_slugs)" "s1,s2,s3"
+
+reset; stations 2; run >/dev/null
+ok "pide la evidencia (web y temas) al exportar" "$(grep -c -- '--with-evidence' "$TMP/export.args")" "1"
+ok "el prompt incluye la guía de web y últimos temas" "$(grep -c 'ultimos_temas' "$HERE/../classify-llm/prompt.txt")" "1"
+
+# lotes por tamaño: 6 emisoras de ~40 KB con BATCH=40 no caben juntas en un argumento de claude
+reset
+python3 - > "$TMP/export.json" <<'PY'
+import json
+print(json.dumps({"stations": [{"slug": f"big{i}", "name": "B", "country": "ES", "tags": ["house"], "web": {"description": "x" * 40000}} for i in range(1, 7)]}))
+PY
+ok "lotes acotados por tamaño (6 emisoras de 40 KB, 2 por lote -> 3 llamadas)" "$(BATCH=40 run) $(calls)" "0 3"
+ok "no se pierde ninguna emisora al partir por tamaño" "$(applied_slugs)" "big1,big2,big3,big4,big5,big6"
 
 reset; stations 0
 ok "sin candidatas no llama a claude ni a apply" "$(run) $(calls) $([[ -f $TMP/applied.json ]] && echo applied || echo none)" "0 0 none"

@@ -21,6 +21,9 @@ from scripts.taxonomy_mapper import normalize_tag
 ACCEPT_AT: Final = 70
 REJECT_AT: Final = 30
 
+# Sin ningún tag electrónico claro la emisora nunca se acepta sola: ambient/chill/lounge
+# es la frontera editorial y lo decide la segunda pasada (Fase 2), no una regla.
+SOFT_ONLY_CAP: Final = ACCEPT_AT - 1
 BASE_SCORE: Final = 50
 STRONG_WEIGHT: Final = 25
 STRONG_CAP: Final = 3
@@ -43,13 +46,17 @@ STRONG_TAGS: Final[frozenset[str]] = frozenset(
         "dubstep", "hardstyle", "hard techno", "hardtechno", "schranz", "breakbeat", "breaks",
         "idm", "synthwave", "rave", "eurodance", "uk garage", "minimal techno", "tekno", "makina",
         "gabber", "happy hardcore", "future bass", "electroclash", "trip hop",
+        "nu disco", "italo disco", "italo dance", "italodance", "eurobeat", "darkwave", "ebm",
+        "minimal wave", "dark electro", "dark techno", "bass house", "future garage", "chillstep",
+        "psybient", "vaporwave", "chiptune", "glitch", "breakcore", "eletronic", "eletronica",
+        "electronico",
     }
 )  # fmt: skip
 # Cercanas a la electrónica pero no concluyentes por sí solas.
 SOFT_TAGS: Final[frozenset[str]] = frozenset(
     {
         "ambient", "chillout", "chill out", "chill-out", "chill", "downtempo", "lounge",
-        "dance", "club", "dj", "mix", "beats", "synth", "new age",
+        "dance", "club", "dj", "mix", "beats", "synth",
     }
 )  # fmt: skip
 # Significan otra cosa si van solos (prog rock, hardcore punk, música minimalista…).
@@ -65,6 +72,7 @@ NEGATIVE_TAGS: Final[frozenset[str]] = frozenset(
         "top 40", "pop", "hits", "public radio", "kids", "comedy", "soul", "funk", "r&b",
         "hip hop", "rap", "world", "podcast", "variety", "adult contemporary", "80s", "90s",
         "documentary", "history", "culture", "education", "educational", "technology",
+        "meditation", "yoga", "healing", "relaxation", "video game music", "soundtracks", "spa",
     }
 )  # fmt: skip
 
@@ -152,6 +160,8 @@ def classify(rb_tags: list[str], name: str) -> Classification:
     elif name_neg and not name_pos:
         score -= NAME_WEIGHT
 
+    if not strong:
+        score = min(score, SOFT_ONLY_CAP)
     score = max(0, min(100, score))
     parts: list[str] = []
     if strong:

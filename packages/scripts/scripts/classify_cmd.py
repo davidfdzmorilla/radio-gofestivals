@@ -14,7 +14,9 @@ Nada lee esas columnas para ocultar emisoras: es medición. Las decisiones manua
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
+import sys
 from collections import Counter
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
@@ -35,8 +37,17 @@ if TYPE_CHECKING:
 log = get_logger("classify_stations")
 app = typer.Typer(help="radio.gofestivals · clasificación de emisoras (modo sombra)")
 
+LLM_MIN_CONFIDENCE = 70
+LLM_TAGS_SHOWN = 25
+LLM_VERDICTS = frozenset({"electronic", "not_electronic", "unsure"})
 BACKFILL_BATCH = 50
 SAMPLE_PER_STATE = 8
+
+
+def evidence_hash(name: str, tags: list[str]) -> str:
+    """Huella de la evidencia (nombre + tags): si cambia, un veredicto previo deja de valer."""
+    raw = name.strip().lower() + "\n" + ",".join(tags)
+    return hashlib.sha1(raw.encode(), usedforsecurity=False).hexdigest()[:16]
 
 
 async def backfill_tags(
@@ -99,7 +110,7 @@ async def run_classification(
         rows = (
             await session.execute(
                 text(
-                    "SELECT id, slug, name, rb_tags, curated "
+                    "SELECT id, slug, name, rb_tags, curated, class_source, class_evidence "
                     "FROM stations "
                     "WHERE rb_tags IS NOT NULL "
                     "AND COALESCE(class_source, 'rule') <> 'manual' "
@@ -107,7 +118,10 @@ async def run_classification(
                 ),
             )
         ).all()
-        for station_id, slug, name, rb_tags, curated in rows:
+        for station_id, slug, name, rb_tags, curated, class_source, class_evidence in rows:
+            if class_source == "llm" and class_evidence == evidence_hash(name, list(rb_tags)):
+                counts["llm_kept"] += 1  # veredicto del segundo clasificador aún vigente
+                continue
             verdict = classify(list(rb_tags), name)
             counts[verdict.state] += 1
             entry = {
@@ -125,7 +139,8 @@ async def run_classification(
                 await session.execute(
                     text(
                         "UPDATE stations SET electronic_score = :score, class_state = :state, "
-                        "class_reason = :reason, class_source = 'rule', classified_at = :now "
+                        "class_reason = :reason, class_source = 'rule', classified_at = :now, "
+                        "class_evidence = :evidence "
                         "WHERE id = :id",
                     ),
                     {
@@ -133,6 +148,7 @@ async def run_classification(
                         "state": verdict.state,
                         "reason": verdict.reason,
                         "now": now,
+                        "evidence": evidence_hash(name, list(rb_tags)),
                         "id": station_id,
                     },
                 )
@@ -140,7 +156,7 @@ async def run_classification(
             await session.commit()
     return {
         "dry_run": dry_run,
-        "classified": sum(counts.values()),
+        "classified": sum(v for k, v in counts.items() if k != "llm_kept"),
         "by_state": dict(counts),
         "curated_rejected": curated_conflicts,
         "samples": samples,
@@ -225,6 +241,118 @@ async def relink_genres(
     return stats
 
 
+async def llm_candidates(
+    maker: async_sessionmaker[AsyncSession],
+    *,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Emisoras visibles que las reglas no resuelven y que el segundo clasificador aún no vio.
+
+    Entran las de banda ``review`` y las curadas que las reglas rechazarían (una curada no
+    garantiza que sea electrónica). Se excluyen las manuales y las que ya tienen veredicto
+    ``llm`` sobre la misma evidencia. Primero las de más calidad.
+    """
+    async with maker() as session:
+        rows = (
+            await session.execute(
+                text(
+                    "SELECT slug, name, country_code, rb_tags, curated, class_source, "
+                    "class_evidence FROM stations "
+                    "WHERE rb_tags IS NOT NULL AND status = 'active' AND NOT hidden "
+                    "AND COALESCE(class_source, 'rule') <> 'manual' "
+                    "ORDER BY quality_score DESC, slug",
+                ),
+            )
+        ).all()
+    out: list[dict[str, Any]] = []
+    for slug, name, country, rb_tags, curated, class_source, class_evidence in rows:
+        tags = list(rb_tags)
+        verdict = classify(tags, name)
+        if not (verdict.state == "review" or (curated and verdict.state == "rejected")):
+            continue
+        if class_source == "llm" and class_evidence == evidence_hash(name, tags):
+            continue
+        out.append(
+            {"slug": slug, "name": name, "country": country, "tags": tags[:LLM_TAGS_SHOWN]},
+        )
+        if len(out) >= limit:
+            break
+    return out
+
+
+def llm_outcome(verdict: str, confidence: int) -> tuple[str, int]:
+    """(estado, puntuación) de un veredicto del modelo. Sin confianza suficiente => review."""
+    confidence = max(0, min(100, confidence))
+    if verdict == "electronic" and confidence >= LLM_MIN_CONFIDENCE:
+        return "accepted", confidence
+    if verdict == "not_electronic" and confidence >= LLM_MIN_CONFIDENCE:
+        return "rejected", 100 - confidence
+    return "review", 50
+
+
+async def apply_llm_verdicts(
+    maker: async_sessionmaker[AsyncSession],
+    results: list[dict[str, Any]],
+    *,
+    dry_run: bool,
+) -> dict[str, int]:
+    """Guarda los veredictos del modelo. Valida cada entrada; lo inválido se descarta, no falla."""
+    stats = {"received": len(results), "applied": 0, "unknown": 0, "invalid": 0, "manual": 0}
+    stats.update({"accepted": 0, "rejected": 0, "review": 0})
+    now = datetime.now(tz=UTC)
+    async with maker() as session:
+        for item in results:
+            slug = item.get("slug")
+            verdict = item.get("verdict")
+            confidence = item.get("confidence")
+            if (
+                not isinstance(slug, str)
+                or verdict not in LLM_VERDICTS
+                or not isinstance(confidence, int)
+                or isinstance(confidence, bool)
+            ):
+                stats["invalid"] += 1
+                continue
+            row = (
+                await session.execute(
+                    text(
+                        "SELECT id, name, rb_tags, class_source FROM stations "
+                        "WHERE slug = :slug AND rb_tags IS NOT NULL",
+                    ),
+                    {"slug": slug},
+                )
+            ).first()
+            if row is None:
+                stats["unknown"] += 1
+                continue
+            if row[3] == "manual":
+                stats["manual"] += 1
+                continue
+            state, score = llm_outcome(str(verdict), confidence)
+            reason = f"llm:{verdict}:{confidence} {str(item.get('reason') or '')[:200]}".strip()
+            stats[state] += 1
+            stats["applied"] += 1
+            if not dry_run:
+                await session.execute(
+                    text(
+                        "UPDATE stations SET electronic_score = :score, class_state = :state, "
+                        "class_reason = :reason, class_source = 'llm', classified_at = :now, "
+                        "class_evidence = :evidence WHERE id = :id",
+                    ),
+                    {
+                        "score": score,
+                        "state": state,
+                        "reason": reason,
+                        "now": now,
+                        "evidence": evidence_hash(str(row[1]), list(row[2])),
+                        "id": row[0],
+                    },
+                )
+        if not dry_run:
+            await session.commit()
+    return stats
+
+
 @app.command("backfill-tags")
 def cmd_backfill_tags(
     dry_run: bool = typer.Option(False, "--dry-run", help="No escribe en la base de datos"),  # noqa: FBT001,FBT002
@@ -292,3 +420,45 @@ def cmd_relink_genres(
 
     stats = asyncio.run(_main())
     log.info("relink_done", dry_run=dry_run, **stats)
+
+
+@app.command("review-export")
+def cmd_review_export(
+    limit: int = typer.Option(120, "--limit", min=1, max=1000, help="Máximo de emisoras"),
+) -> None:
+    """JSON con las emisoras que debe mirar el segundo clasificador. No escribe en la base."""
+    engine = make_engine()
+    maker = make_sessionmaker(engine)
+
+    async def _main() -> list[dict[str, Any]]:
+        try:
+            return await llm_candidates(maker, limit=limit)
+        finally:
+            await engine.dispose()
+
+    typer.echo(json.dumps({"stations": asyncio.run(_main())}, ensure_ascii=False))
+
+
+@app.command("apply-llm")
+def cmd_apply_llm(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Solo cuenta; no escribe"),  # noqa: FBT001,FBT002
+) -> None:
+    """Lee por stdin ``{"results": [...]}`` del modelo y guarda los veredictos válidos."""
+    payload = json.loads(sys.stdin.read() or "{}")
+    results = payload.get("results") if isinstance(payload, dict) else None
+    if not isinstance(results, list):
+        typer.echo("stdin debe ser un JSON con la clave 'results' (lista)", err=True)
+        raise typer.Exit(code=2)
+    engine = make_engine()
+    maker = make_sessionmaker(engine)
+
+    async def _main() -> dict[str, int]:
+        try:
+            return await apply_llm_verdicts(
+                maker, [r for r in results if isinstance(r, dict)], dry_run=dry_run
+            )
+        finally:
+            await engine.dispose()
+
+    stats = asyncio.run(_main())
+    log.info("apply_llm_done", dry_run=dry_run, **stats)

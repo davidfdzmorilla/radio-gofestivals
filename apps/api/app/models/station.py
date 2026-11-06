@@ -115,6 +115,7 @@ class Station(Base):
     class_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     class_source: Mapped[str | None] = mapped_column(String(16), nullable=True)
     classified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    class_evidence: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
 

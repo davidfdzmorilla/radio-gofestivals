@@ -266,3 +266,18 @@ afectan **sólo a radio.gofestivals**:
 
 **No tocar** la red `traefik_proxy` ni el servicio `traefik` del host —
 son compartidos. No hacer `docker system prune -a` sin cuidado.
+
+## 4d · Clasificación automática de emisoras (ADR 012)
+
+Dos jobs diarios (ver `crontab.example`): reglas (`classify-stations run`, 05:00 UTC) y segundo
+clasificador (`classify-llm.sh`, 05:10 UTC). Fase 2: solo registran veredicto, no ocultan nada.
+
+- Requiere `claude` instalado y con sesión de suscripción iniciada para el usuario del cron
+  (`claude` interactivo una vez; para un servidor sin navegador, `claude setup-token` y
+  `CLAUDE_CODE_OAUTH_TOKEN` en el entorno del cron). No debe haber `ANTHROPIC_API_KEY`.
+- Ensayo sin escribir: `CLASSIFY_LLM_DRY_RUN=1 infra/deploy/classify-llm.sh`.
+- Pruebas del script: `bash infra/deploy/tests/classify-llm.test.sh`.
+- Salida 3 = algún lote falló (límite de uso o sesión caducada): alerta por Telegram; se
+  reintenta solo en la siguiente ejecución.
+- Ver el resultado: `classify-stations export` (JSON por emisora) o el log
+  `/var/log/radio/classify.log`.

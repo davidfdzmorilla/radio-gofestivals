@@ -41,3 +41,28 @@ borra; un cambio masivo en un ciclo no se aplica y avisa.
   de las fases 2-3.
 - Medido offline sobre 1.430 emisoras devueltas por Radio-Browser para los 15 tags: 996 aceptadas,
   238 en revisión, 196 rechazadas.
+
+## Addendum · Fase 2 (2026-11-06): segundo clasificador con la suscripción de Claude Code
+
+La banda `review` (~290 emisoras visibles) la resuelve un modelo, sin revisión humana. Decisión de
+David: **sin gasto de API, solo suscripción**. Se descartó la clave de API aunque la documentación
+oficial la recomienda para pipelines que alimentan un producto: la autenticación de suscripción
+está pensada para "ordinary use" y la doc no dice expresamente que un cron esté permitido ni
+prohibido (consultar a Anthropic Sales si se quiere certeza). Es un riesgo de términos asumido.
+
+- `infra/deploy/classify-llm.sh` (cron 05:10 UTC) exporta candidatas (`classify-stations
+  review-export`), las pasa en lotes por `claude -p` y guarda los veredictos (`apply-llm`).
+- Sin `--bare` (no lee la suscripción); directorio vacío; `--tools ""`; `--strict-mcp-config
+  --disable-slash-commands` (de ~160.000 a ~5.000 tokens de contexto por llamada); salida
+  restringida por `--json-schema`; se retiran `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` para
+  que nunca facture por API.
+- Veredicto `electronic`/`not_electronic` con confianza >= 70 => `accepted`/`rejected`; si no,
+  `review`. `class_evidence` (huella de nombre+tags) evita volver a preguntar por lo ya juzgado;
+  el recálculo de reglas no pisa un veredicto vigente. Las decisiones `manual` no se tocan.
+- Al primer fallo (límite de uso, sesión caducada, JSON inválido) corta: guarda los lotes ya
+  resueltos y sale con 3 para que `run-job.sh` avise por Telegram. Lo no resuelto queda para la
+  siguiente ejecución.
+- Límites conocidos: el comportamiento exacto de `claude -p` al alcanzar el límite de la
+  suscripción no está documentado (se trata como fallo genérico); el modelo solo ve nombre,
+  país y tags, así que unas ~55 % de las dudosas siguen en `review` (medido en una muestra de 55).
+  La política para ese residuo se decide en la Fase 3.

@@ -16,6 +16,11 @@ const nextConfig = {
         hostname: 'proyecto-images-gofestivals.s3.eu-west-3.amazonaws.com',
         pathname: '/festivals/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.gofestivals.es',
+        pathname: '/uploads/festivals/**',
+      },
     ],
   },
   experimental: {

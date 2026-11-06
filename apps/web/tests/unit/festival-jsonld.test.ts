@@ -42,8 +42,17 @@ describe('festivalEventLd', () => {
     expect(ld.description).toBe('Gran festival.');
   });
 
-  it('no emite image (el bucket devuelve 403)', () => {
-    expect(festivalEventLd(fest(), 'es')).not.toHaveProperty('image');
+  it('emite image con la URL de la ficha si es de un host de gofestivals', () => {
+    expect(festivalEventLd(fest(), 'es')!.image).toEqual([
+      'https://proyecto-images-gofestivals.s3.eu-west-3.amazonaws.com/festivals/x.jpg',
+    ]);
+    const api = 'https://api.gofestivals.es/uploads/festivals/23-5046bc67ea.jpg';
+    expect(festivalEventLd(fest({ imageUrl: api }), 'es')!.image).toEqual([api]);
+  });
+
+  it('no emite image si falta o el host no está permitido', () => {
+    expect(festivalEventLd(fest({ imageUrl: null }), 'es')).not.toHaveProperty('image');
+    expect(festivalEventLd(fest({ imageUrl: 'https://evil.example/festivals/x.jpg' }), 'es')).not.toHaveProperty('image');
   });
 
   it('sin lugar o sin fecha válida no emite nada', () => {

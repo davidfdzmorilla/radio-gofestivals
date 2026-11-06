@@ -116,6 +116,8 @@ class Station(Base):
     class_source: Mapped[str | None] = mapped_column(String(16), nullable=True)
     classified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     class_evidence: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # Quién ocultó la emisora cuando hidden = true: 'classifier' (reversible) o NULL (spam/manual).
+    hidden_by: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
 
@@ -133,6 +135,10 @@ class Station(Base):
         CheckConstraint(
             "class_source IS NULL OR class_source IN ('rule', 'llm', 'manual')",
             name="chk_stations_class_source",
+        ),
+        CheckConstraint(
+            "hidden_by IS NULL OR hidden_by IN ('classifier')",
+            name="chk_stations_hidden_by",
         ),
     )
 

@@ -3,8 +3,10 @@
 # classify-llm.sh — segundo clasificador "¿es electrónica?" (ADR 012, Fase 2).
 #
 # Toma las emisoras que las reglas no resuelven (banda `review` y curadas que las reglas
-# rechazarían), las pasa por `claude -p` en lotes y guarda los veredictos con
-# `classify-stations apply-llm`. Por ahora en modo sombra: nada oculta emisoras.
+# rechazarían), les añade la web de la emisora y sus últimos temas (medido el 2026-11-06: baja las
+# dudosas del 52 % al 41 % y corrige errores del juicio solo por nombre y tags), las pasa por
+# `claude -p` en lotes y guarda los veredictos con `classify-stations apply-llm`.
+# Por ahora en modo sombra: nada oculta emisoras.
 #
 # Usa la sesión de suscripción de Claude Code del usuario que ejecuta el cron (decisión de
 # David: sin gasto de API). Por eso:
@@ -116,22 +118,36 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$WORK/empty"
 
-if ! "${COMPOSE[@]}" run --rm -T scripts classify-stations review-export --limit "$LIMIT" \
+if ! "${COMPOSE[@]}" run --rm -T scripts classify-stations review-export --limit "$LIMIT" --with-evidence \
   > "$WORK/export.json" 2> "$WORK/export.err"; then
   fail_detail "fallo al exportar candidatas: $(tail -c 300 "$WORK/export.err")"
   exit 1
 fi
 
 # Parte la lista en lotes: $WORK/batch-<n>.json con {"stations":[...]}; imprime cuántos hay.
+# Cada lote lleva como máximo BATCH emisoras y ~100 KB: el prompt viaja como argumento de
+# `claude -p` y Linux limita un argumento a 128 KB (con web y temas cada emisora pesa ~1-2 KB).
 n_batches="$(python3 - "$WORK" "$BATCH" <<'PY'
 import json, sys
+MAX_BYTES = 100_000
 work, size = sys.argv[1], int(sys.argv[2])
 try:
-    stations = json.load(open(f"{work}/export.json"))["stations"]
+    # El JSON es la línea {"stations": ...}; ignora cualquier otra línea de log en stdout.
+    lines = [ln for ln in open(f"{work}/export.json") if ln.startswith('{"stations"')]
+    stations = json.loads(lines[-1])["stations"]
 except Exception as exc:  # noqa: BLE001
     print(f"error: {exc}", file=sys.stderr)
     sys.exit(1)
-chunks = [stations[i:i + size] for i in range(0, len(stations), size)]
+chunks, current, weight = [], [], 0
+for st in stations:
+    w = len(json.dumps(st, ensure_ascii=False).encode())
+    if current and (len(current) >= size or weight + w > MAX_BYTES):
+        chunks.append(current)
+        current, weight = [], 0
+    current.append(st)
+    weight += w
+if current:
+    chunks.append(current)
 for n, chunk in enumerate(chunks, 1):
     json.dump({"stations": chunk}, open(f"{work}/batch-{n}.json", "w"), ensure_ascii=False)
 print(len(chunks))

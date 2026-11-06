@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 from typing import TYPE_CHECKING, Any
 
+import httpx
 import respx
 from sqlalchemy import text
 
 from scripts.classify_cmd import (
+    add_evidence,
     apply_llm_verdicts,
     backfill_tags,
     evidence_hash,
@@ -19,6 +22,7 @@ from scripts.rb_client import RadioBrowserClient
 from scripts.rb_sync import run_sync
 
 if TYPE_CHECKING:
+    import pytest
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 U1 = "00000000-0000-0000-0000-0000000000a1"
@@ -361,3 +365,121 @@ async def test_rules_rerun_keeps_a_current_llm_verdict_but_overrides_a_stale_one
     assert report["by_state"].get("llm_kept") == 1
     assert (await _state(db_session, "current"))[:2] == ("accepted", "llm")
     assert (await _state(db_session, "stale"))[1] == "rule"
+
+
+# --- Fase 2b: evidencia (web y últimos temas) ---------------------------------------------------
+
+
+async def _station_with(
+    db: AsyncSession,
+    uuid: str,
+    slug: str,
+    *,
+    homepage: str | None = None,
+    tracks: list[tuple[str, str]] | None = None,
+) -> None:
+    await _insert(db, uuid, slug, tags=["house", "rock", "pop"])
+    await db.execute(
+        text("UPDATE stations SET homepage_url = :h WHERE slug = :s"),
+        {"h": homepage, "s": slug},
+    )
+    for artist, title in tracks or []:
+        await db.execute(
+            text(
+                "INSERT INTO now_playing (station_id, artist, title) "
+                "SELECT id, :a, :t FROM stations WHERE slug = :s",
+            ),
+            {"a": artist, "t": title, "s": slug},
+        )
+    await db.commit()
+
+
+@respx.mock
+async def test_add_evidence_attaches_web_and_tracks_and_strips_internal_fields(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    await _station_with(
+        db_session,
+        U1,
+        "rich",
+        homepage="https://rich.example/",
+        tracks=[("Daft Punk", "One More Time"), ("Daft Punk", "One More Time")],
+    )
+    respx.get("https://rich.example/").respond(
+        200,
+        html='<title>Rich Radio</title><meta name="description" content="Techno 24/7">',
+    )
+    candidates = await llm_candidates(maker, limit=10)
+    assert {"_id", "_homepage"} <= set(candidates[0])
+    async with httpx.AsyncClient() as client:
+        out = await add_evidence(maker, candidates, client)
+    assert out == [
+        {
+            "slug": "rich",
+            "name": "rich",
+            "country": None,
+            "tags": ["house", "rock", "pop"],
+            "web": {"title": "Rich Radio", "description": "Techno 24/7"},
+            "ultimos_temas": ["Daft Punk - One More Time"],
+        },
+    ]
+
+
+@respx.mock
+async def test_add_evidence_is_optional_and_a_broken_site_never_fails_the_run(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    await _station_with(db_session, U1, "down", homepage="https://down.example/")
+    await _station_with(db_session, U2, "nothing")
+    respx.get("https://down.example/").mock(side_effect=httpx.ConnectError("boom"))
+    candidates = await llm_candidates(maker, limit=10)
+    async with httpx.AsyncClient() as client:
+        out = await add_evidence(maker, candidates, client)
+    assert sorted(o["slug"] for o in out) == ["down", "nothing"]
+    assert all("web" not in o and "ultimos_temas" not in o for o in out)
+    assert all(not k.startswith("_") for o in out for k in o)
+
+
+async def test_add_evidence_with_no_candidates_makes_no_queries(
+    maker: async_sessionmaker[AsyncSession],
+) -> None:
+    async with httpx.AsyncClient() as client:
+        assert await add_evidence(maker, [], client) == []
+
+
+def test_evidence_hash_depends_on_the_evidence_version(monkeypatch: pytest.MonkeyPatch) -> None:
+    before = evidence_hash("Radio", ["house"])
+    monkeypatch.setattr("scripts.classify_cmd.EVIDENCE_VERSION", "v3")
+    assert evidence_hash("Radio", ["house"]) != before
+
+
+async def test_verdicts_from_an_older_evidence_version_are_asked_again(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    await _insert(db_session, U1, "old-verdict", tags=["house", "rock", "pop"])
+    await db_session.execute(
+        text("UPDATE stations SET class_source='llm', class_evidence=:h WHERE slug='old-verdict'"),
+        {"h": hashlib.sha1(b"name+tags sin version", usedforsecurity=False).hexdigest()[:16]},  # noqa: S324
+    )
+    await db_session.commit()
+    assert [c["slug"] for c in await llm_candidates(maker, limit=10)] == ["old-verdict"]
+
+
+async def test_add_evidence_survives_an_unexpected_error_fetching_a_site(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def boom(*_a: object, **_k: object) -> None:
+        msg = "inesperado"
+        raise RuntimeError(msg)
+
+    monkeypatch.setattr("scripts.classify_cmd.fetch_page_info", boom)
+    await _station_with(db_session, U1, "weird", homepage="https://weird.example/")
+    candidates = await llm_candidates(maker, limit=10)
+    async with httpx.AsyncClient() as client:
+        out = await add_evidence(maker, candidates, client)
+    assert [o["slug"] for o in out] == ["weird"]

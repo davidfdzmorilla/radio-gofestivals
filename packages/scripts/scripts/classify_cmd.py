@@ -16,11 +16,14 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import logging
 import sys
 from collections import Counter
+from contextlib import suppress
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+import httpx
 import typer
 from sqlalchemy import text
 
@@ -29,7 +32,9 @@ from scripts.logging import get_logger
 from scripts.rb_client import RadioBrowserClient
 from scripts.rb_sync import SyncStats, parse_tags, replace_rb_tag_links
 from scripts.station_classifier import classify, normalize_tags
+from scripts.station_evidence import fetch_page_info, format_tracks
 from scripts.taxonomy_mapper import GenreRef, map_rb_tags_to_genre_slugs
+from scripts.url_guard import guard_request
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -37,6 +42,12 @@ if TYPE_CHECKING:
 log = get_logger("classify_stations")
 app = typer.Typer(help="radio.gofestivals · clasificación de emisoras (modo sombra)")
 
+# Versión de la evidencia con la que juzga el segundo clasificador. Entra en la huella: al subirla
+# (v2 = nombre, tags + web + últimos temas, medido el 2026-11-06) los veredictos anteriores
+# quedan obsoletos y se reevalúan una vez, porque se hicieron con menos información.
+EVIDENCE_VERSION = "v2"
+EVIDENCE_PAGE_TIMEOUT_S = 25
+EVIDENCE_CONCURRENCY = 10
 LLM_MIN_CONFIDENCE = 70
 LLM_TAGS_SHOWN = 25
 LLM_VERDICTS = frozenset({"electronic", "not_electronic", "unsure"})
@@ -46,7 +57,7 @@ SAMPLE_PER_STATE = 8
 
 def evidence_hash(name: str, tags: list[str]) -> str:
     """Huella de la evidencia (nombre + tags): si cambia, un veredicto previo deja de valer."""
-    raw = name.strip().lower() + "\n" + ",".join(tags)
+    raw = f"{EVIDENCE_VERSION}\n" + name.strip().lower() + "\n" + ",".join(tags)
     return hashlib.sha1(raw.encode(), usedforsecurity=False).hexdigest()[:16]
 
 
@@ -257,7 +268,7 @@ async def llm_candidates(
             await session.execute(
                 text(
                     "SELECT slug, name, country_code, rb_tags, curated, class_source, "
-                    "class_evidence FROM stations "
+                    "class_evidence, id, homepage_url FROM stations "
                     "WHERE rb_tags IS NOT NULL AND status = 'active' AND NOT hidden "
                     "AND COALESCE(class_source, 'rule') <> 'manual' "
                     "ORDER BY quality_score DESC, slug",
@@ -265,7 +276,7 @@ async def llm_candidates(
             )
         ).all()
     out: list[dict[str, Any]] = []
-    for slug, name, country, rb_tags, curated, class_source, class_evidence in rows:
+    for slug, name, country, rb_tags, curated, class_source, class_evidence, sid, home in rows:
         tags = list(rb_tags)
         verdict = classify(tags, name)
         if not (verdict.state == "review" or (curated and verdict.state == "rejected")):
@@ -273,11 +284,78 @@ async def llm_candidates(
         if class_source == "llm" and class_evidence == evidence_hash(name, tags):
             continue
         out.append(
-            {"slug": slug, "name": name, "country": country, "tags": tags[:LLM_TAGS_SHOWN]},
+            {
+                "slug": slug,
+                "name": name,
+                "country": country,
+                "tags": tags[:LLM_TAGS_SHOWN],
+                "_id": sid,
+                "_homepage": home,
+            },
         )
         if len(out) >= limit:
             break
     return out
+
+
+async def add_evidence(
+    maker: async_sessionmaker[AsyncSession],
+    candidates: list[dict[str, Any]],
+    client: httpx.AsyncClient,
+) -> list[dict[str, Any]]:
+    """Añade ``web`` y ``ultimos_temas`` a cada candidata (si los hay) y quita los campos internos.
+
+    Ambos son opcionales: una emisora sin web utilizable ni temas guardados se juzga solo por
+    nombre y tags. Un fallo al descargar una web nunca falla la ejecución.
+    """
+    tracks_by_station: dict[Any, list[str]] = {}
+    ids = [c["_id"] for c in candidates]
+    if ids:
+        async with maker() as session:
+            rows = (
+                await session.execute(
+                    text(
+                        "SELECT station_id, artist, title FROM now_playing "
+                        "WHERE station_id = ANY(:ids) ORDER BY captured_at DESC",
+                    ),
+                    {"ids": ids},
+                )
+            ).all()
+        grouped: dict[Any, list[dict[str, Any]]] = {}
+        for station_id, artist, title in rows:
+            grouped.setdefault(station_id, []).append({"artist": artist, "title": title})
+        tracks_by_station = {sid: format_tracks(items) for sid, items in grouped.items()}
+
+    sem = asyncio.Semaphore(EVIDENCE_CONCURRENCY)
+
+    async def one(candidate: dict[str, Any]) -> dict[str, Any]:
+        info = None
+        async with sem:
+            with suppress(Exception):  # una web rota no debe parar la clasificación
+                info = await asyncio.wait_for(
+                    fetch_page_info(client, candidate["_homepage"]),
+                    EVIDENCE_PAGE_TIMEOUT_S,
+                )
+        out = {k: v for k, v in candidate.items() if not k.startswith("_")}
+        if info is not None:
+            out["web"] = info.as_dict()
+        tracks = tracks_by_station.get(candidate["_id"])
+        if tracks:
+            out["ultimos_temas"] = tracks
+        return out
+
+    return list(await asyncio.gather(*(one(c) for c in candidates)))
+
+
+def build_evidence_client() -> httpx.AsyncClient:
+    """Cliente con el guard SSRF en cada petición y redirección (ADR 008)."""
+    return httpx.AsyncClient(
+        timeout=httpx.Timeout(connect=5.0, read=10.0, write=5.0, pool=10.0),
+        follow_redirects=True,
+        max_redirects=3,
+        limits=httpx.Limits(max_connections=20),
+        event_hooks={"request": [guard_request]},
+    )
 
 
 def llm_outcome(verdict: str, confidence: int) -> tuple[str, int]:
@@ -425,14 +503,26 @@ def cmd_relink_genres(
 @app.command("review-export")
 def cmd_review_export(
     limit: int = typer.Option(120, "--limit", min=1, max=1000, help="Máximo de emisoras"),
+    with_evidence: bool = typer.Option(  # noqa: FBT001
+        False,  # noqa: FBT003
+        "--with-evidence",
+        help="Añade la web de la emisora y sus últimos temas (más evidencia, menos 'unsure')",
+    ),
 ) -> None:
     """JSON con las emisoras que debe mirar el segundo clasificador. No escribe en la base."""
+    # Los logs del proyecto van a stdout (scripts/logging.py) y esta salida ES el JSON: httpx
+    # escribiría una línea "HTTP Request: GET ..." por cada web y la ensuciaría.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     engine = make_engine()
     maker = make_sessionmaker(engine)
 
     async def _main() -> list[dict[str, Any]]:
         try:
-            return await llm_candidates(maker, limit=limit)
+            candidates = await llm_candidates(maker, limit=limit)
+            if not with_evidence:
+                return [{k: v for k, v in c.items() if not k.startswith("_")} for c in candidates]
+            async with build_evidence_client() as client:
+                return await add_evidence(maker, candidates, client)
         finally:
             await engine.dispose()
 

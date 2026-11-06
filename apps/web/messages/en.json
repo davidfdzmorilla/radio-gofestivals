@@ -51,6 +51,7 @@
     "metaDescription": "{count, plural, =0 {No {name} radio stations yet on radio.gofestivals.} =1 {1 hand-picked online {name} radio station, streaming live. Listen free on radio.gofestivals.} other {# hand-picked online {name} radio stations, streaming live from across the world. Listen free on radio.gofestivals.}}",
     "indexTitle": "Electronic music genres · radio.gofestivals",
     "indexDescription": "Browse every electronic music genre: techno, house, trance, drum & bass, dubstep and more. Curated stations, streaming live on radio.gofestivals.",
+    "subgenres": "Subgenres",
     "byCountry": "{name} by country"
   },
   "station": {

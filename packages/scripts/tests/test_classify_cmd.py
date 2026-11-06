@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 import respx
 from sqlalchemy import text
 
-from scripts.classify_cmd import backfill_tags, run_classification
+from scripts.classify_cmd import backfill_tags, export_rows, run_classification
 from scripts.rb_client import RadioBrowserClient
 from scripts.rb_sync import run_sync
 
@@ -155,3 +155,20 @@ async def test_run_skips_stations_without_collected_tags_and_flags_curated_confl
     report = await run_classification(maker, dry_run=True)
     assert report["classified"] == 1
     assert [c["slug"] for c in report["curated_rejected"]] == ["curated-rock"]
+
+
+async def test_export_is_read_only_and_includes_verdict(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    await _insert(db_session, U1, "electro", tags=["techno"])
+    await _insert(db_session, U2, "no-evidence")
+    rows = await export_rows(maker)
+    assert [(r["slug"], r["state"]) for r in rows] == [("electro", "accepted")]
+    assert rows[0]["tags"] == ["techno"]
+    db_session.expire_all()
+    assert (
+        await db_session.execute(
+            text("SELECT count(*) FROM stations WHERE class_state IS NOT NULL")
+        )
+    ).scalar_one() == 0

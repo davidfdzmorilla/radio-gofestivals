@@ -146,6 +146,38 @@ async def run_classification(
     }
 
 
+async def export_rows(maker: async_sessionmaker[AsyncSession]) -> list[dict[str, Any]]:
+    """Todas las emisoras con tags y su veredicto de reglas recalculado (solo lectura)."""
+    async with maker() as session:
+        rows = (
+            await session.execute(
+                text(
+                    "SELECT slug, name, country_code, rb_tags, curated, status, hidden, "
+                    "class_source FROM stations WHERE rb_tags IS NOT NULL ORDER BY slug",
+                ),
+            )
+        ).all()
+    out: list[dict[str, Any]] = []
+    for slug, name, country, rb_tags, curated, status, hidden, class_source in rows:
+        verdict = classify(list(rb_tags), name)
+        out.append(
+            {
+                "slug": slug,
+                "name": name,
+                "country": country,
+                "tags": list(rb_tags),
+                "curated": curated,
+                "status": status,
+                "hidden": hidden,
+                "class_source": class_source,
+                "score": verdict.score,
+                "state": verdict.state,
+                "reason": verdict.reason,
+            },
+        )
+    return out
+
+
 @app.command("backfill-tags")
 def cmd_backfill_tags(
     dry_run: bool = typer.Option(False, "--dry-run", help="No escribe en la base de datos"),  # noqa: FBT001,FBT002
@@ -180,3 +212,19 @@ def cmd_run(
 
     report = asyncio.run(_main())
     typer.echo(json.dumps(report, ensure_ascii=False, indent=2))
+
+
+@app.command("export")
+def cmd_export() -> None:
+    """Vuelca una línea JSON por emisora (tags, estado y veredicto). No escribe en la base."""
+    engine = make_engine()
+    maker = make_sessionmaker(engine)
+
+    async def _main() -> list[dict[str, Any]]:
+        try:
+            return await export_rows(maker)
+        finally:
+            await engine.dispose()
+
+    for row in asyncio.run(_main()):
+        typer.echo(json.dumps(row, ensure_ascii=False))

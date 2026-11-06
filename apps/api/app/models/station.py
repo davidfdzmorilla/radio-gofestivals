@@ -11,6 +11,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    DateTime,
     ForeignKey,
     Integer,
     Numeric,
@@ -19,7 +20,7 @@ from sqlalchemy import (
     String,
     Text,
 )
-from sqlalchemy.dialects.postgresql import ENUM, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -107,12 +108,31 @@ class Station(Base):
         default=0,
     )
     source: Mapped[str] = mapped_column(Text, nullable=False, default="radio-browser")
+    # Clasificación "¿es electrónica?" (migración 0023). Fase 1: solo informativa.
+    rb_tags: Mapped[list[str] | None] = mapped_column(ARRAY(Text), nullable=True)
+    electronic_score: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
+    class_state: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    class_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    class_source: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    classified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(nullable=False, server_default=func.now())
 
     __table_args__ = (
         CheckConstraint("quality_score BETWEEN 0 AND 100", name="chk_quality_score"),
         CheckConstraint("bitrate IS NULL OR bitrate > 0", name="chk_bitrate"),
+        CheckConstraint(
+            "electronic_score IS NULL OR electronic_score BETWEEN 0 AND 100",
+            name="chk_stations_electronic_score",
+        ),
+        CheckConstraint(
+            "class_state IS NULL OR class_state IN ('accepted', 'review', 'rejected')",
+            name="chk_stations_class_state",
+        ),
+        CheckConstraint(
+            "class_source IS NULL OR class_source IN ('rule', 'llm', 'manual')",
+            name="chk_stations_class_source",
+        ),
     )
 
     genres: Mapped[list[Genre]] = relationship(

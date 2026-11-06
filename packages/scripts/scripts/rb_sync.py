@@ -20,6 +20,7 @@ from scripts.dedupe_stations import normalize_name
 from scripts.logging import get_logger
 from scripts.quality import compute_quality_score, compute_technical_score
 from scripts.rb_client import RadioBrowserClient
+from scripts.station_classifier import normalize_tags
 from scripts.stream_check import DEFAULT_TIMEOUT_S, StreamCheckResult, check_stream_alive
 from scripts.taxonomy_mapper import GenreRef, map_rb_tags_to_genre_slugs
 
@@ -238,6 +239,7 @@ async def upsert_station(
         return None
 
     name = (item.get("name") or "").strip() or "Unknown Station"
+    rb_tags = normalize_tags(parse_tags(item.get("tags")))
     country_code = normalize_country(item.get("countrycode"))
     city = (item.get("state") or "").strip() or None
     codec = (item.get("codec") or "").strip().lower() or None
@@ -354,6 +356,7 @@ async def upsert_station(
             "last_changeuuid": str(last_changeuuid) if last_changeuuid else None,
             "last_local_checktime": last_local_checktime,
             "hidden": hidden_flag,
+            "rb_tags": rb_tags,
             "now": datetime.now(tz=UTC),
         }
         if has_geo:
@@ -365,12 +368,12 @@ async def upsert_station(
                 rb_uuid, slug, name, country_code, city, language,
                 homepage_url, favicon_url, quality_score, clickcount, votes,
                 last_changeuuid, last_local_checktime,
-                source, last_sync_at, hidden, geo
+                source, last_sync_at, hidden, rb_tags, geo
             ) VALUES (
                 :rb, :slug, :name, :country_code, :city, :language,
                 :homepage_url, :favicon_url, :quality_score, :clickcount, :votes,
                 CAST(:last_changeuuid AS uuid), :last_local_checktime,
-                'radio-browser', :now, :hidden, {geo_expr}
+                'radio-browser', :now, :hidden, :rb_tags, {geo_expr}
             )
             RETURNING id
             """,  # noqa: S608
@@ -430,6 +433,7 @@ async def upsert_station(
         "votes": votes,
         "last_changeuuid": str(last_changeuuid) if last_changeuuid else None,
         "last_local_checktime": last_local_checktime,
+        "rb_tags": rb_tags,
         "now": datetime.now(tz=UTC),
     }
     if has_geo:
@@ -455,6 +459,7 @@ async def upsert_station(
             votes = :votes,
             last_changeuuid = CAST(:last_changeuuid AS uuid),
             last_local_checktime = :last_local_checktime,
+            rb_tags = :rb_tags,
             {geo_fragment}
             last_sync_at = :now
         WHERE id = :id

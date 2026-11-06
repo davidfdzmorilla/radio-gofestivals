@@ -94,3 +94,11 @@ class RadioBrowserClient:
             msg = f"Respuesta inesperada de Radio-Browser para tag={tag}: no es lista"
             raise RadioBrowserError(msg)
         return [item for item in data if isinstance(item, dict)]
+
+    async def fetch_stations_by_uuids(self, uuids: Sequence[str]) -> list[dict[str, Any]]:
+        """Filas de Radio-Browser por `stationuuid` (`/json/stations/byuuid?uuids=a,b,c`)."""
+        data = await self.get("/json/stations/byuuid", params={"uuids": ",".join(uuids)})
+        if not isinstance(data, list):
+            msg = "Respuesta inesperada de Radio-Browser en byuuid: no es lista"
+            raise RadioBrowserError(msg)
+        return [item for item in data if isinstance(item, dict)]

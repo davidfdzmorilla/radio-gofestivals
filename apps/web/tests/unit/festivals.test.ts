@@ -267,10 +267,20 @@ describe('festivalImageSrc (next/image throws on unconfigured hosts)', () => {
   it('accepts only the gofestivals bucket over https under /festivals/', () => {
     expect(festivalImageSrc({ imageUrl: ok })).toBe(ok);
   });
+  it('accepts the gofestivals API uploads path', () => {
+    const u = 'https://api.gofestivals.es/uploads/festivals/23-5046bc67ea.jpg';
+    expect(festivalImageSrc({ imageUrl: u })).toBe(u);
+  });
   it.each([
     [null],
     [''],
     ['not a url'],
+    ['https://api.gofestivals.es/api/festivals'],
+    ['https://api.gofestivals.es/uploads/other/x.jpg'],
+    ['https://user:pw@api.gofestivals.es/uploads/festivals/x.jpg'],
+    ['https://user@api.gofestivals.es/uploads/festivals/x.jpg'],
+    ['https://:pw@api.gofestivals.es/uploads/festivals/x.jpg'],
+    ['https://api.gofestivals.es.evil.example/uploads/festivals/x.jpg'],
     ['http://proyecto-images-gofestivals.s3.eu-west-3.amazonaws.com/festivals/x.webp'],
     ['https://images.unsplash.com/photo-1'],
     ['https://evil.example/festivals/x.webp'],

@@ -1,5 +1,6 @@
 import {
   festivalDescription,
+  festivalImageSrc,
   festivalLocation,
   festivalPath,
   safeHttpUrl,
@@ -20,8 +21,8 @@ function isoDay(value: string | null): string | null {
  * JSON-LD `Event` de un festival (rich result de Google: fechas y lugar en el snippet).
  * Devuelve null si faltan datos obligatorios (fecha de inicio válida o lugar) — mejor
  * sin marcado que con un marcado que Google marque como erróneo.
- * Sin `image` a propósito: el bucket de imágenes de gofestivals devuelve 403 y una
- * imagen rota es peor que ninguna. Sin `offers`: la API no trae entradas ni precios.
+ * `image` solo si la URL pasa `festivalImageSrc` (hosts de gofestivals). Sin `offers`:
+ * la API no trae entradas ni precios.
  */
 export function festivalEventLd(
   festival: Festival,
@@ -34,6 +35,7 @@ export function festivalEventLd(
   const endDate = isoDay(festival.endDate);
   const description = festivalDescription(festival, locale)?.trim();
   const website = safeHttpUrl(festival.website);
+  const image = festivalImageSrc(festival);
 
   return {
     '@context': 'https://schema.org',
@@ -51,6 +53,7 @@ export function festivalEventLd(
         : place,
     },
     url: `${SITE_URL}/${locale}${festivalPath(festival)}`,
+    ...(image ? { image: [image] } : {}),
     ...(description ? { description: description.slice(0, DESCRIPTION_MAX) } : {}),
     ...(website ? { sameAs: website } : {}),
   };

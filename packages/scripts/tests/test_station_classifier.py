@@ -45,6 +45,24 @@ def test_spoken_word_with_chill_tags_is_not_accepted() -> None:
     assert c.state != "accepted"
 
 
+def test_soft_tags_never_accept_on_their_own() -> None:
+    # ambient + chillout + downtempo + lounge sumarían >= ACCEPT_AT sin el tope
+    c = classify(["ambient", "chillout", "downtempo", "lounge"], "Groove Salad")
+    assert c.state == "review"
+    assert c.score < ACCEPT_AT
+
+
+def test_wellness_tags_push_ambient_away_from_acceptance() -> None:
+    assert classify(["ambient", "meditation", "healing"], "Calm").state == "rejected"
+
+
+@pytest.mark.parametrize(
+    "tag", ["nu disco", "darkwave", "ebm", "eurobeat", "chillstep", "eletronic"]
+)
+def test_extended_electronic_vocabulary(tag: str) -> None:
+    assert classify([tag], "Radio").state == "accepted"
+
+
 def test_mixed_signals_go_to_review() -> None:
     c = classify(["house", "rock", "pop"], "Radio")
     assert c.state == "review"

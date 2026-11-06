@@ -130,6 +130,12 @@ export default async function GenrePage({
   const genre = genresBySlug[slug];
   if (!genre) notFound();
 
+  const parent =
+    genre.parent_id === null
+      ? null
+      : (Object.values(genresBySlug).find((g) => g.id === genre.parent_id) ?? null);
+  const subgenres = genre.children.filter((c) => c.station_count > 0);
+
   const country = typeof sp.country === 'string' ? sp.country : undefined;
   const curatedParam = typeof sp.curated === 'string' ? sp.curated : undefined;
   const page = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1;
@@ -199,7 +205,17 @@ export default async function GenrePage({
         name: tGenres('title'),
         item: `${SITE_URL}/${locale}/genres`,
       },
-      { '@type': 'ListItem', position: 3, name: genre.name },
+      ...(parent
+        ? [
+            {
+              '@type': 'ListItem',
+              position: 3,
+              name: parent.name,
+              item: `${SITE_URL}/${locale}/genres/${parent.slug}`,
+            },
+          ]
+        : []),
+      { '@type': 'ListItem', position: parent ? 4 : 3, name: genre.name },
     ],
   };
   const collectionLd = {
@@ -229,6 +245,17 @@ export default async function GenrePage({
         </Link>
         <span>/</span>
         <span className="text-fg-1">{tGenres('title')}</span>
+        {parent && (
+          <>
+            <span>/</span>
+            <Link
+              href={`/genres/${parent.slug}`}
+              className="-my-2 py-2 transition-colors hover:text-fg-0"
+            >
+              {parent.name}
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* Hero con overlay sólido para A11y */}
@@ -258,6 +285,26 @@ export default async function GenrePage({
           </p>
         </div>
       </header>
+
+      {subgenres.length > 0 && (
+        <nav aria-label={tGenres('subgenres')} className="space-y-2">
+          <p className="font-mono text-[12px] uppercase tracking-widest text-fg-2">
+            {tGenres('subgenres')}
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {subgenres.map((c) => (
+              <li key={c.slug}>
+                <Link
+                  href={`/genres/${c.slug}`}
+                  className="inline-block rounded-full border border-fg-3 px-3 py-1.5 font-mono text-[12px] uppercase tracking-wide text-fg-1 transition-colors hover:border-fg-2 hover:text-fg-0"
+                >
+                  {c.name} · {c.station_count}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[240px_1fr]">
         <SidebarFilters

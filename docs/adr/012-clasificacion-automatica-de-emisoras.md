@@ -66,3 +66,7 @@ prohibido (consultar a Anthropic Sales si se quiere certeza). Es un riesgo de t�
   suscripción no está documentado (se trata como fallo genérico); el modelo solo ve nombre,
   país y tags, así que unas ~55 % de las dudosas siguen en `review` (medido en una muestra de 55).
   La política para ese residuo se decide en la Fase 3.
+- Alerting: cualquier fallo de `claude` avisa por Telegram con la causa (límite de uso, sesión
+  caducada, timeout o extracto del error; la clasificación del texto es heurística porque los
+  mensajes de `claude -p` no están documentados); hay aviso de recuperación y un latido que
+  `watchdog.sh` vigila (36 h) para el caso de que el job deje de ejecutarse.

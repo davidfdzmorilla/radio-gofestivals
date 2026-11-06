@@ -25,6 +25,11 @@
 #   CLASSIFY_LLM_TIMEOUT  segundos por llamada          (300)
 #   CLAUDE_BIN            ejecutable de claude          (claude)
 #   CLASSIFY_LLM_DRY_RUN  1 = llama al modelo pero apply-llm solo cuenta, no escribe
+#   CLASSIFY_LLM_HEARTBEAT fichero que se toca al terminar bien (/var/log/radio/classify-llm.last-ok);
+#                         watchdog.sh avisa si lleva más de 36 h sin tocarse
+#
+# Alertas: ante cualquier fallo deja la causa en $RUN_JOB_DETAIL_FILE (la añade run-job.sh al aviso
+# de Telegram); al terminar bien cierra el aviso abierto con un mensaje de recuperación.
 # Salida: 0 ok (o nada que hacer) · 1 fallo previo a clasificar · 3 algún lote falló.
 # =============================================================================
 set -uo pipefail
@@ -36,8 +41,66 @@ BATCH="${CLASSIFY_LLM_BATCH:-40}"
 MODEL="${CLASSIFY_LLM_MODEL:-haiku}"
 TIMEOUT_S="${CLASSIFY_LLM_TIMEOUT:-300}"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+HEARTBEAT="${CLASSIFY_LLM_HEARTBEAT:-/var/log/radio/classify-llm.last-ok}"
 APPLY_FLAGS=()
-[[ "${CLASSIFY_LLM_DRY_RUN:-0}" == "1" ]] && APPLY_FLAGS=(--dry-run)
+DRY_RUN=0
+[[ "${CLASSIFY_LLM_DRY_RUN:-0}" == "1" ]] && { APPLY_FLAGS=(--dry-run); DRY_RUN=1; }
+
+# Deja la causa del fallo para el aviso de run-job.sh (y en stderr, que va al log).
+fail_detail() {
+  echo "classify-llm: $1" >&2
+  [[ -n "${RUN_JOB_DETAIL_FILE:-}" ]] && printf '%s\n' "$1" > "$RUN_JOB_DETAIL_FILE"
+  return 0
+}
+
+# Traduce la salida de claude a una causa legible. Es heurística: el texto exacto de los
+# errores de `claude -p` (límite de uso, sesión caducada) no está documentado, así que siempre se
+# adjunta además un extracto literal.
+explain_failure() { # rc archivos...
+  local rc="$1"; shift
+  local blob excerpt cause
+  blob="$(cat "$@" 2> /dev/null | tr '\n' ' ' | head -c 2000)"
+  excerpt="$(printf '%s' "$blob" | head -c 160)"
+  if [[ "$rc" == "124" ]]; then
+    cause="claude no respondió en ${TIMEOUT_S}s"
+  elif [[ "${blob,,}" =~ (session\ limit|weekly\ limit|usage\ limit|rate\ limit|limit\ reached|hit\ your) ]]; then
+    cause="límite de uso de la suscripción (se reintenta en la siguiente ejecución)"
+  elif [[ "${blob,,}" =~ (not\ logged\ in|/login|authenticat|unauthorized|401|expired|revoked|credential) ]]; then
+    cause="sesión de Claude caducada o sin iniciar: ejecuta 'claude' y /login (o 'claude setup-token')"
+  else
+    cause="error de claude (código ${rc}) o respuesta inválida"
+  fi
+  printf '%s%s' "$cause" "${excerpt:+ · «${excerpt}»}"
+}
+
+# Ejecución correcta: latido para watchdog.sh y cierre del aviso abierto. No en ensayo.
+finish_ok() {
+  [[ "$DRY_RUN" == "1" ]] && return 0
+  mkdir -p "$(dirname "$HEARTBEAT")" 2> /dev/null && touch "$HEARTBEAT" 2> /dev/null
+  for key in cron:classify-llm classify-llm-stale; do
+    "${COMPOSE[@]}" run --rm -T --no-deps scripts watchdog resolve --key "$key" \
+      --message "classify-llm vuelve a funcionar" > /dev/null 2>&1 || true
+  done
+  return 0
+}
+
+# cron arranca con un PATH mínimo (/usr/bin:/bin) y claude suele vivir en ~/.nvm o ~/.local/bin:
+# si no resuelve con el PATH actual se busca ahí (el nvm más reciente) y, si no está, se falla
+# pronto y claro en vez de a mitad de la ejecución.
+if ! command -v "$CLAUDE_BIN" > /dev/null 2>&1; then
+  for candidate in \
+    "$(ls -d "$HOME"/.nvm/versions/node/*/bin/claude 2> /dev/null | sort -V | tail -n 1)" \
+    "$HOME/.local/bin/claude" "/usr/local/bin/claude"; do
+    if [[ -n "$candidate" && -x "$candidate" ]]; then
+      CLAUDE_BIN="$candidate"
+      break
+    fi
+  done
+fi
+if ! command -v "$CLAUDE_BIN" > /dev/null 2>&1; then
+  fail_detail "no se encuentra 'claude' (PATH=$PATH). Instálalo o define CLAUDE_BIN."
+  exit 1
+fi
 
 for v in LIMIT BATCH TIMEOUT_S; do
   if ! [[ "${!v}" =~ ^[1-9][0-9]*$ ]]; then
@@ -55,7 +118,7 @@ mkdir -p "$WORK/empty"
 
 if ! "${COMPOSE[@]}" run --rm -T scripts classify-stations review-export --limit "$LIMIT" \
   > "$WORK/export.json" 2> "$WORK/export.err"; then
-  echo "classify-llm: fallo al exportar candidatas: $(tail -c 300 "$WORK/export.err")" >&2
+  fail_detail "fallo al exportar candidatas: $(tail -c 300 "$WORK/export.err")"
   exit 1
 fi
 
@@ -73,10 +136,11 @@ for n, chunk in enumerate(chunks, 1):
     json.dump({"stations": chunk}, open(f"{work}/batch-{n}.json", "w"), ensure_ascii=False)
 print(len(chunks))
 PY
-)" || { echo "classify-llm: la exportación no es un JSON válido" >&2; exit 1; }
+)" || { fail_detail "la exportación no es un JSON válido"; exit 1; }
 
 if [[ "$n_batches" == "0" ]]; then
   echo '{"event":"classify_llm_done","candidates":0,"batches":0}'
+  finish_ok
   exit 0
 fi
 
@@ -88,13 +152,15 @@ echo '{"results":[]}' > "$WORK/results.json"
 
 for ((i = 1; i <= n_batches; i++)); do
   input="$(cat "$WORK/batch-$i.json")"
-  if ! (cd "$WORK/empty" && timeout "$TIMEOUT_S" "$CLAUDE_BIN" -p "$PROMPT
+  (cd "$WORK/empty" && timeout "$TIMEOUT_S" "$CLAUDE_BIN" -p "$PROMPT
 
 EMISORAS:
 $input" --model "$MODEL" --tools "" --strict-mcp-config --disable-slash-commands \
     --output-format json --json-schema "$SCHEMA" --no-session-persistence \
-    < /dev/null > "$WORK/out-$i.json" 2> "$WORK/err-$i.txt"); then
-    echo "classify-llm: lote $i/$n_batches: claude falló: $(tail -c 300 "$WORK/err-$i.txt")" >&2
+    < /dev/null > "$WORK/out-$i.json" 2> "$WORK/err-$i.txt")
+  claude_rc=$?
+  if [[ "$claude_rc" -ne 0 ]]; then
+    fail_detail "lote $i/$n_batches: $(explain_failure "$claude_rc" "$WORK/err-$i.txt" "$WORK/out-$i.json")"
     failed=1
     break
   fi
@@ -112,7 +178,7 @@ acc["results"].extend(r for r in res if isinstance(r, dict))
 json.dump(acc, open(f"{work}/results.json", "w"), ensure_ascii=False)
 PY
   then
-    echo "classify-llm: lote $i/$n_batches: respuesta inválida o con error" >&2
+    fail_detail "lote $i/$n_batches: $(explain_failure 0 "$WORK/out-$i.json")"
     failed=1
     break
   fi
@@ -124,11 +190,14 @@ apply_out=""
 if [[ "$done_batches" -gt 0 ]]; then
   if ! apply_out="$("${COMPOSE[@]}" run --rm -T scripts classify-stations apply-llm "${APPLY_FLAGS[@]}" \
     < "$WORK/results.json" 2>&1 | grep apply_llm_done)"; then
-    echo "classify-llm: fallo al guardar veredictos" >&2
+    fail_detail "fallo al guardar veredictos (apply-llm)"
     exit 1
   fi
 fi
 
 echo "{\"event\":\"classify_llm_done\",\"batches\":$n_batches,\"batches_ok\":$done_batches,\"failed\":$failed,\"apply\":${apply_out:-null}}"
-[[ "$failed" -eq 0 ]] && exit 0
+if [[ "$failed" -eq 0 ]]; then
+  finish_ok
+  exit 0
+fi
 exit 3

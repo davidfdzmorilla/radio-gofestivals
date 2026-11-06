@@ -58,3 +58,13 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 # Jobs críticos con aviso si terminan con código != 0: anteponer run-job.sh <nombre>.
 # rb_sync (04:00) y backup (03:00) ya van envueltos arriba. Para comandos con
 # `cd && docker compose ...` hay que envolverlos en bash -c '...' como en rb_sync.
+
+# ---------------------------------------------------------------------------
+# Clasificación "¿es electrónica?" (ADR 012). Fase 2 en modo sombra: no oculta nada.
+# 05:00 reglas sobre todo el catálogo (rápido, sin red); 05:10 segundo clasificador con
+# `claude -p` y la suscripción de Claude Code del usuario del cron (sin clave de API). Corre tras
+# rb_sync (04:00) y fetch-logos (04:50) y lejos de las horas de trabajo para no competir por la
+# cuota de la suscripción. Tarda ~2 min con 120 emisoras por ejecución.
+# ---------------------------------------------------------------------------
+0 5 * * * /home/david/compose/radio-gofestivals/infra/deploy/run-job.sh classify-rules bash -c 'cd /home/david/compose/radio-gofestivals && docker compose --env-file .env.production -f docker-compose.prod.yml run --rm -T scripts classify-stations run >/dev/null' >> /var/log/radio/classify.log 2>&1
+10 5 * * * /home/david/compose/radio-gofestivals/infra/deploy/run-job.sh classify-llm /home/david/compose/radio-gofestivals/infra/deploy/classify-llm.sh >> /var/log/radio/classify.log 2>&1

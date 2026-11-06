@@ -6,8 +6,12 @@ import respx
 from sqlalchemy import text
 
 from scripts.classify_cmd import (
+    apply_llm_verdicts,
     backfill_tags,
+    evidence_hash,
     export_rows,
+    llm_candidates,
+    llm_outcome,
     relink_genres,
     run_classification,
 )
@@ -226,3 +230,134 @@ async def test_relink_genres_rewrites_only_rb_tag_links(
     assert sorted(rows) == sorted([(house, "manual"), (techno, "rb_tag")])
     again = await relink_genres(maker, dry_run=False)
     assert again["changed"] == 0
+
+
+# --- Fase 2: segundo clasificador (veredictos del modelo) -------------------------------------
+
+
+async def _state(db: AsyncSession, slug: str) -> tuple[Any, ...]:
+    db.expire_all()
+    row = (
+        await db.execute(
+            text(
+                "SELECT class_state, class_source, electronic_score, class_evidence "
+                "FROM stations WHERE slug = :s",
+            ),
+            {"s": slug},
+        )
+    ).first()
+    assert row is not None
+    return tuple(row)
+
+
+def test_llm_outcome_needs_confidence_to_decide() -> None:
+    assert llm_outcome("electronic", 90) == ("accepted", 90)
+    assert llm_outcome("not_electronic", 90) == ("rejected", 10)
+    assert llm_outcome("electronic", 69) == ("review", 50)
+    assert llm_outcome("not_electronic", 40) == ("review", 50)
+    assert llm_outcome("unsure", 99) == ("review", 50)
+    assert llm_outcome("electronic", 500) == ("accepted", 100)
+
+
+async def test_candidates_are_the_review_band_plus_curated_conflicts(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    await _insert(db_session, U1, "in-review", tags=["house", "rock", "pop"])
+    await _insert(db_session, "00000000-0000-0000-0000-0000000000b1", "clear-yes", tags=["techno"])
+    await _insert(db_session, "00000000-0000-0000-0000-0000000000b2", "clear-no", tags=["rock"])
+    await _insert(db_session, "00000000-0000-0000-0000-0000000000b3", "curated-no", tags=["rock"])
+    await db_session.execute(text("UPDATE stations SET curated = true WHERE slug = 'curated-no'"))
+    await db_session.commit()
+    slugs = [c["slug"] for c in await llm_candidates(maker, limit=10)]
+    assert sorted(slugs) == ["curated-no", "in-review"]
+
+
+async def test_candidates_skip_manual_hidden_inactive_and_already_judged(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    tags = ["house", "rock", "pop"]
+    for i, slug in enumerate(["manual", "hidden", "inactive", "judged", "fresh"]):
+        await _insert(db_session, f"00000000-0000-0000-0000-0000000000c{i}", slug, tags=tags)
+    await db_session.execute(text("UPDATE stations SET class_source='manual' WHERE slug='manual'"))
+    await db_session.execute(text("UPDATE stations SET hidden = true WHERE slug='hidden'"))
+    await db_session.execute(text("UPDATE stations SET status = 'broken' WHERE slug='inactive'"))
+    await db_session.execute(
+        text("UPDATE stations SET class_source='llm', class_evidence=:h WHERE slug='judged'"),
+        {"h": evidence_hash("judged", tags)},
+    )
+    await db_session.commit()
+    assert [c["slug"] for c in await llm_candidates(maker, limit=10)] == ["fresh"]
+
+
+async def test_candidates_come_back_when_the_evidence_changed_and_respect_limit(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    await _insert(db_session, U1, "judged", tags=["house", "rock", "pop"])
+    await db_session.execute(
+        text("UPDATE stations SET class_source='llm', class_evidence='stale' WHERE slug='judged'"),
+    )
+    await _insert(db_session, U2, "other", tags=["house", "rock", "pop"])
+    await db_session.commit()
+    assert len(await llm_candidates(maker, limit=10)) == 2
+    assert len(await llm_candidates(maker, limit=1)) == 1
+
+
+async def test_apply_writes_valid_verdicts_and_discards_the_rest(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    for i, slug in enumerate(["yes", "no", "meh", "manual"]):
+        await _insert(
+            db_session, f"00000000-0000-0000-0000-0000000000d{i}", slug, tags=["house", "rock"]
+        )
+    await db_session.execute(text("UPDATE stations SET class_source='manual' WHERE slug='manual'"))
+    await db_session.commit()
+    results = [
+        {"slug": "yes", "verdict": "electronic", "confidence": 90, "reason": "eje house"},
+        {"slug": "no", "verdict": "not_electronic", "confidence": 80, "reason": "rock"},
+        {"slug": "meh", "verdict": "electronic", "confidence": 50, "reason": "poco claro"},
+        {"slug": "manual", "verdict": "not_electronic", "confidence": 99, "reason": "x"},
+        {"slug": "ghost", "verdict": "electronic", "confidence": 99, "reason": "x"},
+        {"slug": "yes", "verdict": "banana", "confidence": 99, "reason": "x"},
+        {"slug": "yes", "verdict": "electronic", "confidence": "high", "reason": "x"},
+        {"verdict": "electronic", "confidence": 90},
+    ]
+    dry = await apply_llm_verdicts(maker, results, dry_run=True)
+    assert (await _state(db_session, "yes"))[1] is None  # el ensayo no escribe
+    stats = await apply_llm_verdicts(maker, results, dry_run=False)
+    assert (stats["applied"], stats["unknown"], stats["invalid"], stats["manual"]) == (3, 1, 3, 1)
+    assert dry["applied"] == stats["applied"]
+    assert (await _state(db_session, "yes"))[:3] == ("accepted", "llm", 90)
+    assert (await _state(db_session, "no"))[:3] == ("rejected", "llm", 20)
+    assert (await _state(db_session, "meh"))[:3] == ("review", "llm", 50)
+    assert (await _state(db_session, "manual"))[1] == "manual"
+    assert (await _state(db_session, "yes"))[3] == evidence_hash("yes", ["house", "rock"])
+
+
+async def test_rules_rerun_keeps_a_current_llm_verdict_but_overrides_a_stale_one(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    await _insert(db_session, U1, "current", tags=["house", "rock", "pop"])
+    await _insert(db_session, U2, "stale", tags=["house", "rock", "pop"])
+    await apply_llm_verdicts(
+        maker,
+        [
+            {"slug": "current", "verdict": "electronic", "confidence": 95, "reason": "x"},
+            {"slug": "stale", "verdict": "electronic", "confidence": 95, "reason": "x"},
+        ],
+        dry_run=False,
+    )
+    await db_session.execute(
+        text("UPDATE stations SET rb_tags = :t WHERE slug = 'stale'"),
+        {"t": ["rock", "pop", "house"]},
+    )
+    await db_session.commit()
+
+    report = await run_classification(maker, dry_run=False)
+    assert report["by_state"].get("llm_kept") == 1
+    assert (await _state(db_session, "current"))[:2] == ("accepted", "llm")
+    assert (await _state(db_session, "stale"))[1] == "rule"

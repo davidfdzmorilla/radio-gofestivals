@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING
 import httpx
 import respx
 from sqlalchemy import text
+from typer.testing import CliRunner
 
+from scripts import watchdog
 from scripts.alerting import Alerter, AlertSettings
 from scripts.watchdog import (
     EXPECTED_CONTAINERS,
@@ -23,6 +25,7 @@ from scripts.watchdog import (
 from tests.test_alerting import FakeStore
 
 if TYPE_CHECKING:
+    import pytest
     from sqlalchemy.ext.asyncio import AsyncSession
 
 URL = "https://api.telegram.org/bot123:SECRET/sendMessage"
@@ -168,3 +171,44 @@ async def test_summary_message(db_session: AsyncSession) -> None:
     (msg,) = _sent_texts(route)
     assert "Activas: 3" in msg
     assert "rotas: 2" in msg
+
+
+# --- CLI: notify / resolve (los usa infra/deploy/run-job.sh y classify-llm.sh) ------------------
+
+
+class _FakeAlerter:
+    calls: list[tuple[str, str, str]] = []  # noqa: RUF012
+
+    async def __aenter__(self) -> _FakeAlerter:
+        return self
+
+    async def __aexit__(self, *_exc: object) -> None:
+        return None
+
+    async def send(self, key: str, text: str) -> bool:
+        self.calls.append(("send", key, text))
+        return True
+
+    async def resolve(self, key: str, text: str) -> bool:
+        self.calls.append(("resolve", key, text))
+        return True
+
+
+def _invoke(monkeypatch: pytest.MonkeyPatch, *args: str) -> list[tuple[str, str, str]]:
+    _FakeAlerter.calls = []
+    monkeypatch.setattr(
+        watchdog.Alerter, "from_env", classmethod(lambda _cls, **_kw: _FakeAlerter())
+    )
+    result = CliRunner().invoke(watchdog.app, list(args))
+    assert result.exit_code == 0, result.output
+    return list(_FakeAlerter.calls)
+
+
+def test_cli_notify_sends_with_key_and_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = _invoke(monkeypatch, "notify", "--key", "cron:x", "--message", "boom")
+    assert calls == [("send", "cron:x", "boom")]
+
+
+def test_cli_resolve_closes_the_alert_with_key_and_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = _invoke(monkeypatch, "resolve", "--key", "cron:x", "--message", "ya funciona")
+    assert calls == [("resolve", "cron:x", "ya funciona")]

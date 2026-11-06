@@ -276,8 +276,16 @@ clasificador (`classify-llm.sh`, 05:10 UTC). Fase 2: solo registran veredicto, n
   (`claude` interactivo una vez; para un servidor sin navegador, `claude setup-token` y
   `CLAUDE_CODE_OAUTH_TOKEN` en el entorno del cron). No debe haber `ANTHROPIC_API_KEY`.
 - Ensayo sin escribir: `CLASSIFY_LLM_DRY_RUN=1 infra/deploy/classify-llm.sh`.
-- Pruebas del script: `bash infra/deploy/tests/classify-llm.test.sh`.
-- Salida 3 = algún lote falló (límite de uso o sesión caducada): alerta por Telegram; se
-  reintenta solo en la siguiente ejecución.
+- Salida 3 = algún lote falló (límite de uso o sesión caducada); salida 1 = fallo previo (sin
+  `claude`, exportación, guardado). En ambos casos `run-job.sh` avisa por Telegram **con la
+  causa** («límite de uso de la suscripción», «sesión de Claude caducada: ejecuta `claude` y
+  /login…», «claude no respondió en N s», o un extracto literal del error). Se reintenta solo en la
+  siguiente ejecución.
+- Al volver a funcionar manda un mensaje de recuperación (`watchdog resolve`).
+- Latido: al terminar bien toca `/var/log/radio/classify-llm.last-ok`; `watchdog.sh` (cada
+  15 min) avisa si lleva más de 36 h sin tocarse (`classify-llm-stale`), p. ej. si el cron deja de
+  ejecutarse. Si el fichero no existe (nunca ha corrido bien) no avisa. Ajustable con
+  `CLASSIFY_LLM_STALE_HOURS`.
+- Pruebas: `bash infra/deploy/tests/classify-llm.test.sh` y `alerting-scripts.test.sh`.
 - Ver el resultado: `classify-stations export` (JSON por emisora) o el log
   `/var/log/radio/classify.log`.

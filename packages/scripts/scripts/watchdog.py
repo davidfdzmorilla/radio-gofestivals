@@ -278,5 +278,19 @@ def cmd_notify(
     asyncio.run(_main())
 
 
+@app.command("resolve")
+def cmd_resolve(
+    key: str = typer.Option(..., "--key", help="Dedup key of the alert to close"),
+    message: str = typer.Option(..., "--message"),
+) -> None:
+    """Send a recovery message, only if an alert for `key` is open."""
+
+    async def _main() -> None:
+        async with Alerter.from_env(required=True) as alerter:
+            await alerter.resolve(key, message)
+
+    asyncio.run(_main())
+
+
 if __name__ == "__main__":
     app()

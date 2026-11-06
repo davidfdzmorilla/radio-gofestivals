@@ -27,6 +27,13 @@ import httpx
 import typer
 from sqlalchemy import text
 
+from scripts.alerting import Alerter
+from scripts.classify_enforce import (
+    DEFAULT_MAX_CHANGE_PCT,
+    DEFAULT_MIN_AGE_HOURS,
+    EnforceCapExceededError,
+    enforce,
+)
 from scripts.db import make_engine, make_sessionmaker
 from scripts.logging import get_logger
 from scripts.rb_client import RadioBrowserClient
@@ -552,3 +559,55 @@ def cmd_apply_llm(
 
     stats = asyncio.run(_main())
     log.info("apply_llm_done", dry_run=dry_run, **stats)
+
+
+EXIT_CAP_EXCEEDED = 4
+
+
+@app.command("enforce")
+def cmd_enforce(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Solo cuenta; no escribe"),  # noqa: FBT001,FBT002
+    max_change_pct: float = typer.Option(
+        DEFAULT_MAX_CHANGE_PCT,
+        "--max-change-pct",
+        min=0.1,
+        max=100,
+        help="Tope de emisoras a ocultar en una ejecución, en % del catálogo visible",
+    ),
+    min_age_hours: int = typer.Option(
+        DEFAULT_MIN_AGE_HOURS,
+        "--min-age-hours",
+        min=0,
+        help="Solo se actúa sobre veredictos de al menos estas horas",
+    ),
+    notify: bool = typer.Option(False, "--notify", help="Resumen por Telegram si hay cambios"),  # noqa: FBT001,FBT002
+) -> None:
+    """Oculta las emisoras rechazadas y repone las reclasificadas (ADR 012, Fase 3a)."""
+    engine = make_engine()
+    maker = make_sessionmaker(engine)
+
+    async def _main() -> dict[str, object]:
+        try:
+            result = await enforce(
+                maker,
+                dry_run=dry_run,
+                max_change_pct=max_change_pct,
+                min_age_hours=min_age_hours,
+            )
+        finally:
+            await engine.dispose()
+        report = result.as_dict()
+        if notify and not dry_run and (result.to_hide or result.to_unhide):
+            async with Alerter.from_env(required=False) as alerter:
+                await alerter.info(
+                    f"Clasificación: ocultadas {result.to_hide}, repuestas {result.to_unhide} "
+                    f"(visibles {result.visible_before} → {result.visible_after}).",
+                )
+        return report
+
+    try:
+        report = asyncio.run(_main())
+    except EnforceCapExceededError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=EXIT_CAP_EXCEEDED) from exc
+    typer.echo(json.dumps(report, ensure_ascii=False))

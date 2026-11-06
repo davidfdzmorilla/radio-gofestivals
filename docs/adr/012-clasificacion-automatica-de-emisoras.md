@@ -87,3 +87,15 @@ restante son emisoras mixtas de verdad, no falta de datos.
 - `EVIDENCE_VERSION` entra en la huella: los veredictos con menos evidencia quedan obsoletos y se
   reevalúan una vez.
 - Cobertura medida: web utilizable en el 80 % de las dudosas, temas en el 33 %.
+
+### Addendum · Fase 3a (2026-11-06): ocultar las rechazadas
+
+`classify-stations enforce` oculta las `rejected` con el `hidden` existente, marcadas `hidden_by =
+'classifier'` (migración 0026) para reponerlas si se reclasifican sin tocar nunca lo oculto por
+otra vía. Defensas: antigüedad mínima del veredicto (24 h), curadas solo con veredicto del segundo
+clasificador, tope por ejecución (5 % del catálogo visible, mín. 10; si se supera no se aplica nada
+y se avisa) y reposición sin tope. Las páginas de una emisora oculta siguen accesibles por URL
+(como ya ocurría con las ocultas por spam); queda como mejora devolver `noindex` en ellas.
+
+La categoría "mixta" (las `review`: visibles pero fuera de géneros, tendencias, sitemap y
+recomendaciones) es la Fase 3b: exige tocar varias consultas y se entrega aparte.

@@ -291,3 +291,19 @@ clasificador (`classify-llm.sh`, 05:10 UTC). Fase 2: solo registran veredicto, n
 - Pruebas: `bash infra/deploy/tests/classify-llm.test.sh` y `alerting-scripts.test.sh`.
 - Ver el resultado: `classify-stations export` (JSON por emisora) o el log
   `/var/log/radio/classify.log`.
+
+### Fase 3a · aplicar el veredicto (`classify-enforce.sh`, 05:30 UTC)
+
+Oculta (`hidden = true`, `hidden_by = 'classifier'`) las emisoras `rejected` y repone las que se
+reclasifican. Reutiliza el `hidden` que ya respetan todas las consultas; no cambia ninguna.
+
+- No toca lo oculto por otra vía (spam, manual: `hidden_by` NULL) ni las decisiones `manual`.
+- Veredictos de menos de 24 h esperan (`--min-age-hours`). Una **curada** solo se oculta si la
+  rechazó el segundo clasificador (que vio su web y temas), nunca solo por reglas.
+- **Tope**: si una ejecución quiere ocultar más del 5 % del catálogo visible (mínimo 10) no aplica
+  nada, sale con 4 y avisa por Telegram con el motivo.
+- Primer despliegue (hay unas 250 rechazadas de golpe): ensayo con
+  `infra/deploy/classify-enforce.sh --dry-run --max-change-pct 25`, y si cuadra, sin `--dry-run`.
+- Deshacer: `UPDATE stations SET hidden = false, hidden_by = NULL WHERE hidden_by = 'classifier'`
+  (y pasar las afectadas a `class_source = 'manual'` si no deben volver a ocultarse).
+- Pruebas: `bash infra/deploy/tests/classify-enforce.test.sh`.

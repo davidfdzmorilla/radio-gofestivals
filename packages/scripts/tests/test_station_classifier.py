@@ -46,14 +46,20 @@ def test_spoken_word_with_chill_tags_is_not_accepted() -> None:
 
 
 def test_soft_tags_never_accept_on_their_own() -> None:
-    # ambient + chillout + downtempo + lounge sumarían >= ACCEPT_AT sin el tope
-    c = classify(["ambient", "chillout", "downtempo", "lounge"], "Groove Salad")
+    # lo genérico (dance/club/dj/mix) también lo usa el pop: sin un género claro no acepta
+    c = classify(["dance", "club", "dj", "mix"], "Radio")
     assert c.state == "review"
     assert c.score < ACCEPT_AT
 
 
 def test_wellness_tags_push_ambient_away_from_acceptance() -> None:
-    assert classify(["ambient", "meditation", "healing"], "Calm").state == "rejected"
+    assert classify(["ambient", "meditation", "healing"], "Calm").state != "accepted"
+
+
+@pytest.mark.parametrize("tag", ["ambient", "chillout", "downtempo", "lounge", "dark ambient"])
+def test_every_electronic_genre_counts_including_chill_family(tag: str) -> None:
+    # decisión de David (2026-11-06): todo género electrónico de la taxonomía cuenta
+    assert classify([tag], "Radio").state == "accepted"
 
 
 @pytest.mark.parametrize(
@@ -86,7 +92,7 @@ def test_name_breaks_ties_in_the_soft_band() -> None:
 
 
 def test_soft_tags_alone_stay_in_review() -> None:
-    assert classify(["ambient"], "Radio").state == "review"
+    assert classify(["dance"], "Radio").state == "review"
 
 
 def test_word_match_not_substring() -> None:

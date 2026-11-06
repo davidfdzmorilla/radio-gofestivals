@@ -80,3 +80,38 @@ def test_multiple_tags_different_genres() -> None:
 def test_unicode_normalization() -> None:
     result = _as_dict(map_rb_tags_to_genre_slugs(["téchno"], GENRES))
     assert 1 in result
+
+
+def test_ampersand_and_separator_variants_map_to_the_same_genre() -> None:
+    assert _as_dict(map_rb_tags_to_genre_slugs(["drum & bass"], GENRES)) == {5: 90}
+    assert _as_dict(map_rb_tags_to_genre_slugs(["drum-n-bass"], GENRES)).keys() <= {5}
+
+
+def test_compound_tags_map_to_their_head_genre_with_lower_confidence() -> None:
+    result = _as_dict(map_rb_tags_to_genre_slugs(["melodic techno", "soulful house"], GENRES))
+    assert result == {1: 70, 2: 70}
+
+
+def test_containment_is_by_word_not_substring() -> None:
+    assert map_rb_tags_to_genre_slugs(["housewives", "technology"], GENRES) == []
+
+
+def test_exact_and_alias_beat_containment() -> None:
+    assert _as_dict(map_rb_tags_to_genre_slugs(["deep house"], GENRES)) == {3: 90}
+
+
+def test_new_aliases_need_the_genre_to_exist() -> None:
+    assert map_rb_tags_to_genre_slugs(["nu disco"], GENRES) == []
+    with_nu = [*GENRES, GenreRef(id=40, slug="nu-disco")]
+    assert _as_dict(map_rb_tags_to_genre_slugs(["nu disco"], with_nu)) == {40: 90}
+
+
+def test_edm_long_form_and_electronic_music_aliases() -> None:
+    genres = [*GENRES, GenreRef(id=41, slug="edm")]
+    assert _as_dict(map_rb_tags_to_genre_slugs(["electronic dance music"], genres)) == {41: 90}
+    assert _as_dict(map_rb_tags_to_genre_slugs(["electronic music"], GENRES)) == {10: 90}
+
+
+def test_long_tags_are_not_scanned_for_heads() -> None:
+    tag = "this is a very long sentence about all the techno parties in town"
+    assert map_rb_tags_to_genre_slugs([tag], GENRES) == []

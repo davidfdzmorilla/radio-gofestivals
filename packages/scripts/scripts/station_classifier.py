@@ -4,10 +4,11 @@ Función pura: a partir de los tags crudos de Radio-Browser y el nombre devuelve
 puntuación 0-100 y un estado. No toca la base de datos ni decide nada por sí sola: en esta
 fase solo se registra el veredicto para medirlo contra el catálogo real.
 
-Criterio de frontera (decisión pendiente de David, constantes fáciles de cambiar): el
-ambient, el chill-out y el downtempo cuentan como señal *suave* de electrónica; el pop con
-etiqueta dance, no. Los tags ambiguos (progressive, minimal…) solo suman junto a un tag
-electrónico claro, porque solos son tan probables de rock progresivo o de música minimalista.
+Criterio de frontera (decisión de David, 2026-11-06): cuenta todo género electrónico de nuestra
+taxonomía. Ambient, chill-out, downtempo y lounge son electrónica y puntúan como tags claros; lo
+que queda como señal *suave* es lo genérico (dance, club, dj, mix), que también usa el pop. Los
+tags ambiguos (progressive, minimal…) solo suman junto a un tag electrónico claro, porque solos
+son tan probables de rock progresivo o de música minimalista.
 """
 
 from __future__ import annotations
@@ -21,8 +22,7 @@ from scripts.taxonomy_mapper import normalize_tag
 ACCEPT_AT: Final = 70
 REJECT_AT: Final = 30
 
-# Sin ningún tag electrónico claro la emisora nunca se acepta sola: ambient/chill/lounge
-# es la frontera editorial y lo decide la segunda pasada (Fase 2), no una regla.
+# Sin ningún tag electrónico claro (solo dance/club/dj…) la emisora nunca se acepta sola.
 SOFT_ONLY_CAP: Final = ACCEPT_AT - 1
 BASE_SCORE: Final = 50
 STRONG_WEIGHT: Final = 25
@@ -48,6 +48,8 @@ STRONG_TAGS: Final[frozenset[str]] = frozenset(
         "gabber", "happy hardcore", "future bass", "electroclash", "trip hop",
         "nu disco", "italo disco", "italo dance", "italodance", "eurobeat", "darkwave", "ebm",
         "minimal wave", "dark electro", "dark techno", "bass house", "future garage", "chillstep",
+        "ambient", "dark ambient", "chillout", "chill out", "chill-out", "downtempo", "lounge",
+        "nu-disco", "afro house", "industrial", "uk-garage", "experimental electronic",
         "psybient", "vaporwave", "chiptune", "glitch", "breakcore", "eletronic", "eletronica",
         "electronico",
     }
@@ -55,8 +57,7 @@ STRONG_TAGS: Final[frozenset[str]] = frozenset(
 # Cercanas a la electrónica pero no concluyentes por sí solas.
 SOFT_TAGS: Final[frozenset[str]] = frozenset(
     {
-        "ambient", "chillout", "chill out", "chill-out", "chill", "downtempo", "lounge",
-        "dance", "club", "dj", "mix", "beats", "synth",
+        "chill", "dance", "club", "dj", "mix", "beats", "synth",
     }
 )  # fmt: skip
 # Significan otra cosa si van solos (prog rock, hardcore punk, música minimalista…).

@@ -5,7 +5,7 @@ import unicodedata
 from dataclasses import dataclass
 from difflib import SequenceMatcher
 
-from scripts.constants import TAG_ALIASES
+from scripts.constants import TAG_ALIASES, TAG_HEADS
 
 MIN_TAG_LENGTH = 3
 FUZZY_THRESHOLD = 0.85
@@ -16,6 +16,9 @@ EXACT_CONFIDENCE = 100
 _digits_only = re.compile(r"^\d+$")
 _non_word = re.compile(r"^[^\w]+$", re.UNICODE)
 _multi_space = re.compile(r"\s+")
+_separators = re.compile(r"[-_/+]+")
+CONTAINMENT_CONFIDENCE = 70
+CONTAINMENT_MAX_WORDS = 8
 
 
 @dataclass(frozen=True)
@@ -28,6 +31,25 @@ def normalize_tag(tag: str) -> str:
     decomposed = unicodedata.normalize("NFKD", tag)
     stripped = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     return _multi_space.sub(" ", stripped.strip().lower())
+
+
+def canonical_tag(tag: str) -> str:
+    """Forma comparable: "&" -> "and" y guiones/barras/+ como espacios."""
+    spaced = _separators.sub(" ", tag.replace("&", " and "))
+    return _multi_space.sub(" ", spaced).strip()
+
+
+def _contained_heads(canon: str) -> list[str]:
+    """Slugs de TAG_HEADS cuyas palabras aparecen en orden en el tag."""
+    words = canon.split()
+    if len(words) > CONTAINMENT_MAX_WORDS:
+        return []
+    found: list[str] = []
+    for head_words, slug in TAG_HEADS:
+        n = len(head_words)
+        if any(words[i : i + n] == head_words for i in range(len(words) - n + 1)):
+            found.append(slug)
+    return found
 
 
 def _is_noise(tag: str) -> bool:
@@ -66,10 +88,23 @@ def map_rb_tags_to_genre_slugs(
             best_by_gid[gid] = max(best_by_gid.get(gid, 0), EXACT_CONFIDENCE)
             continue
 
-        alias = TAG_ALIASES.get(normalized)
+        canon = canonical_tag(normalized)
+        alias = TAG_ALIASES.get(normalized) or TAG_ALIASES.get(canon)
         if alias and alias in by_slug:
             gid = by_slug[alias]
             best_by_gid[gid] = max(best_by_gid.get(gid, 0), ALIAS_CONFIDENCE)
+            continue
+
+        if canon in by_slug or canon.replace(" ", "-") in by_slug:
+            gid = by_slug.get(canon) or by_slug[canon.replace(" ", "-")]
+            best_by_gid[gid] = max(best_by_gid.get(gid, 0), EXACT_CONFIDENCE)
+            continue
+
+        heads = [h for h in _contained_heads(canon) if h in by_slug]
+        if heads:
+            for head in heads:
+                gid = by_slug[head]
+                best_by_gid[gid] = max(best_by_gid.get(gid, 0), CONTAINMENT_CONFIDENCE)
             continue
 
         fuzzy = _best_fuzzy(normalized, slugs)

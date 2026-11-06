@@ -5,7 +5,12 @@ from typing import TYPE_CHECKING, Any
 import respx
 from sqlalchemy import text
 
-from scripts.classify_cmd import backfill_tags, export_rows, run_classification
+from scripts.classify_cmd import (
+    backfill_tags,
+    export_rows,
+    relink_genres,
+    run_classification,
+)
 from scripts.rb_client import RadioBrowserClient
 from scripts.rb_sync import run_sync
 
@@ -172,3 +177,52 @@ async def test_export_is_read_only_and_includes_verdict(
             text("SELECT count(*) FROM stations WHERE class_state IS NOT NULL")
         )
     ).scalar_one() == 0
+
+
+async def test_relink_genres_rewrites_only_rb_tag_links(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    await _insert(db_session, U1, "compound", tags=["melodic techno", "rock"])
+    await _insert(db_session, U2, "no-tags-yet")  # rb_tags NULL: no se toca
+    techno = (
+        await db_session.execute(text("SELECT id FROM genres WHERE slug='techno'"))
+    ).scalar_one()
+    house = (
+        await db_session.execute(text("SELECT id FROM genres WHERE slug='house'"))
+    ).scalar_one()
+    await db_session.execute(
+        text(
+            "INSERT INTO station_genres (station_id, genre_id, source, confidence) "
+            "SELECT id, :g, 'manual', 100 FROM stations WHERE slug='compound'",
+        ),
+        {"g": house},
+    )
+    trance = (
+        await db_session.execute(text("SELECT id FROM genres WHERE slug='trance'"))
+    ).scalar_one()
+    await db_session.execute(  # enlace rb_tag obsoleto: debe desaparecer
+        text(
+            "INSERT INTO station_genres (station_id, genre_id, source, confidence) "
+            "SELECT id, :g, 'rb_tag', 50 FROM stations WHERE slug='compound'",
+        ),
+        {"g": trance},
+    )
+    await db_session.commit()
+
+    dry = await relink_genres(maker, dry_run=True)
+    assert dry["changed"] == 1
+    assert (
+        await db_session.execute(text("SELECT count(*) FROM station_genres WHERE source='rb_tag'"))
+    ).scalar_one() == 1
+
+    await relink_genres(maker, dry_run=False)
+    db_session.expire_all()
+    rows = (
+        await db_session.execute(
+            text("SELECT genre_id, source FROM station_genres ORDER BY source")
+        )
+    ).all()
+    assert sorted(rows) == sorted([(house, "manual"), (techno, "rb_tag")])
+    again = await relink_genres(maker, dry_run=False)
+    assert again["changed"] == 0

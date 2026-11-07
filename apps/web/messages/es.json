@@ -52,8 +52,7 @@
     "indexTitle": "Géneros de música electrónica · radio.gofestivals",
     "indexDescription": "Explora todos los géneros de música electrónica: techno, house, trance, drum & bass, dubstep y más. Emisoras curadas, sonando en vivo en radio.gofestivals.",
     "moreGenres": "Más géneros",
-    "subgenres": "Subgéneros",
-    "byCountry": "{name} por país"
+    "subgenres": "Subgéneros"
   },
   "station": {
     "nowPlaying": "Sonando ahora",
@@ -74,7 +73,6 @@
   },
   "filters": {
     "country": "País",
-    "anyCountry": "Cualquier país",
     "allGenres": "Todos los géneros",
     "apply": "Aplicar",
     "clear": "Limpiar"

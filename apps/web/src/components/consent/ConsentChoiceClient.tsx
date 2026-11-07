@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { CONSENT_CHANGED_EVENT } from '@/lib/analytics';
 import { CONSENT_COOKIE, CONSENT_TTL_DAYS, parseConsent } from '@/lib/consent';
 
 type Labels = {
@@ -46,6 +47,8 @@ export function ConsentChoiceClient({ labels }: { labels: Labels }) {
 
   const handle = useCallback((value: 'accepted' | 'rejected') => {
     writeConsent(value);
+    // Avisa a quien depende de la decisión (Google Analytics) sin recargar la página.
+    window.dispatchEvent(new Event(CONSENT_CHANGED_EVENT));
     setVisible(false);
   }, []);
 

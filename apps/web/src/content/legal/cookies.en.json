@@ -1,19 +1,20 @@
 {
-  "lastUpdated": "2026-06-09",
+  "lastUpdated": "2026-11-07",
   "sections": [
     {
       "heading": "What browser storage is",
       "paragraphs": [
-        "This page lists what we store in your browser and why. We use traditional cookies for the consent banner, and localStorage for the opaque play identifier.",
-        "We do not use third-party cookies, advertising, retargeting, or external analytics tools (Google Analytics, etc.)."
+        "This page lists what we store in your browser and why. We use traditional cookies for the consent banner and, if you accept, for Google Analytics, and localStorage for the opaque play identifier.",
+        "If you accept the banner we use Google Analytics 4 (Google) to measure how the site is used. We do not use advertising or retargeting, and we turn off Google's advertising signals. If you reject, nothing from Google is loaded."
       ]
     },
     {
       "heading": "Inventory",
       "paragraphs": [
-        "rgf_consent (cookie, 180 days): stores whether you accepted or rejected play tracking. It is strictly necessary and is set from JavaScript when you press one of the two banner buttons. If you delete it manually, the banner will appear again.",
+        "rgf_consent (cookie, 180 days): stores whether you accepted or rejected play tracking and analytics. It is strictly necessary and is set from JavaScript when you press one of the two banner buttons. If you delete it manually, the banner will appear again.",
         "rgf_client_id (localStorage, no expiry): opaque UUID v4 generated in your browser the first time you play after consenting. It lets us group your plays on the same device without linking them to a personal identity. It is only created if your consent is \"accepted\".",
         "rgf_session_played (sessionStorage, until tab close): internal list of stations already counted as plays in this session, to avoid double-counting.",
+        "_ga and _ga_G196JWJWLC (Google Analytics cookies, up to 2 years): tell visitors and sessions apart for aggregate usage statistics. They are third-party (Google) cookies and are only created if you accept the banner.",
         "Authentication JWT (httpOnly cookie, only if you register and sign in): keeps your session alive. Unrelated to play analytics."
       ]
     },

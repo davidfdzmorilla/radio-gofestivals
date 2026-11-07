@@ -151,7 +151,7 @@
   },
   "consent": {
     "title": "Tu privacidad",
-    "body": "Usamos almacenamiento del navegador para contar reproducciones de forma anónima o asociadas a tu cuenta. Sin tu consentimiento, no registramos nada.",
+    "body": "Usamos almacenamiento del navegador para contar reproducciones y Google Analytics para medir el uso del sitio, de forma anónima o asociadas a tu cuenta. Sin tu consentimiento, no registramos nada.",
     "accept": "Aceptar",
     "reject": "Rechazar",
     "moreInfo": "Más info"

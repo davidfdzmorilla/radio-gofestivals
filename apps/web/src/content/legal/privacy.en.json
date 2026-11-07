@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-06-09",
+  "lastUpdated": "2026-11-07",
   "sections": [
     {
       "heading": "Who we are",
@@ -15,6 +15,7 @@
         "If you are not registered, each play is linked to an opaque identifier (UUID) stored in your browser. That identifier contains no personal information and is not cross-referenced with other services.",
         "If you are registered and signed in, plays are linked to your account. If you register after having listened anonymously, the previous plays from the same device are automatically transferred to your account.",
         "For each play we store: station id, timestamp, and identifier (anonymous UUID or account id).",
+        "If you also accept the banner, we use Google Analytics 4 (Google, as a data processor) to measure in aggregate how the site is used: page views, where the visit came from, device type and approximate location. This may involve international data transfers, for example to the United States. We turn off advertising signals and ad personalization, and we do not send your account or your plays to Google. If you reject, nothing from Google is loaded.",
         "The purpose of this processing is to improve the editorial curation of the home page with real usage data. We do not use this data for advertising and do not share it with third parties."
       ]
     },
@@ -49,7 +50,7 @@
     {
       "heading": "Cookies and browser storage",
       "paragraphs": [
-        "We use browser storage to remember your consent decision and to identify you opaquely when you play. Details are on the Cookies page."
+        "We use browser storage to remember your consent decision and to identify you opaquely when you play. Details are on the Cookies page. If you accept analytics, Google Analytics also stores its own cookies (_ga) in your browser."
       ]
     },
     {

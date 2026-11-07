@@ -7,6 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { usePlayerStore } from '@/lib/player-store';
+import { stationEventParams, trackEvent } from '@/lib/analytics';
 import { recordPlay } from '@/lib/plays';
 import { StationCover } from '@/components/stations/StationCover';
 import { NowPlaying } from './NowPlaying';
@@ -106,6 +107,7 @@ export function GlobalPlayer() {
     if (!station || !isPlaying || error) return;
     const slug = station.slug;
     const timer = setTimeout(() => {
+      trackEvent('play_30s', stationEventParams(station));
       void recordPlay(slug).catch(() => {
         // Losing a play event must not affect the listening session.
       });
@@ -228,6 +230,9 @@ export function GlobalPlayer() {
           // every active stream has been tried; in that case it has
           // already set error='streamUnavailable' and pause()d.
           if (!tryNextFallback()) {
+            // Todos los streams activos fallaron: es lo que ve el usuario como "no suena".
+            const current = usePlayerStore.getState().currentStation;
+            if (current) trackEvent('play_error', stationEventParams(current));
             pause();
           }
         }}

@@ -90,6 +90,7 @@ export function StationCard({ station, genresBySlug, index = 0, labels }: Props)
           />
           <HeartButton
             stationId={station.id}
+            stationSlug={station.slug}
             initialIsFavorite={station.is_favorite ?? null}
             size="md"
             className="h-11 w-11"

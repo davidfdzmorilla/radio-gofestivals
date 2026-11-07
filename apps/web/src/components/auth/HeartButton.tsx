@@ -6,10 +6,13 @@ import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/users/AuthContext';
 import { useToast } from './ToastContext';
+import { trackEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 
 interface HeartButtonProps {
   stationId: string;
+  /** Para la analítica; sin él no se mide el evento. */
+  stationSlug?: string;
   /** Server-provided initial flag; the context's set wins after mount. */
   initialIsFavorite?: boolean | null;
   /** Optional size variant for spacing inside cards vs hero areas. */
@@ -20,6 +23,7 @@ interface HeartButtonProps {
 
 export function HeartButton({
   stationId,
+  stationSlug,
   initialIsFavorite,
   size = 'md',
   className,
@@ -60,6 +64,9 @@ export function HeartButton({
       // votes_local) re-fetches on the next render. Without this the
       // page can show stale `is_favorite=false` after a successful add
       // until the per-page revalidate window expires.
+      if (next && stationSlug) {
+        trackEvent('favorite_add', { station_slug: stationSlug, logged_in: isAuthenticated });
+      }
       router.refresh();
       if (
         next

@@ -300,6 +300,9 @@ reclasifican. Reutiliza el `hidden` que ya respetan todas las consultas; no camb
 - No toca lo oculto por otra vía (spam, manual: `hidden_by` NULL) ni las decisiones `manual`.
 - Veredictos de menos de 24 h esperan (`--min-age-hours`). Una **curada** solo se oculta si la
   rechazó el segundo clasificador (que vio su web y temas), nunca solo por reglas.
+- Fase 3b: también oculta las `review` que el modelo miró y no aceptó (`class_source = 'llm'`),
+  salvo las curadas; las `review` solo de reglas esperan al modelo. Se reponen si se aceptan.
+  El informe trae `hidden_review` con cuántas fueron por duda.
 - **Tope**: si una ejecución quiere ocultar más del 5 % del catálogo visible (mínimo 10) no aplica
   nada, sale con 4 y avisa por Telegram con el motivo.
 - Primer despliegue (hay unas 250 rechazadas de golpe): ensayo con

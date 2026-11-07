@@ -97,5 +97,13 @@ clasificador, tope por ejecución (5 % del catálogo visible, mín. 10; si se su
 y se avisa) y reposición sin tope. Las páginas de una emisora oculta siguen accesibles por URL
 (como ya ocurría con las ocultas por spam); queda como mejora devolver `noindex` en ellas.
 
-La categoría "mixta" (las `review`: visibles pero fuera de géneros, tendencias, sitemap y
-recomendaciones) es la Fase 3b: exige tocar varias consultas y se entrega aparte.
+### Addendum · Fase 3b (2026-11-07): ocultar también las dudosas
+
+Se descartó la categoría "mixta" (visibles pero fuera de géneros, tendencias, sitemap y
+recomendaciones): exigía tocar unas 15 consultas. Se optó por lo más simple y más limpio para los
+géneros: `enforce` oculta también las `review` **que el segundo clasificador ya miró** y no
+aceptó con confianza (`class_source = 'llm'`), siempre que no sean curadas. Las `review` que solo
+pasaron por las reglas esperan al modelo (corre 20 min antes) y las curadas nunca se ocultan por
+duda. Se reponen solas si una reevaluación las acepta. Coste asumido: se esconde a ciegas parte
+del 8 % de emisoras sin veredicto claro (123 en la primera medición) que quizá sí son
+electrónica; la marca `hidden_by` permite restaurarlas y la ficha sigue abierta por URL.

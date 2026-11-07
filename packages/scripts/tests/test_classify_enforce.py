@@ -134,7 +134,7 @@ async def test_reclassified_stations_come_back_but_still_rejected_ones_stay_hidd
         db_session, "now-ok", state="accepted", source="llm", hidden=True, hidden_by="classifier"
     )
     await _add(
-        db_session, "now-mixed", state="review", source="llm", hidden=True, hidden_by="classifier"
+        db_session, "now-mixed", state="review", source="rule", hidden=True, hidden_by="classifier"
     )
     await _add(
         db_session, "still-no", state="rejected", source="llm", hidden=True, hidden_by="classifier"
@@ -223,3 +223,38 @@ def test_cli_exits_4_when_the_cap_blocks_and_applies_with_a_higher_cap(
     assert applied.exit_code == 0, applied.output
     report = json.loads(applied.stdout.strip().splitlines()[-1])
     assert (report["hidden"], report["visible_before"], report["visible_after"]) == (15, 35, 20)
+
+
+async def test_review_from_the_llm_is_hidden_but_not_curated_nor_rule_only_reviews(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    await _fill_visible(db_session, 20)
+    await _add(db_session, "unsure-llm", state="review", source="llm")
+    await _add(db_session, "unsure-llm-cur", state="review", source="llm", curated=True)
+    await _add(db_session, "unsure-rule", state="review", source="rule")
+    result = await enforce(maker, dry_run=False, max_change_pct=50)
+    assert (result.to_hide, result.to_hide_review) == (1, 1)
+    assert await _row(db_session, "unsure-llm") == (True, "classifier")
+    assert await _row(db_session, "unsure-llm-cur") == (False, None)
+    assert await _row(db_session, "unsure-rule") == (False, None)
+    # idempotente: una segunda pasada no cambia nada
+    again = await enforce(maker, dry_run=False, max_change_pct=50)
+    assert (again.to_hide, again.to_unhide) == (0, 0)
+
+
+async def test_hidden_review_comes_back_when_a_new_verdict_accepts_it(
+    maker: async_sessionmaker[AsyncSession],
+    db_session: AsyncSession,
+) -> None:
+    await _fill_visible(db_session, 20)
+    await _add(db_session, "unsure", state="review", source="llm")
+    await enforce(maker, dry_run=False, max_change_pct=50)
+    assert await _row(db_session, "unsure") == (True, "classifier")
+    await db_session.execute(
+        text("UPDATE stations SET class_state = 'accepted' WHERE slug = 'unsure'")
+    )
+    await db_session.commit()
+    result = await enforce(maker, dry_run=False, max_change_pct=50)
+    assert result.to_unhide == 1
+    assert await _row(db_session, "unsure") == (False, None)

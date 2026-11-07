@@ -223,3 +223,56 @@ async def test_dead_stream_is_not_browser_playable() -> None:
         result = await check_stream_alive("https://x/stream.mp3", client=c)
     assert result.alive is False
     assert result.browser_playable is False
+
+
+# --- CORS across redirects --------------------------------------------------
+# `<audio crossOrigin="anonymous">` applies CORS to EVERY hop of a redirect chain, so a stream is
+# only usable with crossOrigin when all of them send it (jointil.com/stream-beat redirects to
+# nucast.co.uk: the first hop has no CORS, the last one has `*`; Chromium fails with code 4).
+
+
+async def test_cors_missing_on_a_redirect_hop_is_not_cors_ok() -> None:
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.host == "first.example":
+            return httpx.Response(302, headers={"location": "https://cdn.example/stream"})
+        return httpx.Response(
+            200,
+            headers={"content-type": "audio/mpeg", "access-control-allow-origin": "*"},
+        )
+
+    async with _client(handler) as c:
+        result = await check_stream_alive("https://first.example/stream-beat", client=c)
+    assert result.alive is True
+    assert result.cors_ok is False
+    # sigue siendo reproducible sin crossOrigin
+    assert result.browser_playable is True
+
+
+async def test_cors_on_every_redirect_hop_is_cors_ok() -> None:
+    cors = {"access-control-allow-origin": "*"}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.host == "first.example":
+            return httpx.Response(302, headers={"location": "https://cdn.example/stream", **cors})
+        return httpx.Response(200, headers={"content-type": "audio/mpeg", **cors})
+
+    async with _client(handler) as c:
+        result = await check_stream_alive("https://first.example/stream-beat", client=c)
+    assert result.cors_ok is True
+
+
+async def test_cors_on_the_first_hop_only_is_not_cors_ok() -> None:
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.url.host == "first.example":
+            return httpx.Response(
+                302,
+                headers={
+                    "location": "https://cdn.example/stream",
+                    "access-control-allow-origin": "*",
+                },
+            )
+        return httpx.Response(200, headers={"content-type": "audio/mpeg"})
+
+    async with _client(handler) as c:
+        result = await check_stream_alive("https://first.example/stream-beat", client=c)
+    assert result.cors_ok is False

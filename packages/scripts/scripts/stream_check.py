@@ -28,7 +28,8 @@ an HTTPS site's `<audio>` element ALSO needs valid TLS and no redirect to
 http (mixed content). The verify=False retry that rescues `alive` is
 exactly the case a browser rejects, so it forces `browser_playable=False`.
 `cors_ok` is recorded separately (it no longer gates playback, only the
-optional real spectrum analyzer).
+optional real spectrum analyzer); it is true only if EVERY hop of a redirect chain sends
+CORS, because the browser enforces it on each one.
 """
 
 from __future__ import annotations
@@ -130,8 +131,11 @@ async def check_stream_alive(
             latency_ms = int((time.monotonic() - start) * 1000)
             status = response.status_code
             ctype = response.headers.get("content-type", "").lower()
-            acao = response.headers.get("access-control-allow-origin", "")
-            cors_ok = _cors_permissive(acao)
+            # `<audio crossOrigin>` exige CORS en cada salto de la redirección, no solo en el final.
+            cors_ok = all(
+                _cors_permissive(hop.headers.get("access-control-allow-origin", ""))
+                for hop in (*response.history, response)
+            )
             final_url = str(response.url)
             mixed_content = stream_url.lower().startswith(
                 "https://",

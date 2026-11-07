@@ -5,7 +5,7 @@ import { useRouter, usePathname } from '@/i18n/navigation';
 import type { Route } from 'next';
 
 interface Props {
-  current: { country?: string; curated?: boolean };
+  current: { country?: string };
   countries: string[];
   /**
    * Países con página dedicada (combo país×género): al seleccionarlos se
@@ -19,7 +19,7 @@ export function SidebarFilters({ current, countries, countryRoutes }: Props) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const updateFilter = (key: 'country' | 'curated', value: string | null) => {
+  const updateFilter = (key: 'country', value: string | null) => {
     if (key === 'country' && value && countryRoutes?.[value]) {
       router.replace(countryRoutes[value] as unknown as Route);
       return;
@@ -52,15 +52,6 @@ export function SidebarFilters({ current, countries, countryRoutes }: Props) {
           ))}
         </select>
       </div>
-      <label className="flex cursor-pointer items-center gap-2.5 text-sm font-medium text-fg-1 transition-colors hover:text-fg-0">
-        <input
-          type="checkbox"
-          checked={current.curated ?? false}
-          onChange={(e) => updateFilter('curated', e.target.checked ? 'true' : null)}
-          className="h-4 w-4 accent-magenta"
-        />
-        {t('curatedOnly')}
-      </label>
     </aside>
   );
 }

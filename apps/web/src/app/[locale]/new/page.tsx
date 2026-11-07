@@ -34,7 +34,6 @@ export default async function NewStationsPage({
 
   const t = await getTranslations('newStations');
   const tNav = await getTranslations('nav');
-  const tCommon = await getTranslations('common');
   const tStation = await getTranslations('station');
 
   const [newPage, genresTree] = await Promise.all([
@@ -94,7 +93,6 @@ export default async function NewStationsPage({
           genresBySlug={genresBySlug}
           maxCols={3}
           labels={{
-            curated: tCommon('curated'),
             location: ({ city, country: c }) =>
               tStation('location', { city, country: c }),
             empty: t('empty'),

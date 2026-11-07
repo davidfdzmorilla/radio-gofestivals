@@ -5,7 +5,6 @@ interface Props {
   stations: StationSummary[];
   genresBySlug: Record<string, Genre>;
   labels: {
-    curated: string;
     location: (values: { city: string; country: string }) => string;
     empty: string;
   };
@@ -50,7 +49,7 @@ export function StationGrid({
           station={s}
           genresBySlug={genresBySlug}
           index={i}
-          labels={{ curated: labels.curated, location: labels.location }}
+          labels={{ location: labels.location }}
         />
       ))}
     </div>

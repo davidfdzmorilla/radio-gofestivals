@@ -67,7 +67,6 @@ export default async function TrendingGenrePage({
 
   const t = await getTranslations('trending');
   const tNav = await getTranslations('nav');
-  const tCommon = await getTranslations('common');
   const tStation = await getTranslations('station');
 
   const trendingPage = await listTrendingStations({
@@ -153,7 +152,6 @@ export default async function TrendingGenrePage({
           genresBySlug={genresBySlug}
           maxCols={3}
           labels={{
-            curated: tCommon('curated'),
             location: ({ city, country: c }) =>
               tStation('location', { city, country: c }),
             empty: t('empty'),

@@ -120,6 +120,7 @@ async def create_station(db_session: AsyncSession):  # type: ignore[no-untyped-d
         curated: bool = True,
         quality_score: int = 80,
         status: str = "active",
+        class_state: str | None = "accepted",
         stream_url: str = "https://example.com/stream.mp3",
         lat: float | None = None,
         lng: float | None = None,
@@ -136,6 +137,7 @@ async def create_station(db_session: AsyncSession):  # type: ignore[no-untyped-d
             "curated": curated,
             "quality_score": quality_score,
             "status": status,
+            "class_state": class_state,
             "stream_url": stream_url,
         }
         if lat is not None and lng is not None:
@@ -147,10 +149,10 @@ async def create_station(db_session: AsyncSession):  # type: ignore[no-untyped-d
             f"""
             INSERT INTO stations (
                 slug, name, country_code, city,
-                curated, quality_score, status, geo
+                curated, quality_score, status, class_state, geo
             ) VALUES (
                 :slug, :name, :country_code, :city,
-                :curated, :quality_score, CAST(:status AS station_status), {geo_sql}
+                :curated, :quality_score, CAST(:status AS station_status), :class_state, {geo_sql}
             ) RETURNING id
             """,  # noqa: S608
         )

@@ -146,7 +146,7 @@ async def list_featured_stations(
     *,
     size: int,
 ) -> StationsPage:
-    """Diverse curated picks for the home featured section.
+    """Diverse accepted, good-quality picks for the home featured section.
 
     Wraps ``list_featured_diverse_stations`` with the same summary shape as
     ``list_stations`` so the frontend can reuse the existing card components.

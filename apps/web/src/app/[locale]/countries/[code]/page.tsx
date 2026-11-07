@@ -91,7 +91,6 @@ export default async function CountryPage({
 
   const t = await getTranslations('countries');
   const tNav = await getTranslations('nav');
-  const tCommon = await getTranslations('common');
   const tStation = await getTranslations('station');
   const tHome = await getTranslations('home');
   const tPagination = await getTranslations('pagination');
@@ -227,7 +226,6 @@ export default async function CountryPage({
           genresBySlug={genresBySlug}
           maxCols={3}
           labels={{
-            curated: tCommon('curated'),
             location: ({ city, country: c }) =>
               tStation('location', { city, country: c }),
             empty: tHome('featuredEmpty'),

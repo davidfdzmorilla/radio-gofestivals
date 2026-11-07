@@ -27,6 +27,7 @@ async def _seed_station(
     country: str = "ES",
     language: str = "spanish",
     curated: bool = False,
+    class_state: str | None = "accepted",
 ) -> uuid.UUID:
     sid = (
         await db_session.execute(
@@ -34,12 +35,19 @@ async def _seed_station(
                 """
                 INSERT INTO stations
                     (slug, name, country_code, language, quality_score,
-                     status, curated)
-                VALUES (:slug, :slug, :cc, :lang, :q, 'active', :cur)
+                     status, curated, class_state)
+                VALUES (:slug, :slug, :cc, :lang, :q, 'active', :cur, :cs)
                 RETURNING id
                 """,
             ),
-            {"slug": slug, "cc": country, "lang": language, "q": quality, "cur": curated},
+            {
+                "slug": slug,
+                "cc": country,
+                "lang": language,
+                "q": quality,
+                "cur": curated,
+                "cs": class_state,
+            },
         )
     ).scalar_one()
     gid = await _genre_id(db_session, genre_slug)
@@ -111,7 +119,7 @@ async def test_recommended_cold_start_never_empty_with_catalog(
     client: AsyncClient,
     db_session: AsyncSession,
 ) -> None:
-    # Sin match de locale: rellena con featured (curated)
+    # Sin match de locale: rellena con destacadas (aceptadas y de calidad)
     await _seed_station(
         db_session,
         slug="cold-any",
@@ -268,3 +276,17 @@ async def test_stations_by_ids_lookup(
 
     bad = await client.get("/api/v1/stations?ids=no-es-uuid")
     assert bad.status_code == 422
+
+
+async def test_exploration_picks_use_the_classifier_verdict_not_the_curated_flag(
+    db_session: AsyncSession,
+) -> None:
+    from app.repos.recommendations import get_exploration_picks
+
+    ok = await _seed_station(db_session, slug="gem-ok", curated=False)
+    await _seed_station(db_session, slug="gem-unsure", curated=True, class_state="review")
+    await _seed_station(db_session, slug="gem-lowq", quality=49)
+    gid = await _genre_id(db_session, "techno")
+
+    picks = await get_exploration_picks(db_session, genre_ids=[gid], exclude=[], limit=10)
+    assert picks == [ok]

@@ -48,6 +48,7 @@ export async function generateMetadata({
   const pageParam = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1;
   const page = Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1;
   const countryParam = typeof sp.country === 'string' ? sp.country : undefined;
+  // `curated` ya no filtra, pero una URL antigua con ese parámetro sigue yendo con noindex.
   const hasFilters = countryParam !== undefined || sp.curated !== undefined;
   // Paginación limpia: self-canonical con título "página N" (las páginas
   // profundas listan emisoras que ningún otro sitio enlaza). Con
@@ -137,11 +138,9 @@ export default async function GenrePage({
   const subgenres = genre.children.filter((c) => c.station_count > 0);
 
   const country = typeof sp.country === 'string' ? sp.country : undefined;
-  const curatedParam = typeof sp.curated === 'string' ? sp.curated : undefined;
   const page = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1;
 
   const tGenres = await getTranslations('genres');
-  const tCommon = await getTranslations('common');
   const tStation = await getTranslations('station');
   const tHome = await getTranslations('home');
   const tNav = await getTranslations('nav');
@@ -155,7 +154,6 @@ export default async function GenrePage({
     listStations({
       genre: genre.slug,
       country,
-      curated: curatedParam === 'true' ? true : undefined,
       page: Number.isFinite(page) && page > 0 ? page : 1,
       size: 20,
       revalidate: 300,
@@ -183,7 +181,6 @@ export default async function GenrePage({
   const buildPageHref = (targetPage: number): string => {
     const params = new URLSearchParams();
     if (country) params.set('country', country);
-    if (curatedParam) params.set('curated', curatedParam);
     if (targetPage > 1) params.set('page', String(targetPage));
     const qs = params.toString();
     return `/${locale}/genres/${slug}${qs ? `?${qs}` : ''}`;
@@ -308,7 +305,7 @@ export default async function GenrePage({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-[240px_1fr]">
         <SidebarFilters
-          current={{ country, curated: curatedParam === 'true' }}
+          current={{ country }}
           countries={countries}
           countryRoutes={countryRoutes}
         />
@@ -318,7 +315,6 @@ export default async function GenrePage({
             genresBySlug={genresBySlug}
             maxCols={2}
             labels={{
-              curated: tCommon('curated'),
               location: ({ city, country: c }) =>
                 tStation('location', { city, country: c }),
               empty: tHome('featuredEmpty'),

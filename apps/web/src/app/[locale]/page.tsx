@@ -91,7 +91,6 @@ export default async function HomePage({
           stations={stationsPage.items}
           genresBySlug={genresBySlug}
           labels={{
-            curated: tCommon('curated'),
             location: ({ city, country }) =>
               tStation('location', { city, country }),
             empty: tHome('featuredEmpty'),

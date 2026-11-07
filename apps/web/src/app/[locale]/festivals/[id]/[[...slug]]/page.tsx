@@ -67,9 +67,8 @@ export default async function FestivalPage({ params }: { params: Promise<Params>
     permanentRedirect(`/${locale}${canonical}`);
   }
 
-  const [t, tCommon, tStation, tHome, format, genreTree] = await Promise.all([
+  const [t, tStation, tHome, format, genreTree] = await Promise.all([
     getTranslations('festivals'),
-    getTranslations('common'),
     getTranslations('station'),
     getTranslations('home'),
     getFormatter(),
@@ -137,7 +136,6 @@ export default async function FestivalPage({ params }: { params: Promise<Params>
             stations={stations}
             genresBySlug={genresBySlug}
             labels={{
-              curated: tCommon('curated'),
               location: ({ city, country }) => tStation('location', { city, country }),
               empty: tHome('featuredEmpty'),
             }}

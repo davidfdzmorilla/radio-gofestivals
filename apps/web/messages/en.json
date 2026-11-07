@@ -16,7 +16,7 @@
     "tagline": "Electronic music, curated.",
     "seoDescription": "Online electronic music radio: techno, house, trance, drum & bass and more. Hand-picked stations, live and free.",
     "featured": "Featured",
-    "featuredEmpty": "No curated stations yet. Stay tuned.",
+    "featuredEmpty": "No featured stations yet. Stay tuned.",
     "forYou": "For you"
   },
   "festivals": {
@@ -75,7 +75,6 @@
   "filters": {
     "country": "Country",
     "anyCountry": "Any country",
-    "curatedOnly": "Curated only",
     "allGenres": "All genres",
     "apply": "Apply",
     "clear": "Clear"

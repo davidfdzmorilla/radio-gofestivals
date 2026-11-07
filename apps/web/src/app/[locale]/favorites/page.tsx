@@ -6,7 +6,6 @@ import { Heart, Loader2 } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { useAuth } from '@/lib/users/AuthContext';
 import { HeartButton } from '@/components/auth/HeartButton';
-import { Badge } from '@/components/ui/badge';
 import { initials } from '@/lib/utils';
 import type { FavoriteOut } from '@/lib/users/types';
 
@@ -101,11 +100,6 @@ export default function FavoritesPage() {
                 </Link>
                 <p className="text-fg-2 truncate font-mono text-[12px] uppercase tracking-widest">
                   {fav.country_code ?? '—'}
-                  {fav.curated ? (
-                    <Badge tone="magenta" sticker className="ml-2">
-                      Curated
-                    </Badge>
-                  ) : null}
                 </p>
               </div>
               <HeartButton

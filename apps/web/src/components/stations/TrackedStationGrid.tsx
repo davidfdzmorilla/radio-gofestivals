@@ -26,7 +26,6 @@ export function TrackedStationGrid({
   surface,
   maxCols = 3,
 }: Props) {
-  const tCommon = useTranslations('common');
   const tStation = useTranslations('station');
   const impressionsSent = useRef(false);
 
@@ -71,7 +70,6 @@ export function TrackedStationGrid({
             genresBySlug={genresBySlug}
             index={index}
             labels={{
-              curated: tCommon('curated'),
               location: ({ city, country }) =>
                 tStation('location', { city, country }),
             }}

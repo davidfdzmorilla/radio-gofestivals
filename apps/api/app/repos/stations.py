@@ -14,6 +14,10 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
+# Calidad mínima para las destacadas de la portada (de las ~1.200 visibles, unas 250 la superan).
+FEATURED_MIN_QUALITY = 60
+
+
 def apply_genre_cap[T](
     candidates: list[tuple[T, int | None]],
     *,
@@ -165,9 +169,10 @@ async def list_featured_diverse_stations(
     genre_cap: int = 2,
     pool_size: int = 60,
 ) -> list[Station]:
-    """Top ``size`` curated active visible stations with a per-primary-genre cap.
+    """Top ``size`` accepted, good-quality visible stations with a per-primary-genre cap.
 
-    The pool is the first ``pool_size`` curated rows ordered by
+    "Accepted" is the classifier verdict (ADR 012); ``curated`` (a legacy human mark) no longer
+    drives this. The pool is the first ``pool_size`` such rows ordered by
     ``quality_score DESC, name ASC`` — same ranking as ``list_active_stations``
     so the slot ordering still reflects quality. Each station's primary genre
     is the ``station_genres`` row with the highest confidence (genre.sort_order
@@ -180,7 +185,8 @@ async def list_featured_diverse_stations(
         .where(
             Station.status == "active",
             Station.hidden.is_(False),
-            Station.curated.is_(True),
+            Station.class_state == "accepted",
+            Station.quality_score >= FEATURED_MIN_QUALITY,
         )
         .order_by(Station.quality_score.desc(), Station.name.asc())
         .limit(pool_size)

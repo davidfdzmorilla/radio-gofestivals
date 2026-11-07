@@ -203,11 +203,6 @@ export default async function StationPage({
         />
         <div className="flex-1 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
-            {station.curated && (
-              <Badge tone="magenta" sticker>
-                {tCommon('curated')}
-              </Badge>
-            )}
             {station.genres.map((g) => (
               <Link key={g.slug} href={`/genres/${g.slug}`}>
                 <Badge

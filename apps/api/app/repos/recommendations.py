@@ -212,7 +212,7 @@ async def get_exploration_picks(
     exclude: list[uuid.UUID],
     limit: int,
 ) -> list[uuid.UUID]:
-    """Emisoras curated de calidad y baja exposición, compatibles con el perfil.
+    """Emisoras aceptadas de calidad y baja exposición, compatibles con el perfil.
 
     "Baja exposición" = menor local_plays_total primero; el desempate
     aleatorio rota qué emisoras frescas entran en los slots de exploración.
@@ -225,7 +225,7 @@ async def get_exploration_picks(
                 """
                 SELECT s.id
                 FROM stations s
-                WHERE s.status = 'active' AND NOT s.hidden AND s.curated
+                WHERE s.status = 'active' AND NOT s.hidden AND s.class_state = 'accepted'
                   AND s.quality_score >= 50
                   AND s.id != ALL(CAST(:exclude AS uuid[]))
                   AND EXISTS (

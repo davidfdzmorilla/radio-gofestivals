@@ -12,6 +12,8 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { GlobalPlayer } from '@/components/player/GlobalPlayer';
 import { ConsentBanner } from '@/components/consent/ConsentBanner';
+import { GoogleAnalytics } from '@/components/analytics/GoogleAnalytics';
+import { GA_MEASUREMENT_ID } from '@/lib/analytics';
 import { ToastProvider } from '@/components/auth/ToastContext';
 import { AuthProvider } from '@/lib/users/AuthContext';
 import '../globals.css';
@@ -139,6 +141,7 @@ export default async function LocaleLayout({
               <Footer locale={locale as 'es' | 'en'} />
               <GlobalPlayer />
               <ConsentBanner locale={locale as 'es' | 'en'} />
+              <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />
             </ToastProvider>
           </AuthProvider>
         </NextIntlClientProvider>

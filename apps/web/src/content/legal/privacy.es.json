@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-06-09",
+  "lastUpdated": "2026-11-07",
   "sections": [
     {
       "heading": "Quiénes somos",
@@ -15,6 +15,7 @@
         "Si no estás registrado en el Servicio, asociamos cada reproducción a un identificador opaco (UUID) almacenado en tu navegador. Ese identificador no contiene información personal ni se cruza con otros servicios.",
         "Si estás registrado y has iniciado sesión, las reproducciones quedan asociadas a tu cuenta. Si te registras tras haber escuchado de forma anónima, los plays previos en el mismo dispositivo se transfieren automáticamente a tu cuenta.",
         "Para cada reproducción guardamos: identificador de la estación, marca de tiempo, e identificador (UUID anónimo o ID de cuenta).",
+        "Si además aceptas el banner, usamos Google Analytics 4 (Google, como encargado del tratamiento) para medir de forma agregada cómo se usa el sitio: páginas vistas, origen de la visita, tipo de dispositivo y ubicación aproximada. Esto puede implicar transferencias internacionales de datos, por ejemplo a Estados Unidos. Desactivamos las señales de publicidad y la personalización de anuncios, y no enviamos a Google tu cuenta ni tus reproducciones. Si rechazas, no se carga nada de Google.",
         "El propósito de este tratamiento es mejorar la curaduría editorial de la página principal con datos reales de uso. No usamos estos datos para publicidad ni los compartimos con terceros."
       ]
     },
@@ -49,7 +50,7 @@
     {
       "heading": "Cookies y almacenamiento del navegador",
       "paragraphs": [
-        "Usamos almacenamiento del navegador para recordar tu decisión sobre el consentimiento y para identificarte de forma opaca cuando reproduces. Encontrarás el detalle en la página de Cookies."
+        "Usamos almacenamiento del navegador para recordar tu decisión sobre el consentimiento y para identificarte de forma opaca cuando reproduces. Encontrarás el detalle en la página de Cookies. Si aceptas la analítica, Google Analytics también guarda cookies propias (_ga) en tu navegador."
       ]
     },
     {

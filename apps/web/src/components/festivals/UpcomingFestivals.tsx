@@ -6,6 +6,8 @@ interface Props {
   festivals: Festival[];
   locale: string;
   labels: { title: string; viewAll: string; source: string };
+  /** Color del género de la página, para el recuadro de las tarjetas sin imagen. */
+  color?: string;
 }
 
 /**
@@ -13,7 +15,7 @@ interface Props {
  * recibe los festivales ya cargados y no pinta nada si no hay ninguno. Cada
  * tarjeta lleva a la ficha del festival en la radio (enlazado interno).
  */
-export function UpcomingFestivals({ festivals, locale, labels }: Props) {
+export function UpcomingFestivals({ festivals, locale, labels, color }: Props) {
   if (festivals.length === 0) return null;
   return (
     <section aria-labelledby="upcoming-festivals-title" className="space-y-4">
@@ -31,7 +33,7 @@ export function UpcomingFestivals({ festivals, locale, labels }: Props) {
           {labels.viewAll}
         </Link>
       </div>
-      <FestivalCards festivals={festivals} locale={locale} />
+      <FestivalCards festivals={festivals} locale={locale} color={color} />
       <p className="text-xs text-fg-2">{labels.source}</p>
     </section>
   );

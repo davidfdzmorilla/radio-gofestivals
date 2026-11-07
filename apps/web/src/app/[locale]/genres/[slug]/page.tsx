@@ -355,6 +355,7 @@ export default async function GenrePage({
       <UpcomingFestivals
         festivals={festivals}
         locale={locale}
+        color={genre.color_hex}
         labels={{
           title: tFestivals("title", { name: genre.name }),
           viewAll: tFestivals("viewAll"),

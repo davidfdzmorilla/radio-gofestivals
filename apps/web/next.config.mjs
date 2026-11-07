@@ -21,6 +21,11 @@ const nextConfig = {
         hostname: 'api.gofestivals.es',
         pathname: '/uploads/festivals/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'api.gofestivals.es',
+        pathname: '/uploads/s3/festivals/**',
+      },
     ],
   },
   experimental: {

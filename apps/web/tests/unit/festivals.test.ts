@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   festivalCalendarUrl,
@@ -12,6 +14,7 @@ import {
   getAllUpcomingFestivals,
   getFestival,
   getUpcomingFestivals,
+  IMAGE_SOURCES,
   safeHttpUrl,
 } from '@/lib/festivals';
 import { ApiError } from '@/lib/api';
@@ -270,6 +273,21 @@ describe('festivalImageSrc (next/image throws on unconfigured hosts)', () => {
   it('accepts the gofestivals API uploads path', () => {
     const u = 'https://api.gofestivals.es/uploads/festivals/23-5046bc67ea.jpg';
     expect(festivalImageSrc({ imageUrl: u })).toBe(u);
+  });
+  it('accepts the gofestivals API s3 uploads path (the one in use since Nov 2026)', () => {
+    const u =
+      'https://api.gofestivals.es/uploads/s3/festivals/listen_festival/listen_festival_2025-07-02_15-20-00.webp';
+    expect(festivalImageSrc({ imageUrl: u })).toBe(u);
+  });
+  it('rejects other folders under /uploads/s3/', () => {
+    expect(festivalImageSrc({ imageUrl: 'https://api.gofestivals.es/uploads/s3/users/x.webp' })).toBeNull();
+  });
+  it('stays in sync with images.remotePatterns of next.config.mjs', () => {
+    const config = readFileSync(resolve(__dirname, '../../next.config.mjs'), 'utf8');
+    for (const { host, pathPrefix } of IMAGE_SOURCES) {
+      expect(config).toContain(`hostname: '${host}'`);
+      expect(config).toContain(`pathname: '${pathPrefix}**'`);
+    }
   });
   it.each([
     [null],

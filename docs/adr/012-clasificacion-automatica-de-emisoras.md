@@ -107,3 +107,15 @@ pasaron por las reglas esperan al modelo (corre 20 min antes) y las curadas nunc
 duda. Se reponen solas si una reevaluación las acepta. Coste asumido: se esconde a ciegas parte
 del 8 % de emisoras sin veredicto claro (123 en la primera medición) que quizá sí son
 electrónica; la marca `hidden_by` permite restaurarlas y la ficha sigue abierta por URL.
+
+### Addendum · la etiqueta «curada» deja de ser pública (2026-11-07)
+
+Con la clasificación y el `enforce` automáticos, nadie etiqueta ya a mano: `curated` quedaría
+congelada en las 220 aprobadas por una persona (todas por el panel, un solo admin) y las emisoras
+nuevas nunca la tendrían. Además, el 95 % de lo visible ya está `accepted` (1.160 de 1.218), así
+que una insignia «Verificada» no distinguiría nada. Decisión: se retira la insignia y el filtro
+«Solo curadas» de la web; las destacadas de la portada salen de `accepted` y calidad ≥ 60
+(`FEATURED_MIN_QUALITY`) y las «joyas» de las recomendaciones de `accepted` y calidad ≥ 50. La
+columna `curated` se conserva (historial, panel de administración, el parámetro `curated` del API
+y la protección frente a `enforce`: una curada solo la oculta el segundo clasificador). El lema de
+marca «curada» y las descripciones SEO no se tocan aquí.

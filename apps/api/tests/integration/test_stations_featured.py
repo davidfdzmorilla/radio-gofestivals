@@ -14,18 +14,34 @@ async def test_featured_size_above_max_returns_422(client: AsyncClient) -> None:
     assert r.status_code == 422
 
 
-async def test_featured_returns_only_curated_active_visible(
+async def test_featured_returns_only_accepted_good_quality_active_visible(
     client: AsyncClient,
     create_station,  # type: ignore[no-untyped-def]
 ) -> None:
-    await create_station(slug="cur-visible", curated=True, genre_slugs=["techno"])
-    await create_station(slug="cur-broken", curated=True, status="broken", genre_slugs=["techno"])
-    await create_station(slug="not-curated", curated=False, genre_slugs=["techno"])
+    await create_station(slug="ok", genre_slugs=["techno"])
+    await create_station(slug="broken", status="broken", genre_slugs=["techno"])
+    await create_station(slug="unsure", class_state="review", genre_slugs=["techno"])
+    await create_station(slug="unclassified", class_state=None, genre_slugs=["techno"])
+    await create_station(slug="low-quality", quality_score=59, genre_slugs=["techno"])
 
     r = await client.get("/api/v1/stations/featured", params={"size": 12})
     assert r.status_code == 200
     slugs = {i["slug"] for i in r.json()["items"]}
-    assert slugs == {"cur-visible"}
+    assert slugs == {"ok"}
+
+
+async def test_featured_no_longer_depends_on_the_curated_flag(
+    client: AsyncClient,
+    create_station,  # type: ignore[no-untyped-def]
+) -> None:
+    await create_station(slug="not-curated", curated=False, genre_slugs=["techno"])
+    await create_station(
+        slug="curated-but-unsure", curated=True, class_state="review", genre_slugs=["techno"]
+    )
+
+    r = await client.get("/api/v1/stations/featured", params={"size": 12})
+    slugs = {i["slug"] for i in r.json()["items"]}
+    assert slugs == {"not-curated"}
 
 
 async def test_featured_caps_two_per_primary_genre(
@@ -75,7 +91,7 @@ async def test_featured_skips_stations_with_no_genres(
     create_station,  # type: ignore[no-untyped-def]
 ) -> None:
     await create_station(slug="orphan", curated=True, quality_score=99, genre_slugs=None)
-    await create_station(slug="tagged", curated=True, quality_score=50, genre_slugs=["techno"])
+    await create_station(slug="tagged", curated=True, quality_score=60, genre_slugs=["techno"])
 
     r = await client.get("/api/v1/stations/featured", params={"size": 12})
     slugs = [i["slug"] for i in r.json()["items"]]

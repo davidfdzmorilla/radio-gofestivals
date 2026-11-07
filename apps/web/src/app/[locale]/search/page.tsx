@@ -48,7 +48,6 @@ export default async function SearchPage({
 
   const t = await getTranslations('search');
   const tNav = await getTranslations('nav');
-  const tCommon = await getTranslations('common');
   const tStation = await getTranslations('station');
   const tPagination = await getTranslations('pagination');
 
@@ -120,7 +119,6 @@ export default async function SearchPage({
               genresBySlug={genresBySlug}
               maxCols={3}
               labels={{
-                curated: tCommon('curated'),
                 location: ({ city, country: c }) =>
                   tStation('location', { city, country: c }),
                 empty: t('noResults', { query: q }),

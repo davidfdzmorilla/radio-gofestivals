@@ -73,7 +73,6 @@ export async function getGenresTree(revalidate = 300): Promise<Genre[]> {
 interface ListStationsParams {
   genre?: string;
   country?: string;
-  curated?: boolean;
   q?: string;
   page?: number;
   size?: number;
@@ -85,7 +84,6 @@ export async function listStations(params: ListStationsParams = {}): Promise<Sta
   if (params.genre) qs.set('genre', params.genre);
   if (params.country) qs.set('country', params.country);
   if (params.q) qs.set('q', params.q);
-  if (params.curated !== undefined) qs.set('curated', String(params.curated));
   if (params.page) qs.set('page', String(params.page));
   if (params.size) qs.set('size', String(params.size));
   const path = `/api/v1/stations${qs.toString() ? `?${qs}` : ''}`;

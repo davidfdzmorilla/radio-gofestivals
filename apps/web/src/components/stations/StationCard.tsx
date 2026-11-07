@@ -13,7 +13,6 @@ interface Props {
   genresBySlug: Record<string, Genre>;
   index?: number;
   labels: {
-    curated: string;
     location: (values: { city: string; country: string }) => string;
   };
 }
@@ -67,11 +66,6 @@ export function StationCard({ station, genresBySlug, index = 0, labels }: Props)
           la tarjeta: el título usa todo el ancho y las alturas de una fila coinciden. */}
       <div className="mt-auto flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-          {station.curated && (
-            <Badge tone="magenta" sticker>
-              {labels.curated}
-            </Badge>
-          )}
           {station.genres.slice(0, 2).map((slug) => {
             const g = genresBySlug[slug];
             if (!g) return null;

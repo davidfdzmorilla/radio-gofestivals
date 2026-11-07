@@ -26,6 +26,47 @@ afterEach(() => {
   LocalStorageFavorites.clear();
 });
 
+describe('<HeartButton /> analytics', () => {
+  afterEach(() => {
+    delete (window as unknown as { gtag?: unknown }).gtag;
+  });
+
+  it('reports favorite_add once, only when adding, for anonymous users', async () => {
+    const gtag = vi.fn();
+    (window as unknown as { gtag?: unknown }).gtag = gtag;
+    render(
+      <TestProviders>
+        <HeartButton stationId="abc" stationSlug="rave-fm" />
+      </TestProviders>,
+    );
+    const btn = await screen.findByRole('button');
+    fireEvent.click(btn);
+    await waitFor(() => expect(btn).toHaveAttribute('aria-pressed', 'true'));
+    expect(gtag).toHaveBeenCalledTimes(1);
+    expect(gtag).toHaveBeenCalledWith('event', 'favorite_add', {
+      station_slug: 'rave-fm',
+      logged_in: false,
+    });
+    fireEvent.click(btn); // quitar de favoritos no se mide
+    await waitFor(() => expect(btn).toHaveAttribute('aria-pressed', 'false'));
+    expect(gtag).toHaveBeenCalledTimes(1);
+  });
+
+  it('measures nothing without a slug', async () => {
+    const gtag = vi.fn();
+    (window as unknown as { gtag?: unknown }).gtag = gtag;
+    render(
+      <TestProviders>
+        <HeartButton stationId="abc" />
+      </TestProviders>,
+    );
+    const btn = await screen.findByRole('button');
+    fireEvent.click(btn);
+    await waitFor(() => expect(btn).toHaveAttribute('aria-pressed', 'true'));
+    expect(gtag).not.toHaveBeenCalled();
+  });
+});
+
 describe('<HeartButton />', () => {
   it('toggles state on click for an anonymous user', async () => {
     render(

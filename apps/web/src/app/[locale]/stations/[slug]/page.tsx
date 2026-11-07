@@ -253,6 +253,7 @@ export default async function StationPage({
               />
               <HeartButton
                 stationId={station.id}
+                stationSlug={station.slug}
                 initialIsFavorite={station.is_favorite ?? null}
                 size="md"
                 className="h-11 w-11"

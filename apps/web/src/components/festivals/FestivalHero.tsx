@@ -1,3 +1,4 @@
+import { TrackedAnchor } from '@/components/analytics/TrackedAnchor';
 import { FestivalImage } from '@/components/festivals/FestivalImage';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -56,20 +57,22 @@ export function FestivalHero({ festival, locale, color, phaseLabel, phase, count
         {where && <p className="text-fg-1">{where}</p>}
         {description && <p className="max-w-prose text-sm leading-relaxed text-fg-2">{clamp(description)}</p>}
         <div className="flex flex-wrap items-center gap-3 pt-1">
-          <a
+          <TrackedAnchor
+            event={{ festival_id: festival.id, destination: 'gofestivals', placement: 'hero' }}
             href={festivalUrl(locale, festival)}
             className="inline-flex min-h-11 items-center rounded-full bg-magenta px-5 py-2 text-sm font-semibold text-bg-0 transition-opacity hover:opacity-90"
           >
             {labels.viewOnGofestivals}
-          </a>
+          </TrackedAnchor>
           {website && (
-            <a
+            <TrackedAnchor
+              event={{ festival_id: festival.id, destination: 'official', placement: 'hero' }}
               href={website}
               rel="nofollow noopener noreferrer"
               className="inline-flex min-h-11 items-center rounded-full border border-fg-3 px-5 py-2 text-sm font-medium text-fg-1 transition-colors hover:border-fg-2 hover:text-fg-0"
             >
               {labels.officialSite}
-            </a>
+            </TrackedAnchor>
           )}
         </div>
       </div>

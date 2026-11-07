@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { stationEventParams, trackEvent } from './analytics';
 import type { StationStreamRef, StationSummary } from './types';
 
 interface PlayerState {
@@ -47,7 +48,8 @@ export const usePlayerStore = create<PlayerState>()(
       isPlaying: false,
       isBuffering: false,
       volume: 0.8,
-      play: (station, streams) =>
+      play: (station, streams) => {
+        trackEvent('play_start', stationEventParams(station));
         set({
           currentStation: station,
           streams: _streamsFor(station, streams),
@@ -55,7 +57,8 @@ export const usePlayerStore = create<PlayerState>()(
           error: null,
           isPlaying: true,
           isBuffering: true,
-        }),
+        });
+      },
       pause: () => set({ isPlaying: false, isBuffering: false }),
       stop: () =>
         set({

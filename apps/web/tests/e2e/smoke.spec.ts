@@ -3,13 +3,13 @@ import { expect, test } from '@playwright/test';
 test('home ES renders with Spanish copy', async ({ page }) => {
   await page.goto('/es');
   await expect(page.locator('h1')).toContainText('radio.gofestivals');
-  await expect(page.getByText('Música electrónica, curada.').first()).toBeVisible();
+  await expect(page.getByText('Música electrónica, en directo.').first()).toBeVisible();
 });
 
 test('home EN renders with English copy', async ({ page }) => {
   await page.goto('/en');
   await expect(page.locator('h1')).toContainText('radio.gofestivals');
-  await expect(page.getByText('Electronic music, curated.').first()).toBeVisible();
+  await expect(page.getByText('Electronic music, live.').first()).toBeVisible();
 });
 
 test('hreflang tags are present', async ({ page }) => {

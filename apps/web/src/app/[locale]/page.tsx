@@ -43,7 +43,7 @@ export default async function HomePage({
       <section className="space-y-5">
         <span className="inline-flex -rotate-1 items-center gap-2 rounded-full border border-magenta/40 bg-magenta-soft px-3 py-1 font-mono text-[12px] uppercase tracking-widest text-fg-0 shadow-sticker-magenta">
           <span className="inline-block h-1.5 w-1.5 rounded-full bg-magenta" />
-          {tCommon('curated')} · 2026
+          {tCommon('eyebrow')} · 2026
         </span>
         <h1 className="font-display text-[clamp(2rem,10vw,5rem)] font-semibold leading-[1.02] tracking-tight text-fg-0">
           {tHome('title')}

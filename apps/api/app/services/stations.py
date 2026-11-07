@@ -341,6 +341,7 @@ async def get_station_detail(
             curated=station.curated,
             quality_score=station.quality_score,
             status=station.status,
+            hidden=bool(station.hidden),
             votes_local=int(station.votes_local or 0),
             logo_hash=station.logo_hash,
             genres=[

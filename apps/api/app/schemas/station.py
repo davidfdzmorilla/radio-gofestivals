@@ -62,6 +62,7 @@ class StationDetail(BaseModel):
     curated: bool
     quality_score: int
     status: str
+    hidden: bool = False
     votes_local: int = 0
     logo_hash: str | None = None
     genres: list[StationGenreRef] = Field(default_factory=list)

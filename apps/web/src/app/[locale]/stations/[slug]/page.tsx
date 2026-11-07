@@ -19,6 +19,7 @@ import {
   buildAlternates,
   COUNTRY_GATE_MIN_STATIONS,
   regionName,
+  stationRobots,
 } from '@/lib/seo';
 
 export const revalidate = 60;
@@ -53,6 +54,7 @@ export async function generateMetadata({
     title: station.name,
     description,
     alternates,
+    robots: stationRobots(station.hidden),
     openGraph: {
       type: 'website',
       title: station.name,

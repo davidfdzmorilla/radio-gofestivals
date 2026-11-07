@@ -120,6 +120,7 @@ export const StationDetailSchema = z.object({
   curated: z.boolean(),
   quality_score: z.number(),
   status: z.string(),
+  hidden: z.boolean().default(false),
   votes_local: z.number().default(0),
   logo_hash: z.string().nullable().optional(),
   genres: z.array(StationGenreRefSchema),

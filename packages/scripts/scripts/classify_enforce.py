@@ -5,6 +5,11 @@ Una emisora ``rejected`` se oculta con el mismo ``hidden`` que ya respetan todas
 'classifier'`` para poder reponerla si se reclasifica. Nunca se toca lo oculto por otra vía
 (``hidden_by`` NULL: spam, decisión manual) ni las decisiones ``manual``.
 
+Las emisoras en ``review`` también se ocultan cuando el segundo clasificador ya las miró y no
+alcanzó confianza para aceptarlas (``class_source = 'llm'``) y no son curadas: ante la duda no
+puntúan como electrónica. Se reponen solas si una reevaluación posterior las acepta. Las
+``review`` que solo pasaron por las reglas esperan al modelo y siguen visibles.
+
 Defensas, en orden:
 
 - Antigüedad: solo se actúa sobre veredictos de al menos ``min_age_hours`` (por defecto 24 h):
@@ -51,6 +56,7 @@ class EnforceResult:
     visible_before: int = 0
     to_hide: int = 0
     to_unhide: int = 0
+    to_hide_review: int = 0
     skipped: dict[str, int] = field(default_factory=dict)
     hidden_examples: list[str] = field(default_factory=list)
 
@@ -64,6 +70,7 @@ class EnforceResult:
             "visible_before": self.visible_before,
             "visible_after": self.visible_after,
             "hidden": self.to_hide,
+            "hidden_review": self.to_hide_review,
             "unhidden": self.to_unhide,
             "skipped": self.skipped,
             "hidden_examples": self.hidden_examples,
@@ -95,21 +102,25 @@ async def enforce(
         rejected = (
             await session.execute(
                 text(
-                    "SELECT id, slug, class_source, curated, classified_at FROM stations "
-                    "WHERE class_state = 'rejected' AND class_source IN ('rule', 'llm') "
+                    "SELECT id, slug, class_source, curated, classified_at, class_state "
+                    "FROM stations "
+                    "WHERE ((class_state = 'rejected' AND class_source IN ('rule', 'llm')) "
+                    "OR (class_state = 'review' AND class_source = 'llm' AND NOT curated)) "
                     "AND status = 'active' AND NOT hidden ORDER BY slug",
                 ),
             )
         ).all()
         hide_ids: list[object] = []
         skipped = {"curated_rule_only": 0, "too_recent": 0}
-        for sid, slug, source, curated, classified_at in rejected:
+        for sid, slug, source, curated, classified_at, state in rejected:
             if curated and source != "llm":
                 skipped["curated_rule_only"] += 1
             elif classified_at is None or classified_at > cutoff:
                 skipped["too_recent"] += 1
             else:
                 hide_ids.append(sid)
+                if state == "review":
+                    result.to_hide_review += 1
                 if len(result.hidden_examples) < 10:  # noqa: PLR2004
                     result.hidden_examples.append(slug)
         result.skipped = skipped
@@ -121,7 +132,9 @@ async def enforce(
                 await session.execute(
                     text(
                         "SELECT id FROM stations WHERE hidden AND hidden_by = 'classifier' "
-                        "AND class_state IS DISTINCT FROM 'rejected'",
+                        "AND class_state IS DISTINCT FROM 'rejected' "
+                        "AND NOT (class_state = 'review' AND class_source = 'llm' "
+                        "AND NOT curated)",
                     ),
                 )
             ).all()

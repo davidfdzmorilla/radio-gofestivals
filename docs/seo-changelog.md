@@ -82,3 +82,19 @@ dejar el árbol en `main` antes de cada deploy.
 Ambos figuran como "No se ha podido obtener". Se considera un estado provisional
 de Search Console (el servidor responde 200 con el índice correcto); revisar el
 10 nov.
+
+### Verificación en prod de T4 + T5 (9 nov, ~14:20 UTC)
+
+Sin despliegue nuevo: prod corre `ced0d19` (imágenes `web`, `api` e `icy-worker`
+con tag `ced0d19`; rama `feat/seo-content-and-ga-attribution` ya fusionada).
+`feat/genre-editorial-techno` sigue sin fusionar.
+
+- `seo-check.mjs` contra prod: TODO OK.
+- `/es|en/genres/techno`, `/es/countries/de`, `/es/countries/de/techno`: 200,
+  intro con cifras reales en el HTML del servidor, `BreadcrumbList` e `ItemList`,
+  canonical propio, sin `noindex`. Página 2 de los tres tipos: sin intro.
+- T5 en navegador real (Playwright contra prod): el primer hit a GA es un
+  `page_view` con `dl` = URL de entrada con utm y `dr` = referrer; `play_start`
+  con `country=ro` en minúsculas.
+- Las 20 URLs de la lista de indexación (6 géneros y 4 países, es/en): 200,
+  indexables y en el sitemap.

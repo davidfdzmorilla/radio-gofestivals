@@ -33,7 +33,7 @@ const canonicalOf = (html) => html.match(/<link[^>]+rel="canonical"[^>]*href="([
 
 // 1. robots.txt
 const robots = await (await get('/robots.txt')).text();
-if (!T1) ok((robots.match(/^Sitemap:/gim) ?? []).length === 1 && robots.includes(`${SITE}/sitemap.xml`), 'robots.txt: una sola línea Sitemap al índice');
+if (!T1) ok((robots.match(/^Sitemap:/gim) ?? []).length === 1 && robots.includes(`${SITE}/sitemap-index.xml`), 'robots.txt: una sola línea Sitemap al índice');
 if (!T1) ok(!/^Host:/im.test(robots), 'robots.txt: sin Host');
 
 // 2. sitemap-v2 y redirects de idioma
@@ -57,7 +57,15 @@ for (const l of ['es', 'en']) {
 }
 
 // 3. índice y sitemaps hijos
-const index = await (await get('/sitemap.xml')).text();
+const GOOGLEBOT = { 'user-agent': 'Googlebot/2.1 (+http://www.google.com/bot.html)' };
+const t0 = Date.now();
+const idxRes = await get('/sitemap-index.xml', { headers: GOOGLEBOT });
+const index = await idxRes.text();
+ok(idxRes.status === 200 && /^application\/xml/.test(idxRes.headers.get('content-type') ?? '') && Date.now() - t0 < 3000, `/sitemap-index.xml (Googlebot): ${idxRes.status}, ${idxRes.headers.get('content-type')}, ${Date.now() - t0} ms, sin redirección`);
+if (!T1) {
+  const legacy = await get('/sitemap.xml', { headers: GOOGLEBOT });
+  ok(legacy.status === 200 && (await legacy.text()) === index, '/sitemap.xml: 200 y mismo contenido que /sitemap-index.xml');
+}
 if (!T1) ok(index.includes('<sitemapindex'), '/sitemap.xml es un sitemapindex');
 const children = T1 ? [`${SITE}/sitemap.xml`] : locs(index);
 if (!T1) ok(children.length === 4, `índice con ${children.length} hijos`);

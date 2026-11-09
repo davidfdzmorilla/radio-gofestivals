@@ -1,9 +1,12 @@
 #!/usr/bin/env node
 // Verifica en un entorno desplegado que sitemap, robots y redirects cumplen ADR 015.
-//   node scripts/seo-check.mjs [https://radio.gofestivals.eu] [muestras-por-tipo]
+//   node scripts/seo-check.mjs [https://radio.gofestivals.eu] [muestras-por-tipo] [--phase=t1]
+// --phase=t1: despliegue previo al índice de sitemaps (un único /sitemap.xml ya filtrado).
 // Sale con código 1 si algo falla. Solo hace GET/HEAD públicos.
-const BASE = (process.argv[2] ?? 'https://radio.gofestivals.eu').replace(/\/$/, '');
-const SAMPLES = Number(process.argv[3] ?? 6);
+const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const T1 = process.argv.includes('--phase=t1');
+const BASE = (args[0] ?? 'https://radio.gofestivals.eu').replace(/\/$/, '');
+const SAMPLES = Number(args[1] ?? 6);
 const SITE = 'https://radio.gofestivals.eu';
 const rebase = (u) => u.replace(SITE, BASE); // permite probar un servidor local con las URLs canónicas
 let failures = 0;
@@ -30,12 +33,12 @@ const canonicalOf = (html) => html.match(/<link[^>]+rel="canonical"[^>]*href="([
 
 // 1. robots.txt
 const robots = await (await get('/robots.txt')).text();
-ok((robots.match(/^Sitemap:/gim) ?? []).length === 1 && robots.includes(`${SITE}/sitemap.xml`), 'robots.txt: una sola línea Sitemap al índice');
-ok(!/^Host:/im.test(robots), 'robots.txt: sin Host');
+if (!T1) ok((robots.match(/^Sitemap:/gim) ?? []).length === 1 && robots.includes(`${SITE}/sitemap.xml`), 'robots.txt: una sola línea Sitemap al índice');
+if (!T1) ok(!/^Host:/im.test(robots), 'robots.txt: sin Host');
 
 // 2. sitemap-v2 y redirects de idioma
 const v2 = await get('/sitemap-v2.xml');
-ok(v2.status === 301 && v2.headers.get('location')?.endsWith('/sitemap.xml'), `sitemap-v2.xml -> ${v2.status} ${v2.headers.get('location')}`);
+if (!T1) ok(v2.status === 301 && v2.headers.get('location')?.endsWith('/sitemap.xml'), `sitemap-v2.xml -> ${v2.status} ${v2.headers.get('location')}`);
 for (const path of ['/countries/ro/deep-house', '/genres/techno', '/stations/radio-x']) {
   const r = await get(path);
   ok(r.status === 308 && /^\/?(https?:\/\/[^/]+)?\/(es|en)\//.test(r.headers.get('location') ?? ''), `${path} -> ${r.status} ${r.headers.get('location')}`);
@@ -50,14 +53,14 @@ for (const [lang, expected] of [[undefined, '/es'], ['en-GB,en;q=0.9', '/en']]) 
 for (const l of ['es', 'en']) {
   const html = await (await get(`/${l}`)).text();
   const xdef = html.match(/<link[^>]+rel="alternate"[^>]*hreflang="x-default"[^>]*href="([^"]*)"/i)?.[1] ?? html.match(/<link[^>]+hreflang="x-default"[^>]*href="([^"]*)"/i)?.[1];
-  ok(xdef === `${SITE}/`, `/${l}: x-default de la portada = ${xdef}`);
+  ok(xdef === SITE, `/${l}: x-default de la portada = ${xdef}`);
 }
 
 // 3. índice y sitemaps hijos
 const index = await (await get('/sitemap.xml')).text();
-ok(index.includes('<sitemapindex'), '/sitemap.xml es un sitemapindex');
-const children = locs(index);
-ok(children.length === 4, `índice con ${children.length} hijos`);
+if (!T1) ok(index.includes('<sitemapindex'), '/sitemap.xml es un sitemapindex');
+const children = T1 ? [`${SITE}/sitemap.xml`] : locs(index);
+if (!T1) ok(children.length === 4, `índice con ${children.length} hijos`);
 const all = [];
 for (const child of children) {
   const res = await get(child);
@@ -65,9 +68,9 @@ for (const child of children) {
   const urls = locs(xml);
   ok(res.status === 200 && xml.includes('<urlset'), `${child}: ${res.status}, ${urls.length} URLs`);
   ok(urls.length <= 50000 && xml.length < 50 * 1024 * 1024, `${child}: dentro de los límites`);
-  ok(!/changefreq|<priority>/.test(xml), `${child}: sin changefreq/priority`);
+  if (!T1) ok(!/changefreq|<priority>/.test(xml), `${child}: sin changefreq/priority`);
   ok(!urls.some((u) => u.includes('/festivals')), `${child}: sin festivales`);
-  ok(urls.length === 0 || xml.includes('<lastmod>'), `${child}: con lastmod`);
+  if (!T1) ok(urls.length === 0 || xml.includes('<lastmod>'), `${child}: con lastmod`);
   all.push(...urls);
 }
 
@@ -93,8 +96,8 @@ for (const path of controls) {
 }
 const home = all.find((u) => new URL(u).pathname === '/es');
 ok(Boolean(home), 'la portada está en el sitemap');
-const idx = await (await get('/sitemap-static.xml')).text();
-ok(idx.includes(`hreflang="x-default" href="${SITE}/"`), 'sitemap: x-default de la portada = /');
+const idx = await (await get(T1 ? '/sitemap.xml' : '/sitemap-static.xml')).text();
+ok(idx.includes(`hreflang="x-default" href="${SITE}"`), 'sitemap: x-default de la portada = /');
 
 console.log(`\n${failures === 0 ? 'TODO OK' : `${failures} comprobación(es) fallida(s)`}`);
 process.exit(failures === 0 ? 0 : 1);

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET as indexGET } from '@/app/sitemap.xml/route';
+import { GET as indexAltGET } from '@/app/sitemap-index.xml/route';
 import { GET as v2GET } from '@/app/sitemap-v2.xml/route';
 import { GET as stationsGET } from '@/app/sitemap-stations.xml/route';
 import { GET as countriesGET } from '@/app/sitemap-countries.xml/route';
@@ -44,6 +45,13 @@ describe('índice de sitemaps', () => {
     expect(xml).not.toContain('<urlset');
   });
 
+  it('/sitemap-index.xml y /sitemap.xml sirven exactamente el mismo índice, ambos con 200', async () => {
+    const [a, b] = [await indexGET(), await indexAltGET()];
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect(b.headers.get('content-type')).toBe('application/xml; charset=utf-8');
+    expect(await b.text()).toBe(await a.text());
+  });
+
   it('cada hijo es un urlset con hreflang es/en/x-default, sin changefreq ni priority', async () => {
     for (const get of [staticGET, genresGET, countriesGET, stationsGET]) {
       const xml = await (await get()).text();
@@ -84,7 +92,7 @@ describe('sitemap-v2.xml y robots', () => {
 
   it('robots.txt declara un único Sitemap y no usa Host', () => {
     const r = robots();
-    expect(r.sitemap).toBe('https://radio.gofestivals.eu/sitemap.xml');
+    expect(r.sitemap).toBe('https://radio.gofestivals.eu/sitemap-index.xml');
     expect('host' in r).toBe(false);
   });
 });

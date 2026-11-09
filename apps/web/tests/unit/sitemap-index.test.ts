@@ -33,14 +33,14 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('índice de sitemaps', () => {
-  it('es un sitemapindex con los cuatro hijos y lastmod real', async () => {
+  it('es un sitemapindex con los cuatro hijos y sin lastmod', async () => {
     const res = await indexGET();
     const xml = await res.text();
     expect(xml).toContain('<sitemapindex');
     for (const c of ['static', 'genres', 'countries', 'stations']) {
       expect(xml).toContain(`<loc>https://radio.gofestivals.eu/sitemap-${c}.xml</loc>`);
     }
-    expect(xml).toContain('<lastmod>2026-11-05T10:00:00Z</lastmod>');
+    expect(xml).not.toContain('<lastmod>');
     expect(xml).not.toContain('<urlset');
   });
 
@@ -54,10 +54,19 @@ describe('índice de sitemaps', () => {
     }
     const stations = await (await stationsGET()).text();
     expect(stations).toContain('<loc>https://radio.gofestivals.eu/es/stations/a</loc>');
-    expect(stations).toContain('<lastmod>2026-11-01T10:00:00Z</lastmod>');
-    // lastmod de un listado = la emisora más reciente que contiene
-    const genres = await (await genresGET()).text();
-    expect(genres).toContain('<lastmod>2026-11-05T10:00:00Z</lastmod>');
+  });
+
+  it('ningún sitemap emite lastmod mientras updated_at no sea una fecha de cambio real', async () => {
+    for (const get of [indexGET, staticGET, genresGET, countriesGET, stationsGET]) {
+      expect(await (await get()).text()).not.toContain('lastmod');
+    }
+  });
+
+  it('el renderizador sigue soportando lastmod para cuando se recupere', () => {
+    const xml = renderUrlset([
+      { url: 'https://x/a', alternates: {}, lastModified: '2026-11-01T00:00:00Z' },
+    ]);
+    expect(xml).toContain('<lastmod>2026-11-01T00:00:00Z</lastmod>');
   });
 
   it('rechaza un urlset por encima de 50.000 URLs', () => {

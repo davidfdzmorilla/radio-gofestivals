@@ -70,7 +70,17 @@ for (const child of children) {
   ok(urls.length <= 50000 && xml.length < 50 * 1024 * 1024, `${child}: dentro de los límites`);
   if (!T1) ok(!/changefreq|<priority>/.test(xml), `${child}: sin changefreq/priority`);
   ok(!urls.some((u) => u.includes('/festivals')), `${child}: sin festivales`);
-  if (!T1) ok(urls.length === 0 || xml.includes('<lastmod>'), `${child}: con lastmod`);
+  // lastmod: opcional, pero si existe tiene que ser creíble. Si más de la mitad de las URLs
+  // comparten el mismo valor, Google lo trata como ruido (p. ej. updated_at reescrito a diario).
+  const mods = [...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map((m) => m[1]);
+  if (mods.length > 0) {
+    const counts = new Map();
+    for (const m of mods) counts.set(m, (counts.get(m) ?? 0) + 1);
+    const [top, n] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+    ok(n / urls.length <= 0.5, `${child}: lastmod creíble (${n}/${urls.length} URLs comparten ${top})`);
+  } else {
+    console.log(`INFO ${child}: sin lastmod (correcto mientras no haya una fecha de cambio real)`);
+  }
   all.push(...urls);
 }
 

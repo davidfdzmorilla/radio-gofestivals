@@ -81,7 +81,8 @@ export function stationEventParams(
   pathname: string = typeof window === 'undefined' ? '/' : window.location.pathname,
 ): StationEventParams {
   const params: StationEventParams = { station_slug: station.slug, source: pageSource(pathname) };
-  if (station.genres[0]) params.genre = station.genres[0];
-  if (station.country_code) params.country = station.country_code;
+  // Minúsculas siempre: GA distingue 'DE' de 'de' y partiría los informes en dos.
+  if (station.genres[0]) params.genre = station.genres[0].toLowerCase();
+  if (station.country_code) params.country = station.country_code.toLowerCase();
   return params;
 }

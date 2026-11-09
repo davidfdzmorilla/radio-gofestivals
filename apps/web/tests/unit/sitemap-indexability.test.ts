@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildSitemapEntries } from '@/lib/sitemap-data';
+import { buildSitemapGroups } from '@/lib/sitemap-data';
 import { isStationIndexable } from '@/lib/indexability';
 
 type S = {
@@ -51,10 +51,12 @@ function mockApi() {
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('buildSitemapEntries respeta lib/indexability', () => {
+const flat = async () => Object.values(await buildSitemapGroups()).flat();
+
+describe('buildSitemapGroups respeta lib/indexability', () => {
   it('lista solo lo indexable, una vez por idioma', async () => {
     mockApi();
-    const urls = (await buildSitemapEntries()).map((e) => e.url.replace('https://radio.gofestivals.eu', ''));
+    const urls = (await flat()).map((e) => e.url.replace('https://radio.gofestivals.eu', ''));
     const es = urls.filter((u) => u.startsWith('/es'));
 
     // emisoras: las mismas que isStationIndexable acepta
@@ -73,7 +75,7 @@ describe('buildSitemapEntries respeta lib/indexability', () => {
 
   it('no incluye festivales, /new ni /search; el resto de estáticas sí', async () => {
     mockApi();
-    const urls = (await buildSitemapEntries()).map((e) => e.url);
+    const urls = (await flat()).map((e) => e.url);
     expect(urls.some((u) => u.includes('/festivals'))).toBe(false);
     expect(urls.some((u) => u.endsWith('/es/new') || u.endsWith('/es/search'))).toBe(false);
     expect(urls).toContain('https://radio.gofestivals.eu/es/for-stations');
@@ -84,10 +86,10 @@ describe('buildSitemapEntries respeta lib/indexability', () => {
 describe('x-default del sitemap coincide con el de las páginas', () => {
   it('portada -> /, resto -> /en/...', async () => {
     mockApi();
-    const entries = await buildSitemapEntries();
+    const entries = await flat();
     const home = entries.find((e) => e.url.endsWith('/es'));
-    expect(home?.alternates?.languages?.['x-default']).toBe('https://radio.gofestivals.eu');
+    expect(home?.alternates['x-default']).toBe('https://radio.gofestivals.eu');
     const genre = entries.find((e) => e.url.endsWith('/es/genres/techno'));
-    expect(genre?.alternates?.languages?.['x-default']).toBe('https://radio.gofestivals.eu/en/genres/techno');
+    expect(genre?.alternates['x-default']).toBe('https://radio.gofestivals.eu/en/genres/techno');
   });
 });

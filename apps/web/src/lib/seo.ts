@@ -44,6 +44,18 @@ export function regionName(locale: string, code: string): string {
   }
 }
 
+/**
+ * x-default de una página. La portada sin prefijo (`/`) negocia el idioma (cookie y
+ * Accept-Language) y redirige con 307 sin caché: es justo el caso para el que existe x-default.
+ * El resto de páginas no tienen equivalente sin prefijo con 200 (redirigen con 308), así que su
+ * x-default es la versión en el idioma por defecto.
+ */
+export function xDefaultUrl(pathWithoutLocale: string): string {
+  return pathWithoutLocale === '' || pathWithoutLocale === '/'
+    ? `${SITE_URL}/`
+    : `${SITE_URL}/${X_DEFAULT_LOCALE}${pathWithoutLocale}`;
+}
+
 export function buildAlternates(
   locale: string,
   pathWithoutLocale: string,
@@ -52,7 +64,7 @@ export function buildAlternates(
   for (const l of LOCALES) {
     languages[l] = `${SITE_URL}/${l}${pathWithoutLocale}`;
   }
-  languages['x-default'] = `${SITE_URL}/${X_DEFAULT_LOCALE}${pathWithoutLocale}`;
+  languages['x-default'] = xDefaultUrl(pathWithoutLocale);
   return {
     canonical: `${SITE_URL}/${locale}${pathWithoutLocale}`,
     languages,

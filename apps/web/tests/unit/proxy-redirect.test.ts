@@ -28,4 +28,14 @@ describe('proxy: rutas sin prefijo de idioma', () => {
     expect(res.status).not.toBe(308);
     expect(res.headers.get('location')).toBeNull();
   });
+
+  it('la portada / sigue negociando el idioma: 307 sin caché, nunca un 308 fijo', () => {
+    const es = call('/');
+    expect(es.status).toBe(307);
+    expect(es.headers.get('cache-control')).toBe('private, no-store');
+    expect(new URL(es.headers.get('location')!, 'https://x').pathname).toBe('/es');
+    const en = call('/', { 'accept-language': 'en-GB,en;q=0.9' });
+    expect(en.status).toBe(307);
+    expect(new URL(en.headers.get('location')!, 'https://x').pathname).toBe('/en');
+  });
 });

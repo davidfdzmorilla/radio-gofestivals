@@ -9,7 +9,7 @@ const intl = createMiddleware(routing);
 //
 // next-intl redirige las rutas sin prefijo de idioma (`/countries/ro` → `/es/countries/ro`) con
 // 307. Para Google un 307 es temporal y mantiene la URL sin prefijo como candidata; el destino
-// es siempre la versión con idioma, así que se emite 308 (permanente, un solo salto). Como el
+// es siempre la versión con idioma, así que (salvo la portada) se emite 308 (permanente, un solo salto). Como el
 // idioma elegido depende de la cookie y de Accept-Language, se prohíbe cachear el redirect:
 // un navegador no debe fijar un idioma para siempre.
 export function proxy(request: NextRequest) {
@@ -17,6 +17,8 @@ export function proxy(request: NextRequest) {
   if (response.status !== 307) return response;
   const headers = new Headers(response.headers);
   headers.set('cache-control', 'private, no-store');
+  // La portada `/` negocia el idioma: sigue siendo un redirect temporal (x-default apunta a ella).
+  if (request.nextUrl.pathname === '/') return new NextResponse(null, { status: 307, headers });
   return new NextResponse(null, { status: 308, headers });
 }
 

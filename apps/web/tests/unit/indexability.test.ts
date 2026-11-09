@@ -68,3 +68,16 @@ describe('robots', () => {
     expect(stationRobotsFor(good)).toBeUndefined();
   });
 });
+
+import { buildAlternates, xDefaultUrl } from '@/lib/seo';
+
+describe('x-default', () => {
+  it('la portada apunta a / (negocia idioma); el resto, a la versión en el idioma por defecto', () => {
+    expect(xDefaultUrl('')).toBe('https://radio.gofestivals.eu/');
+    expect(xDefaultUrl('/genres/techno')).toBe('https://radio.gofestivals.eu/en/genres/techno');
+    expect(buildAlternates('es', '').languages?.['x-default']).toBe('https://radio.gofestivals.eu/');
+    expect(buildAlternates('es', '/genres/techno').languages?.['x-default']).toBe(
+      'https://radio.gofestivals.eu/en/genres/techno',
+    );
+  });
+});

@@ -5,14 +5,12 @@ import {
   isGenreIndexable,
   isStationIndexable,
 } from './indexability';
-import { TRENDING_GENRE_GATE_MIN } from './seo';
+import { TRENDING_GENRE_GATE_MIN, xDefaultUrl } from './seo';
 
 const SITE = 'https://radio.gofestivals.eu';
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 const LOCALES = ['es', 'en'] as const;
-// Debe coincidir con X_DEFAULT_LOCALE de lib/seo.ts: si el sitemap y las
-// páginas declaran x-default distintos, Google recibe hreflang contradictorio.
-const X_DEFAULT_LOCALE: (typeof LOCALES)[number] = 'en';
+// x-default viene de xDefaultUrl (lib/seo.ts), el mismo que declaran las páginas.
 const PAGE_SIZE = 50;
 
 export const SITEMAP_REVALIDATE_SECONDS = 86_400;
@@ -55,7 +53,7 @@ function localizedEntries(
   const languages: Record<string, string> = Object.fromEntries(
     LOCALES.map((l) => [l, `${SITE}/${l}${suffix}`]),
   );
-  languages['x-default'] = `${SITE}/${X_DEFAULT_LOCALE}${suffix}`;
+  languages['x-default'] = xDefaultUrl(suffix);
   return LOCALES.map((locale) => ({
     url: `${SITE}/${locale}${suffix}`,
     changeFrequency,

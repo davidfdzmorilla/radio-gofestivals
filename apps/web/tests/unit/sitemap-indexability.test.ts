@@ -86,7 +86,7 @@ describe('x-default del sitemap coincide con el de las páginas', () => {
     mockApi();
     const entries = await buildSitemapEntries();
     const home = entries.find((e) => e.url.endsWith('/es'));
-    expect(home?.alternates?.languages?.['x-default']).toBe('https://radio.gofestivals.eu/');
+    expect(home?.alternates?.languages?.['x-default']).toBe('https://radio.gofestivals.eu');
     const genre = entries.find((e) => e.url.endsWith('/es/genres/techno'));
     expect(genre?.alternates?.languages?.['x-default']).toBe('https://radio.gofestivals.eu/en/genres/techno');
   });

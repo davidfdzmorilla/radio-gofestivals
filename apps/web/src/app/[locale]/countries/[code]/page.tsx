@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { isCountryIndexable, robotsFor } from '@/lib/indexability';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
@@ -69,6 +70,7 @@ export async function generateMetadata({
     title: t('metaTitle', { name, count: facet.station_count }) + pageSuffix,
     description: t('metaDescription', { name, count: facet.station_count }),
     alternates,
+    robots: robotsFor(isCountryIndexable(facet.station_count)),
   };
 }
 

@@ -4,6 +4,7 @@ import { FestivalCards } from '@/components/festivals/FestivalCards';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { Link } from '@/i18n/navigation';
 import { festivalCalendarUrl, getAllUpcomingFestivals, type Festival } from '@/lib/festivals';
+import { NOINDEX_FOLLOW } from '@/lib/indexability';
 import { buildAlternates } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
 
@@ -20,6 +21,8 @@ export async function generateMetadata({
     title: t('indexMetaTitle'),
     description: t('indexIntro'),
     alternates: buildAlternates(locale, '/festivals'),
+    // El calendario vive en gofestivals.eu (ADR 015).
+    robots: NOINDEX_FOLLOW,
   };
 }
 

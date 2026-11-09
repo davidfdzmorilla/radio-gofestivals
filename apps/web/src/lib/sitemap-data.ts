@@ -1,10 +1,11 @@
 import type { MetadataRoute } from 'next';
 import {
-  COMBO_GATE_MIN_STATIONS,
-  COUNTRY_GATE_MIN_STATIONS,
-  TRENDING_GENRE_GATE_MIN,
-} from './seo';
-import { festivalPath, getAllUpcomingFestivals } from './festivals';
+  isComboIndexable,
+  isCountryIndexable,
+  isGenreIndexable,
+  isStationIndexable,
+} from './indexability';
+import { TRENDING_GENRE_GATE_MIN } from './seo';
 
 const SITE = 'https://radio.gofestivals.eu';
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
@@ -16,7 +17,14 @@ const PAGE_SIZE = 50;
 
 export const SITEMAP_REVALIDATE_SECONDS = 86_400;
 
-type Station = { slug: string; updated_at?: string | null };
+type Station = {
+  slug: string;
+  updated_at?: string | null;
+  logo_hash?: string | null;
+  country_code: string | null;
+  genres: string[];
+  quality_score: number;
+};
 type StationPage = { items: Station[]; pages: number };
 type Genre = {
   slug: string;
@@ -106,19 +114,20 @@ async function fetchCountryFacets(genre?: string): Promise<CountryFacet[]> {
  * without existing nor vice versa.
  */
 export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
-  // getAllUpcomingFestivals es fail-soft: si gofestivals no responde, el sitemap
-  // omite los festivales y se rellenan al revalidar (como el resto de fuentes).
-  const [stations, genres, countries, festivals] = await Promise.all([
+  const [allStations, allGenres, countries] = await Promise.all([
     fetchAllStations(),
     fetchAllGenres(),
     fetchCountryFacets(),
-    getAllUpcomingFestivals(),
   ]);
 
-  const gatedCountries = countries.filter(
-    (c) => c.station_count >= COUNTRY_GATE_MIN_STATIONS,
+  // Solo lo indexable según lib/indexability.ts: el MISMO criterio que el <meta robots> de cada
+  // página (lo que se lista y lo que la página declara no pueden divergir).
+  const stations = allStations.filter((s) =>
+    isStationIndexable({ ...s, genreCount: s.genres.length }),
   );
-  const trendingGenres = genres.filter(
+  const genres = allGenres.filter((g) => isGenreIndexable(g.station_count));
+  const gatedCountries = countries.filter((c) => isCountryIndexable(c.station_count));
+  const trendingGenres = allGenres.filter(
     (g) => g.parent_id === null && g.station_count >= TRENDING_GENRE_GATE_MIN,
   );
   // Combos país×género: misma fuente y gate que la página y los hubs.
@@ -126,10 +135,10 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
   // subgéneros (p. ej. deep-house) y lo enlazado debe estar en el sitemap.
   const combos = (
     await Promise.all(
-      genres.map(async (g) => {
+      allGenres.map(async (g) => {
         const facets = await fetchCountryFacets(g.slug);
         return facets
-          .filter((f) => f.station_count >= COMBO_GATE_MIN_STATIONS)
+          .filter((f) => isComboIndexable(f.station_count))
           .map((f) => ({ code: f.code.toLowerCase(), genre: g.slug }));
       }),
     )
@@ -140,12 +149,7 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
     ...localizedEntries('/genres', 'weekly', 0.8),
     ...localizedEntries('/countries', 'weekly', 0.8),
     ...localizedEntries('/trending', 'daily', 0.7),
-    ...localizedEntries('/new', 'daily', 0.7),
-    ...localizedEntries('/search', 'monthly', 0.4),
     ...localizedEntries('/for-stations', 'monthly', 0.4),
-    ...(festivals.length > 0 ? localizedEntries('/festivals', 'daily', 0.7) : []),
-    // Solo los próximos: el índice y las fichas pasadas (noindex) no se listan.
-    ...festivals.flatMap((fest) => localizedEntries(festivalPath(fest), 'weekly', 0.6)),
     ...genres.flatMap((g) =>
       localizedEntries(`/genres/${g.slug}`, 'weekly', 0.7),
     ),

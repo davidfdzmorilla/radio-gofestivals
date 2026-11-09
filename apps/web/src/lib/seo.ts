@@ -58,11 +58,3 @@ export function buildAlternates(
     languages,
   };
 }
-
-/**
- * Una emisora oculta (por el clasificador o por spam) sigue abierta por su URL, pero no debe
- * entrar en los índices: `noindex, nofollow`. Las visibles no declaran nada.
- */
-export function stationRobots(hidden: boolean): { index: false; follow: false } | undefined {
-  return hidden ? { index: false, follow: false } : undefined;
-}

@@ -5,6 +5,7 @@ import { Link } from '@/i18n/navigation';
 import { getGenresTree, listStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { PublicPagination } from '@/components/PublicPagination';
+import { NOINDEX_FOLLOW } from '@/lib/indexability';
 import { buildAlternates } from '@/lib/seo';
 import type { Genre, StationsPage } from '@/lib/types';
 
@@ -12,22 +13,17 @@ export const revalidate = 300;
 
 export async function generateMetadata({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const sp = await searchParams;
   const t = await getTranslations({ locale, namespace: 'search' });
-  const hasQuery = typeof sp.q === 'string' && sp.q.length > 0;
   return {
     title: t('metaTitle'),
     description: t('metaDescription'),
     alternates: buildAlternates(locale, '/search'),
-    // Solo el /search limpio (target del SearchAction) es indexable; los
-    // resultados parametrizados serían combinatoria infinita de thin pages.
-    ...(hasQuery ? { robots: { index: false } } : {}),
+    // Ni el buscador vacío ni los resultados se indexan (combinatoria infinita de listados finos).
+    robots: NOINDEX_FOLLOW,
   };
 }
 

@@ -1,16 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { stationRobots } from '@/lib/seo';
 import { StationDetailSchema } from '@/lib/types';
-
-describe('stationRobots', () => {
-  it('marks hidden stations noindex, nofollow', () => {
-    expect(stationRobots(true)).toEqual({ index: false, follow: false });
-  });
-
-  it('declares nothing for visible stations', () => {
-    expect(stationRobots(false)).toBeUndefined();
-  });
-});
 
 describe('StationDetailSchema.hidden', () => {
   const base = {

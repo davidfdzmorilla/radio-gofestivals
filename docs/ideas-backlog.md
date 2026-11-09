@@ -132,7 +132,9 @@ trigger `trg_stations_updated_at` (`BEFORE UPDATE`, `set_updated_at()`) la pone 
 health-check cada 6 h (`last_check_at`/`last_check_ok`/`last_error`, `rb_sync.py`), `compute-click-trends`
 04:20 (`click_trend`), `compute-quality-scores` 04:30 (`quality_score`) y el sync de las 04:00.
 
-- [ ] Recuperar `lastmod`: lo más limpio es redefinir el trigger de `stations` (migración Alembic, no
+- [x] Trigger de contenido (migración 0027, rama `feat/station-updated-at-trigger`). Pendiente: tras
+  desplegarlo, volver a emitir `lastmod` solo para cambios posteriores a la migración.
+- [ ] (hecho en 0027) Recuperar `lastmod`: lo más limpio es redefinir el trigger de `stations` (migración Alembic, no
   tocar `schema.sql`) para que solo avance `updated_at` cuando cambia una columna de contenido
   (nombre, logo, géneros/tags, país/ciudad, `hidden`, `class_state`, `status`), ignorando las
   operativas. Los writers siguen escribiendo en sus propias columnas y no hay que tocarlos.

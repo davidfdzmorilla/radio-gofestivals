@@ -14,9 +14,6 @@ export const SITEMAP_CHILDREN: ReadonlyArray<{ group: SitemapGroup; path: string
   { group: 'stations', path: '/sitemap-stations.xml' },
 ];
 
-export const latestModified = (entries: SitemapEntry[]): string | undefined =>
-  entries.map((e) => e.lastModified).filter((d): d is string => Boolean(d)).sort().at(-1);
-
 /** `<urlset>` con hreflang y lastmod real. Sin changefreq ni priority (Google los ignora). */
 export function renderUrlset(entries: SitemapEntry[]): string {
   if (entries.length > SITEMAP_MAX_URLS) throw new Error('sitemap exceeds 50,000 URLs');

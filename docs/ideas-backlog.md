@@ -156,3 +156,16 @@ fondo es del catálogo/clasificador:
 - [ ] **`city` poco fiable**: Radio-Browser trae regiones ("NRW", "Sachsen", "North
   Rhine-Westphalia"), no ciudades; por eso las introducciones no citan ciudades. Si se quiere
   mostrar ciudad, normalizar contra una lista o geocodificar.
+
+## Medición: GA4 infravalora el tráfico de este público (9 nov 2026)
+
+Brave y los bloqueadores cortan GA (comprobado en un navegador real con Shields activos), y este
+público de música electrónica los usa más que la media; además GA solo cuenta a quien acepta el
+banner. Las cifras de GA4 son un suelo, no el tráfico real. **La referencia para el tráfico
+orgánico son los clics de Search Console**; GA sirve para el comportamiento relativo (embudo de
+escucha, fuentes de salida a festivales), no para volúmenes absolutos. La BD (`plays`) sigue siendo
+la fuente de verdad de las reproducciones.
+
+- [ ] A evaluar más adelante, no ahora: medición first-party o un proxy propio para GA (servir el
+  script y las colecciones desde un dominio propio) para recuperar parte del tráfico bloqueado.
+  Implica revisar de nuevo el consentimiento, la CSP y los textos legales.

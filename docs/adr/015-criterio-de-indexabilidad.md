@@ -60,3 +60,9 @@ un trigger en `station_genres` para altas, bajas y cambios de género. `rb_sync.
 pasó a tocar solo la diferencia (antes borraba y reinsertaba, y habría movido la fecha cada
 noche). No se rellena el pasado: el sitemap solo emitirá `lastmod` para cambios posteriores a
 la migración. `station_streams` queda fuera a propósito (su `status` cambia con el health-check).
+
+Con la migración desplegada, el sitemap vuelve a emitir `lastmod` (`LASTMOD_EPOCH` en
+`lib/sitemap-data.ts`): emisoras desde `updated_at`, géneros y países desde el máximo de sus
+emisoras visibles, siempre solo si la fecha es posterior a la migración. Las páginas estáticas y
+el índice no llevan `lastmod`. Hoy no sale ninguno (ninguna emisora ha cambiado desde entonces)
+y va apareciendo conforme haya cambios reales.

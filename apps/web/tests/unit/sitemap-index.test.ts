@@ -64,7 +64,7 @@ describe('índice de sitemaps', () => {
     expect(stations).toContain('<loc>https://radio.gofestivals.eu/es/stations/a</loc>');
   });
 
-  it('ningún sitemap emite lastmod mientras updated_at no sea una fecha de cambio real', async () => {
+  it('hoy no sale ningún lastmod: los updated_at de la API son anteriores a la migración', async () => {
     for (const get of [indexGET, staticGET, genresGET, countriesGET, stationsGET]) {
       expect(await (await get()).text()).not.toContain('lastmod');
     }

@@ -16,6 +16,7 @@ export const SITEMAP_REVALIDATE_SECONDS = 86_400;
 
 type Station = {
   slug: string;
+  updated_at?: string | null;
   logo_hash?: string | null;
   country_code: string | null;
   genres: string[];
@@ -41,11 +42,7 @@ function flattenGenres(tree: Genre[]): Genre[] {
 
 export interface SitemapEntry {
   url: string;
-  /**
-   * ISO 8601. Hoy NO se rellena: `stations.updated_at` lo reescribe a diario el health-check, así
-   * que no es una fecha de cambio real y un lastmod falso hace que Google ignore el de todo el
-   * sitio. Se recuperará cuando haya una fecha de cambio de contenido fiable.
-   */
+  /** ISO 8601; solo cuando hay un cambio de contenido real (ver `LASTMOD_EPOCH`). */
   lastModified?: string;
   alternates: Record<string, string>;
 }
@@ -53,7 +50,38 @@ export interface SitemapEntry {
 export type SitemapGroup = 'static' | 'genres' | 'countries' | 'stations';
 export type SitemapGroups = Record<SitemapGroup, SitemapEntry[]>;
 
-function localizedEntries(path: string): SitemapEntry[] {
+/**
+ * Desde esta hora `stations.updated_at` es una fecha de cambio de contenido fiable.
+ *
+ * Hasta la migración 0027 el trigger la ponía a `now()` en cualquier UPDATE, y los jobs masivos
+ * (health-check cada 6 h, tendencias, `quality_score`) la reescribían para todo el catálogo: valía
+ * "hoy" para todas las emisoras y un `lastmod` así hace que Google ignore el de todo el sitio.
+ * Desde la migración solo avanza con cambios reales (nombre, logo, género, ocultación...), pero
+ * los valores anteriores no se pueden reconstruir. Por eso solo se emite `lastmod` para fechas
+ * posteriores a esta constante: la migración se despliega ANTES de las 12:00 UTC del 2026-11-09
+ * (el siguiente health-check masivo con el trigger antiguo) y la constante queda por encima de
+ * ese despliegue. Si el despliegue real fuese distinto, `seo-check.mjs` lo detecta (falla si
+ * >50 % de un hijo comparte `lastmod`) y se ajusta aquí.
+ */
+export const LASTMOD_EPOCH = '2026-11-09T11:00:00Z';
+
+/** `updated_at` solo si es un cambio real posterior a la migración; si no, nada. */
+export function realLastModified(updatedAt: string | null | undefined): string | undefined {
+  if (!updatedAt) return undefined;
+  const t = Date.parse(updatedAt);
+  return Number.isFinite(t) && t > Date.parse(LASTMOD_EPOCH) ? updatedAt : undefined;
+}
+
+/** Máximo de las fechas de cambio reales de un conjunto de emisoras; undefined si no hay ninguna. */
+export function latestRealChange(stations: Station[]): string | undefined {
+  return stations
+    .map((s) => realLastModified(s.updated_at))
+    .filter((d): d is string => d !== undefined)
+    .sort((a, b) => Date.parse(a) - Date.parse(b))
+    .at(-1);
+}
+
+function localizedEntries(path: string, lastModified?: string): SitemapEntry[] {
   // Next.js redirige /<locale>/ → /<locale>: las URLs del sitemap deben ser canónicas (200).
   const suffix = path === '/' ? '' : path;
   const alternates: Record<string, string> = Object.fromEntries(
@@ -62,6 +90,7 @@ function localizedEntries(path: string): SitemapEntry[] {
   alternates['x-default'] = xDefaultUrl(suffix);
   return LOCALES.map((locale) => ({
     url: `${SITE}/${locale}${suffix}`,
+    ...(lastModified ? { lastModified } : {}),
     alternates,
   }));
 }
@@ -109,7 +138,8 @@ async function fetchCountryFacets(genre?: string): Promise<CountryFacet[]> {
 /**
  * Entradas de sitemap agrupadas por tipo. Solo lo indexable según lib/indexability.ts: el MISMO
  * criterio que el <meta robots> de cada página (lo listado y lo declarado no pueden divergir).
- * Sin `lastmod` (ver `SitemapEntry.lastModified`).
+ * `lastmod`: emisoras desde su `updated_at`; géneros y países, el máximo de sus emisoras visibles;
+ * siempre solo si es posterior a `LASTMOD_EPOCH`. Estáticas e índice, nunca.
  */
 export async function buildSitemapGroups(): Promise<SitemapGroups> {
   const [allStations, allGenres, countries] = await Promise.all([
@@ -150,14 +180,32 @@ export async function buildSitemapGroups(): Promise<SitemapGroups> {
       ),
     ],
     genres: genres.flatMap((g) =>
-      localizedEntries(`/genres/${g.slug}`),
+      localizedEntries(
+        `/genres/${g.slug}`,
+        latestRealChange(allStations.filter((s) => s.genres.includes(g.slug))),
+      ),
     ),
     countries: [
-      ...gatedCountries.flatMap((c) => localizedEntries(`/countries/${c.code.toLowerCase()}`)),
-      ...combos.flatMap((c) => localizedEntries(`/countries/${c.code}/${c.genre}`)),
+      ...gatedCountries.flatMap((c) => {
+        const code = c.code.toLowerCase();
+        return localizedEntries(
+          `/countries/${code}`,
+          latestRealChange(allStations.filter((s) => s.country_code?.toLowerCase() === code)),
+        );
+      }),
+      ...combos.flatMap((c) =>
+        localizedEntries(
+          `/countries/${c.code}/${c.genre}`,
+          latestRealChange(
+            allStations.filter(
+              (s) => s.country_code?.toLowerCase() === c.code && s.genres.includes(c.genre),
+            ),
+          ),
+        ),
+      ),
     ],
     stations: stations.flatMap((s) =>
-      localizedEntries(`/stations/${s.slug}`),
+      localizedEntries(`/stations/${s.slug}`, realLastModified(s.updated_at)),
     ),
   };
 }

@@ -49,3 +49,14 @@ hijos con una caché en memoria de 10 min, y cada respuesta lleva caché HTTP de
 Verificación en un entorno desplegado: `node apps/web/scripts/seo-check.mjs [BASE] [muestras]`
 (sitemap válido y sin festivales, redirects 308/301, muestra de cada tipo con 200, sin noindex y
 canonical propio, y controles `noindex` fuera del sitemap).
+
+## `lastmod` y `stations.updated_at` (migración 0027)
+
+El sitemap no emite `lastmod` porque `updated_at` valía "hoy" para todo el catálogo: el trigger
+`BEFORE UPDATE` lo avanzaba en cualquier UPDATE (health-check, tendencias, `quality_score`...).
+La migración 0027 lo restringe a cambios de contenido (slug, nombre, web, logos, país, ciudad,
+idioma, geo, `hidden`, `status`, `class_state`) con `ROW(...) IS DISTINCT FROM ROW(...)`, y añade
+un trigger en `station_genres` para altas, bajas y cambios de género. `rb_sync.replace_rb_tag_links`
+pasó a tocar solo la diferencia (antes borraba y reinsertaba, y habría movido la fecha cada
+noche). No se rellena el pasado: el sitemap solo emitirá `lastmod` para cambios posteriores a
+la migración. `station_streams` queda fuera a propósito (su `status` cambia con el health-check).

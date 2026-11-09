@@ -549,23 +549,54 @@ async def replace_rb_tag_links(
     *,
     stats: SyncStats,
 ) -> None:
-    await session.execute(
-        text(
-            "DELETE FROM station_genres WHERE station_id = :sid AND source = 'rb_tag'",
-        ),
-        {"sid": str(station_id)},
-    )
-    for genre_id, confidence in matches:
+    """Deja los géneros ``rb_tag`` de la emisora iguales a ``matches``, tocando solo la diferencia.
+
+    Borrar todo y reinsertar disparaba el trigger de ``station_genres`` en cada pasada y movía
+    ``stations.updated_at`` aunque no cambiase nada (ver migración 0027).
+    """
+    desired = dict(matches)
+    sid = str(station_id)
+    current = {
+        row.genre_id: row.confidence
+        for row in (
+            await session.execute(
+                text(
+                    "SELECT genre_id, confidence FROM station_genres "
+                    "WHERE station_id = :sid AND source = 'rb_tag'",
+                ),
+                {"sid": sid},
+            )
+        ).all()
+    }
+    stale = [gid for gid in current if gid not in desired]
+    if stale:
         await session.execute(
             text(
-                """
-                INSERT INTO station_genres (station_id, genre_id, source, confidence)
-                VALUES (:sid, :gid, 'rb_tag', :conf)
-                ON CONFLICT (station_id, genre_id) DO NOTHING
-                """,
+                "DELETE FROM station_genres WHERE station_id = :sid "
+                "AND source = 'rb_tag' AND genre_id = ANY(:ids)",
             ),
-            {"sid": str(station_id), "gid": genre_id, "conf": confidence},
+            {"sid": sid, "ids": stale},
         )
+    for genre_id, confidence in desired.items():
+        if genre_id not in current:
+            await session.execute(
+                text(
+                    """
+                    INSERT INTO station_genres (station_id, genre_id, source, confidence)
+                    VALUES (:sid, :gid, 'rb_tag', :conf)
+                    ON CONFLICT (station_id, genre_id) DO NOTHING
+                    """,
+                ),
+                {"sid": sid, "gid": genre_id, "conf": confidence},
+            )
+        elif current[genre_id] != confidence:
+            await session.execute(
+                text(
+                    "UPDATE station_genres SET confidence = :conf "
+                    "WHERE station_id = :sid AND genre_id = :gid AND source = 'rb_tag'",
+                ),
+                {"sid": sid, "gid": genre_id, "conf": confidence},
+            )
         stats.genre_links += 1
 
 

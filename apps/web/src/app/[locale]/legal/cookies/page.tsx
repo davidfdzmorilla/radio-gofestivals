@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { LegalDocument, type LegalDocumentContent } from '@/components/legal/LegalDocument';
-import { buildAlternates } from '@/lib/seo';
+import { buildAlternates, pageTitle } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
 import cookiesEs from '@/content/legal/cookies.es.json';
 import cookiesEn from '@/content/legal/cookies.en.json';
@@ -24,7 +24,7 @@ export async function generateMetadata({
   const title = tLegal('cookiesTitle');
   const url = `${SITE_URL}/${locale}/legal/cookies`;
   return {
-    title,
+    title: pageTitle(title),
     description: title,
     alternates: buildAlternates(locale, '/legal/cookies'),
     openGraph: {

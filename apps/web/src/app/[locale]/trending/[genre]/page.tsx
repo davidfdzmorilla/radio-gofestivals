@@ -6,7 +6,7 @@ import { getGenresTree, listTrendingStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { SITE_URL } from '@/lib/site';
-import { buildAlternates, TRENDING_GENRE_GATE_MIN } from '@/lib/seo';
+import { buildAlternates, TRENDING_GENRE_GATE_MIN, pageTitle } from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
 export const revalidate = 300;
@@ -47,7 +47,7 @@ export async function generateMetadata({
     .catch(() => null);
   if (!genre) return { alternates };
   return {
-    title: t('genreMetaTitle', { name: genre.name }),
+    title: pageTitle(t('genreMetaTitle', { name: genre.name })),
     description: t('genreMetaDescription', { name: genre.name }),
     alternates,
   };

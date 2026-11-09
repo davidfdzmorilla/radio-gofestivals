@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { Link } from '@/i18n/navigation';
 import { getGenresTree } from '@/lib/api';
-import { buildAlternates } from '@/lib/seo';
+import { buildAlternates, pageTitle } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 300;
@@ -19,7 +19,7 @@ export async function generateMetadata({
   const description = tGenres('indexDescription');
   const url = `${SITE_URL}/${locale}/genres`;
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: buildAlternates(locale, '/genres'),
     openGraph: {

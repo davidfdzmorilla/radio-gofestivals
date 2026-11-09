@@ -6,7 +6,7 @@ import { getGenresTree, listStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { PublicPagination } from '@/components/PublicPagination';
 import { NOINDEX_FOLLOW } from '@/lib/indexability';
-import { buildAlternates } from '@/lib/seo';
+import { buildAlternates, pageTitle } from '@/lib/seo';
 import type { Genre, StationsPage } from '@/lib/types';
 
 export const revalidate = 300;
@@ -19,7 +19,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'search' });
   return {
-    title: t('metaTitle'),
+    title: pageTitle(t('metaTitle')),
     description: t('metaDescription'),
     alternates: buildAlternates(locale, '/search'),
     // Ni el buscador vacío ni los resultados se indexan (combinatoria infinita de listados finos).

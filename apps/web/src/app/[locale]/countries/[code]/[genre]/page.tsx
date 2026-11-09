@@ -6,11 +6,14 @@ import { getCountryFacets, getGenresTree, listStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { PublicPagination } from '@/components/PublicPagination';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { PageIntro } from '@/components/seo/PageIntro';
 import { SITE_URL } from '@/lib/site';
+import { listJoin, stationNames } from '@/lib/seo-intro';
 import {
   buildAlternates,
   COMBO_GATE_MIN_STATIONS,
   regionName,
+  pageTitle,
 } from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
@@ -89,12 +92,13 @@ export async function generateMetadata({
   const name = regionName(locale, combo.facet.code);
   const pageSuffix = page > 1 ? tPagination('pageSuffix', { page }) : '';
   return {
-    title:
+    title: pageTitle(
       t('comboMetaTitle', {
         genre: combo.genre.name,
         name,
         count: combo.facet.station_count,
       }) + pageSuffix,
+    ),
     description: t('comboMetaDescription', {
       genre: combo.genre.name,
       name,
@@ -246,6 +250,20 @@ export default async function CountryGenrePage({
           </p>
         </div>
       </header>
+
+      <PageIntro
+        paragraphs={
+          page <= 1 && stationNames(stationsPage.items, 3).length > 0
+            ? [
+                t('comboIntroStations', {
+                  genre: genre.name,
+                  name,
+                  stations: listJoin(locale, stationNames(stationsPage.items, 3)),
+                }),
+              ]
+            : []
+        }
+      />
 
       <div className="space-y-4">
         <StationGrid

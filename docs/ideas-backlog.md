@@ -140,3 +140,19 @@ health-check cada 6 h (`last_check_at`/`last_check_ok`/`last_error`, `rb_sync.py
   operativas. Los writers siguen escribiendo en sus propias columnas y no hay que tocarlos.
   `updated_at` también cambia el cache-bust del logo, que mejoraría. `seo-check.mjs` falla si >50 %
   de un hijo comparte `lastmod`, para verificarlo.
+
+## Calidad del catálogo vista al generar las introducciones SEO (9 nov 2026)
+
+Las introducciones de género y país citan nombres de emisoras reales y ahí aparecieron dos
+problemas del catálogo. `lib/seo-intro.ts` los esquiva con un filtro (parche); la limpieza de
+fondo es del catálogo/clasificador:
+
+- [ ] **Duplicados por nombre**: emisoras distintas con el mismo nombre visible (p. ej. dos
+  "Chillhouse Live"). Revisar `dedupe-stations` por nombre normalizado + país + web, no solo por
+  URL de stream.
+- [ ] **Nombres con publicidad o aspecto de URL**: "Minimal Techno Radio & Track Discovery -
+  ROminimal.club", rótulos con dominio o más de 40 caracteres. Normalizar el nombre mostrado
+  (o marcar para revisión) en el sync/clasificador.
+- [ ] **`city` poco fiable**: Radio-Browser trae regiones ("NRW", "Sachsen", "North
+  Rhine-Westphalia"), no ciudades; por eso las introducciones no citan ciudades. Si se quiere
+  mostrar ciudad, normalizar contra una lista o geocodificar.

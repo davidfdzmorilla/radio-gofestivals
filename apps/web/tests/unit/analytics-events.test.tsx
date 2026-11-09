@@ -76,7 +76,7 @@ describe('stationEventParams', () => {
     expect(stationEventParams(station, '/es/genres/techno')).toEqual({
       station_slug: 'rave-fm',
       genre: 'techno',
-      country: 'DE',
+      country: 'de',
       source: 'genre',
     });
   });
@@ -89,6 +89,16 @@ describe('stationEventParams', () => {
   });
 });
 
+describe('valores de parámetros consistentes', () => {
+  it('género y país van siempre en minúsculas', () => {
+    const p = stationEventParams(
+      { slug: 'x', genres: ['Deep-House'], country_code: 'GB' },
+      '/es/genres/techno',
+    );
+    expect(p).toEqual({ station_slug: 'x', source: 'genre', genre: 'deep-house', country: 'gb' });
+  });
+});
+
 describe('play_start', () => {
   it('fires when the store starts a station, with no PII', () => {
     window.history.pushState({}, '', '/es/trending');
@@ -97,7 +107,7 @@ describe('play_start', () => {
     expect(gtag).toHaveBeenCalledWith('event', 'play_start', {
       station_slug: 'rave-fm',
       genre: 'techno',
-      country: 'DE',
+      country: 'de',
       source: 'trending',
     });
   });

@@ -12,12 +12,15 @@ import {
 import { StationGrid } from '@/components/stations/StationGrid';
 import { PublicPagination } from '@/components/PublicPagination';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { PageIntro } from '@/components/seo/PageIntro';
 import { SITE_URL } from '@/lib/site';
+import { listJoin, stationNames } from '@/lib/seo-intro';
 import {
   buildAlternates,
   COMBO_GATE_MIN_STATIONS,
   COUNTRY_GATE_MIN_STATIONS,
   regionName,
+  pageTitle,
 } from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
@@ -67,7 +70,7 @@ export async function generateMetadata({
   const name = regionName(locale, facet.code);
   const pageSuffix = page > 1 ? tPagination('pageSuffix', { page }) : '';
   return {
-    title: t('metaTitle', { name, count: facet.station_count }) + pageSuffix,
+    title: pageTitle(t('metaTitle', { name, count: facet.station_count }) + pageSuffix),
     description: t('metaDescription', { name, count: facet.station_count }),
     alternates,
     robots: robotsFor(isCountryIndexable(facet.station_count)),
@@ -189,6 +192,30 @@ export default async function CountryPage({
           })}
         </p>
       </header>
+
+      <PageIntro
+        paragraphs={
+          page <= 1
+            ? [
+                genreFacets.length > 1
+                  ? t('introGenres', {
+                      name,
+                      genres: listJoin(
+                        locale,
+                        genreFacets.slice(0, 4).map((g) => `${g.name} (${g.station_count})`),
+                      ),
+                    })
+                  : null,
+                stationNames(stationsPage.items, 3).length > 0
+                  ? t('introStations', {
+                      name,
+                      stations: listJoin(locale, stationNames(stationsPage.items, 3)),
+                    })
+                  : null,
+              ]
+            : []
+        }
+      />
 
       {genreFacets.length > 0 && (
         <section className="space-y-3">

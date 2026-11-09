@@ -38,7 +38,7 @@
     "crumb": "Festivals",
     "indexTitle": "Upcoming electronic music festivals",
     "indexIntro": "Festivals from the gofestivals calendar, with the radio stations that match their sound.",
-    "indexMetaTitle": "Electronic music festivals: calendar and radio · radio.gofestivals",
+    "indexMetaTitle": "Electronic music festivals: calendar and radio",
     "fullCalendar": "Full calendar on gofestivals",
     "empty": "No upcoming festivals right now."
   },
@@ -47,12 +47,15 @@
     "count": "{count, plural, =0 {no genres} =1 {1 genre} other {# genres}}",
     "exploreTitle": "Explore {name}",
     "stationCount": "{count, plural, =0 {no stations} =1 {1 station} other {# stations}}",
-    "metaTitle": "Online {name} Radio · {count, plural, =0 {No Stations} =1 {1 Station} other {# Stations}} Live",
+    "metaTitle": "{name} radio: {count, plural, =0 {no stations} =1 {1 online station live} other {# online stations live}}",
     "metaDescription": "{count, plural, =0 {No {name} radio stations yet on radio.gofestivals.} =1 {1 online {name} radio station, streaming live. Listen free on radio.gofestivals.} other {# online {name} radio stations, streaming live from across the world. Listen free on radio.gofestivals.}}",
-    "indexTitle": "Electronic music genres · radio.gofestivals",
+    "indexTitle": "Electronic music genres",
     "indexDescription": "Browse every electronic music genre: techno, house, trance, drum & bass, dubstep and more. Stations from around the world, streaming live on radio.gofestivals.",
     "moreGenres": "More genres",
-    "subgenres": "Subgenres"
+    "subgenres": "Subgenres",
+    "introOverview": "{name} brings together {count, plural, one {# live online radio station} other {# live online radio stations}}{hasCountries, select, yes { from {countryCount, plural, one {# country} other {# countries}}, mostly {topCountries}} other {}}. You can listen free and with no sign-up, straight from your browser.",
+    "introSubgenres": "{name} has {subCount, plural, one {# subgenre with stations} other {# subgenres with stations}}: {subgenres}.",
+    "introStations": "Among the {name} stations you can listen to right now are {stations}."
   },
   "station": {
     "nowPlaying": "Now playing",
@@ -168,7 +171,7 @@
     "indexTitle": "Electronic radio by country",
     "indexDescription": "Explore {count, plural, =1 {1 country} other {# countries}} with live electronic music stations: techno, house, trance and more.",
     "exploreTitle": "Electronic radio from {name}",
-    "metaTitle": "{name} electronic music radio — {count, plural, =1 {1 live station} other {# live stations}}",
+    "metaTitle": "{name} electronic music radio: {count, plural, =1 {1 live online station} other {# live online stations}}",
     "metaDescription": "Listen to {count, plural, =1 {the electronic music station} other {all # electronic music stations}} from {name} live. Techno, house, trance and more, free and no sign-up.",
     "intro": "{name} contributes {count, plural, =1 {1 station} other {# stations}} to our electronic radio directory{hasTop, select, yes {; {topGenre} leads with {topCount, plural, =1 {1 station} other {# stations}}} other {}}.",
     "stationCount": "{count, plural, =0 {no stations} =1 {1 station} other {# stations}}",
@@ -177,7 +180,10 @@
     "comboTitle": "{genre} radio from {name}",
     "comboMetaTitle": "{genre} radio from {name} — {count, plural, =1 {1 live station} other {# live stations}}",
     "comboMetaDescription": "Listen to {count, plural, =1 {the {genre} station} other {all # {genre} stations}} from {name} live, free and with no sign-up.",
-    "comboIntro": "{name} has {count, plural, =1 {1 {genre} station} other {# {genre} stations}} in our live electronic radio directory."
+    "comboIntro": "{name} has {count, plural, =1 {1 {genre} station} other {# {genre} stations}} in our live electronic radio directory.",
+    "introGenres": "The genres with the most stations in {name} are {genres}.",
+    "introStations": "Among the {name} stations playing now are {stations}.",
+    "comboIntroStations": "Among the {genre} stations from {name} are {stations}."
   },
   "trending": {
     "title": "Trending",

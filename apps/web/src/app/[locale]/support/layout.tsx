@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { buildAlternates } from '@/lib/seo';
+import { buildAlternates, pageTitle } from '@/lib/seo';
 
 // Página de utilidad sin contenido propio que posicionar: fuera del sitemap y
 // con noindex. Sin metadata propia heredaba título y canonical de la home, y
@@ -13,7 +13,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'auth' });
   return {
-    title: t('support'),
+    title: pageTitle(t('support')),
     alternates: buildAlternates(locale, '/support'),
     robots: { index: false },
   };

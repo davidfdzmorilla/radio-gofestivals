@@ -9,11 +9,14 @@ import { UpcomingFestivals } from "@/components/festivals/UpcomingFestivals";
 import { getUpcomingFestivals } from "@/lib/festivals";
 import { PublicPagination } from "@/components/PublicPagination";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { PageIntro } from "@/components/seo/PageIntro";
 import { SITE_URL } from "@/lib/site";
+import { listJoin, stationNames } from "@/lib/seo-intro";
 import {
   buildAlternates,
   COMBO_GATE_MIN_STATIONS,
   regionName,
+  pageTitle,
 } from "@/lib/seo";
 import type { Genre } from "@/lib/types";
 
@@ -86,7 +89,7 @@ export async function generateMetadata({
       count: genre.station_count,
     });
     return {
-      title,
+      title: pageTitle(title),
       description,
       alternates,
       robots,
@@ -280,6 +283,41 @@ export default async function GenrePage({
           </p>
         </div>
       </header>
+
+      <PageIntro
+        paragraphs={
+          showFestivals && !country
+            ? [
+                tGenres("introOverview", {
+                  name: genre.name,
+                  count: genre.station_count,
+                  hasCountries: countryFacets.length > 0 ? "yes" : "no",
+                  countryCount: countryFacets.length,
+                  topCountries: listJoin(
+                    locale,
+                    countryFacets.slice(0, 3).map((f) => regionName(locale, f.code)),
+                  ),
+                }),
+                subgenres.length > 0
+                  ? tGenres("introSubgenres", {
+                      name: genre.name,
+                      subCount: subgenres.length,
+                      subgenres: listJoin(
+                        locale,
+                        subgenres.slice(0, 6).map((c) => c.name),
+                      ),
+                    })
+                  : null,
+                stationNames(stationsPage.items, 3).length > 0
+                  ? tGenres("introStations", {
+                      name: genre.name,
+                      stations: listJoin(locale, stationNames(stationsPage.items, 3)),
+                    })
+                  : null,
+              ]
+            : []
+        }
+      />
 
       {subgenres.length > 0 && (
         <nav aria-label={tGenres("subgenres")} className="space-y-2">

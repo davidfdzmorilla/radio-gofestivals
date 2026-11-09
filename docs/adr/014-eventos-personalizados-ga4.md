@@ -25,3 +25,16 @@ cargar el script. Primera tanda: `play_start` (en `player-store.play`), `play_30
   `festival_outbound` como key events.
 - Texto de privacidad actualizado para mencionar las interacciones medidas.
 - Pendiente (no medido a propósito): `play_stop`, `locale_change`, `badge_snippet_copy`.
+
+## Atribución y valores (T5, 9 nov 2026)
+
+- GA se carga tras aceptar el banner. Si el visitante llegó desde Google o con `utm_*` y navegó
+  antes de aceptar, la sesión empezaba en una página sin utm y sin referrer útil (directa o "sin
+  asignar"). Ahora `GoogleAnalytics` guarda **solo en memoria** la página y el referrer de entrada
+  (`window.__rgfLanding`, nada en storage ni red hasta aceptar) y, al aceptar, abre la sesión con
+  un `page_view` de la entrada (`page_location` con los utm, `page_referrer`) seguido del de la
+  página actual. Si se acepta en la propia entrada, queda el `page_view` automático.
+- `?ga_debug=1` en la URL de entrada activa DebugView.
+- Los valores de `genre` y `country` van siempre en minúsculas (GA distingue `DE` de `de`).
+- Comprobado: no hay Measurement Protocol (ni backend ni worker), `config` va siempre antes de
+  cualquier `event` (sin `gtag`, `trackEvent` no hace nada) y no se usa Consent Mode.

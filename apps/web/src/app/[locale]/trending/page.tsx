@@ -5,7 +5,7 @@ import { getGenresTree, listTrendingStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { SITE_URL } from '@/lib/site';
-import { buildAlternates, TRENDING_GENRE_GATE_MIN } from '@/lib/seo';
+import { buildAlternates, TRENDING_GENRE_GATE_MIN, pageTitle } from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
 export const revalidate = 300;
@@ -18,7 +18,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'trending' });
   return {
-    title: t('metaTitle'),
+    title: pageTitle(t('metaTitle')),
     description: t('metaDescription'),
     alternates: buildAlternates(locale, '/trending'),
   };

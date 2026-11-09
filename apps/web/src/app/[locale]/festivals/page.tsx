@@ -5,7 +5,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { Link } from '@/i18n/navigation';
 import { festivalCalendarUrl, getAllUpcomingFestivals, type Festival } from '@/lib/festivals';
 import { NOINDEX_FOLLOW } from '@/lib/indexability';
-import { buildAlternates } from '@/lib/seo';
+import { buildAlternates, pageTitle } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 3600;
@@ -18,7 +18,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'festivals' });
   return {
-    title: t('indexMetaTitle'),
+    title: pageTitle(t('indexMetaTitle')),
     description: t('indexIntro'),
     alternates: buildAlternates(locale, '/festivals'),
     // El calendario vive en gofestivals.eu (ADR 015).

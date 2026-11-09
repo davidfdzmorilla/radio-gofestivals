@@ -16,7 +16,6 @@ export const SITEMAP_REVALIDATE_SECONDS = 86_400;
 
 type Station = {
   slug: string;
-  updated_at?: string | null;
   logo_hash?: string | null;
   country_code: string | null;
   genres: string[];
@@ -42,7 +41,11 @@ function flattenGenres(tree: Genre[]): Genre[] {
 
 export interface SitemapEntry {
   url: string;
-  /** ISO 8601; ausente si no hay una fecha real de cambio. */
+  /**
+   * ISO 8601. Hoy NO se rellena: `stations.updated_at` lo reescribe a diario el health-check, así
+   * que no es una fecha de cambio real y un lastmod falso hace que Google ignore el de todo el
+   * sitio. Se recuperará cuando haya una fecha de cambio de contenido fiable.
+   */
   lastModified?: string;
   alternates: Record<string, string>;
 }
@@ -50,10 +53,7 @@ export interface SitemapEntry {
 export type SitemapGroup = 'static' | 'genres' | 'countries' | 'stations';
 export type SitemapGroups = Record<SitemapGroup, SitemapEntry[]>;
 
-const maxDate = (dates: Array<string | null | undefined>): string | undefined =>
-  dates.filter((d): d is string => Boolean(d)).sort().at(-1);
-
-function localizedEntries(path: string, lastModified?: string): SitemapEntry[] {
+function localizedEntries(path: string): SitemapEntry[] {
   // Next.js redirige /<locale>/ → /<locale>: las URLs del sitemap deben ser canónicas (200).
   const suffix = path === '/' ? '' : path;
   const alternates: Record<string, string> = Object.fromEntries(
@@ -62,7 +62,6 @@ function localizedEntries(path: string, lastModified?: string): SitemapEntry[] {
   alternates['x-default'] = xDefaultUrl(suffix);
   return LOCALES.map((locale) => ({
     url: `${SITE}/${locale}${suffix}`,
-    ...(lastModified ? { lastModified } : {}),
     alternates,
   }));
 }
@@ -110,7 +109,7 @@ async function fetchCountryFacets(genre?: string): Promise<CountryFacet[]> {
 /**
  * Entradas de sitemap agrupadas por tipo. Solo lo indexable según lib/indexability.ts: el MISMO
  * criterio que el <meta robots> de cada página (lo listado y lo declarado no pueden divergir).
- * `lastmod` es la fecha real del cambio más reciente de las emisoras que cada página lista.
+ * Sin `lastmod` (ver `SitemapEntry.lastModified`).
  */
 export async function buildSitemapGroups(): Promise<SitemapGroups> {
   const [allStations, allGenres, countries] = await Promise.all([
@@ -139,39 +138,26 @@ export async function buildSitemapGroups(): Promise<SitemapGroups> {
     )
   ).flat();
 
-  // La fecha de un listado sale de TODAS las emisoras visibles que contiene, indexables o no.
-  const modifiedOf = (match: (s: Station) => boolean) =>
-    maxDate(allStations.filter(match).map((s) => s.updated_at));
-  const country = (s: Station) => s.country_code?.toLowerCase();
-
   return {
     static: [
-      ...localizedEntries('/', maxDate(allStations.map((s) => s.updated_at))),
+      ...localizedEntries('/'),
       ...localizedEntries('/genres'),
       ...localizedEntries('/countries'),
       ...localizedEntries('/trending'),
       ...localizedEntries('/for-stations'),
       ...trendingGenres.flatMap((g) =>
-        localizedEntries(`/trending/${g.slug}`, modifiedOf((s) => s.genres.includes(g.slug))),
+        localizedEntries(`/trending/${g.slug}`),
       ),
     ],
     genres: genres.flatMap((g) =>
-      localizedEntries(`/genres/${g.slug}`, modifiedOf((s) => s.genres.includes(g.slug))),
+      localizedEntries(`/genres/${g.slug}`),
     ),
     countries: [
-      ...gatedCountries.flatMap((c) => {
-        const code = c.code.toLowerCase();
-        return localizedEntries(`/countries/${code}`, modifiedOf((s) => country(s) === code));
-      }),
-      ...combos.flatMap((c) =>
-        localizedEntries(
-          `/countries/${c.code}/${c.genre}`,
-          modifiedOf((s) => country(s) === c.code && s.genres.includes(c.genre)),
-        ),
-      ),
+      ...gatedCountries.flatMap((c) => localizedEntries(`/countries/${c.code.toLowerCase()}`)),
+      ...combos.flatMap((c) => localizedEntries(`/countries/${c.code}/${c.genre}`)),
     ],
     stations: stations.flatMap((s) =>
-      localizedEntries(`/stations/${s.slug}`, s.updated_at ?? undefined),
+      localizedEntries(`/stations/${s.slug}`),
     ),
   };
 }

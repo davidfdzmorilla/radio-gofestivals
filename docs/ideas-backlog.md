@@ -123,3 +123,18 @@ falla. Cron 05:00 / 05:10 / 05:30 UTC.
 - [ ] `noindex` en las fichas de emisoras ocultas (siguen accesibles por URL).
 - [ ] Reevaluar las ocultas por duda cuando cambie su web o sus últimos temas (ya entra en la
   huella de evidencia; comprobar que repone alguna).
+
+## SEO: `lastmod` de los sitemaps (ADR 015)
+
+El sitemap no emite `lastmod` porque `stations.updated_at` no es una fecha de cambio real: el
+trigger `trg_stations_updated_at` (`BEFORE UPDATE`, `set_updated_at()`) la pone a `now()` en
+**cualquier** UPDATE, aunque no cambie ningún valor, y varios jobs reescriben todas las filas:
+health-check cada 6 h (`last_check_at`/`last_check_ok`/`last_error`, `rb_sync.py`), `compute-click-trends`
+04:20 (`click_trend`), `compute-quality-scores` 04:30 (`quality_score`) y el sync de las 04:00.
+
+- [ ] Recuperar `lastmod`: lo más limpio es redefinir el trigger de `stations` (migración Alembic, no
+  tocar `schema.sql`) para que solo avance `updated_at` cuando cambia una columna de contenido
+  (nombre, logo, géneros/tags, país/ciudad, `hidden`, `class_state`, `status`), ignorando las
+  operativas. Los writers siguen escribiendo en sus propias columnas y no hay que tocarlos.
+  `updated_at` también cambia el cache-bust del logo, que mejoraría. `seo-check.mjs` falla si >50 %
+  de un hijo comparte `lastmod`, para verificarlo.

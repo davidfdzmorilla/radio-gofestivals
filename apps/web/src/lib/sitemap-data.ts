@@ -1,4 +1,3 @@
-import type { MetadataRoute } from 'next';
 import {
   isComboIndexable,
   isCountryIndexable,
@@ -41,25 +40,30 @@ function flattenGenres(tree: Genre[]): Genre[] {
   return out;
 }
 
-function localizedEntries(
-  path: string,
-  changeFrequency?: MetadataRoute.Sitemap[number]['changeFrequency'],
-  priority?: number,
-  lastModified?: string,
-): MetadataRoute.Sitemap {
-  // Next.js redirects /<locale>/ → /<locale> (308). Sitemap URLs must be
-  // canonical (200 OK), so drop the trailing slash for the home path.
+export interface SitemapEntry {
+  url: string;
+  /** ISO 8601; ausente si no hay una fecha real de cambio. */
+  lastModified?: string;
+  alternates: Record<string, string>;
+}
+
+export type SitemapGroup = 'static' | 'genres' | 'countries' | 'stations';
+export type SitemapGroups = Record<SitemapGroup, SitemapEntry[]>;
+
+const maxDate = (dates: Array<string | null | undefined>): string | undefined =>
+  dates.filter((d): d is string => Boolean(d)).sort().at(-1);
+
+function localizedEntries(path: string, lastModified?: string): SitemapEntry[] {
+  // Next.js redirige /<locale>/ → /<locale>: las URLs del sitemap deben ser canónicas (200).
   const suffix = path === '/' ? '' : path;
-  const languages: Record<string, string> = Object.fromEntries(
+  const alternates: Record<string, string> = Object.fromEntries(
     LOCALES.map((l) => [l, `${SITE}/${l}${suffix}`]),
   );
-  languages['x-default'] = xDefaultUrl(suffix);
+  alternates['x-default'] = xDefaultUrl(suffix);
   return LOCALES.map((locale) => ({
     url: `${SITE}/${locale}${suffix}`,
-    changeFrequency,
-    priority,
     ...(lastModified ? { lastModified } : {}),
-    alternates: { languages },
+    alternates,
   }));
 }
 
@@ -104,22 +108,17 @@ async function fetchCountryFacets(genre?: string): Promise<CountryFacet[]> {
 }
 
 /**
- * Builds the full set of sitemap entries (static pages + every genre, gated
- * country, ranking and station, each localized with hreflang alternates).
- * Shared by the native `app/sitemap.ts` and the `app/sitemap-v2.xml` Route
- * Handler so the two never drift. The country and trending gates use the
- * SAME thresholds as the pages (lib/seo.ts) so a URL is never listed
- * without existing nor vice versa.
+ * Entradas de sitemap agrupadas por tipo. Solo lo indexable según lib/indexability.ts: el MISMO
+ * criterio que el <meta robots> de cada página (lo listado y lo declarado no pueden divergir).
+ * `lastmod` es la fecha real del cambio más reciente de las emisoras que cada página lista.
  */
-export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
+export async function buildSitemapGroups(): Promise<SitemapGroups> {
   const [allStations, allGenres, countries] = await Promise.all([
     fetchAllStations(),
     fetchAllGenres(),
     fetchCountryFacets(),
   ]);
 
-  // Solo lo indexable según lib/indexability.ts: el MISMO criterio que el <meta robots> de cada
-  // página (lo que se lista y lo que la página declara no pueden divergir).
   const stations = allStations.filter((s) =>
     isStationIndexable({ ...s, genreCount: s.genres.length }),
   );
@@ -128,9 +127,7 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
   const trendingGenres = allGenres.filter(
     (g) => g.parent_id === null && g.station_count >= TRENDING_GENRE_GATE_MIN,
   );
-  // Combos país×género: misma fuente y gate que la página y los hubs.
-  // TODOS los géneros (no solo raíz): los hubs de país enlazan combos de
-  // subgéneros (p. ej. deep-house) y lo enlazado debe estar en el sitemap.
+  // TODOS los géneros (no solo raíz): los hubs de país enlazan combos de subgéneros.
   const combos = (
     await Promise.all(
       allGenres.map(async (g) => {
@@ -142,31 +139,58 @@ export async function buildSitemapEntries(): Promise<MetadataRoute.Sitemap> {
     )
   ).flat();
 
-  return [
-    ...localizedEntries('/', 'daily', 1),
-    ...localizedEntries('/genres', 'weekly', 0.8),
-    ...localizedEntries('/countries', 'weekly', 0.8),
-    ...localizedEntries('/trending', 'daily', 0.7),
-    ...localizedEntries('/for-stations', 'monthly', 0.4),
-    ...genres.flatMap((g) =>
-      localizedEntries(`/genres/${g.slug}`, 'weekly', 0.7),
-    ),
-    ...gatedCountries.flatMap((c) =>
-      localizedEntries(`/countries/${c.code.toLowerCase()}`, 'weekly', 0.7),
-    ),
-    ...combos.flatMap((c) =>
-      localizedEntries(`/countries/${c.code}/${c.genre}`, 'weekly', 0.7),
-    ),
-    ...trendingGenres.flatMap((g) =>
-      localizedEntries(`/trending/${g.slug}`, 'daily', 0.6),
-    ),
-    ...stations.flatMap((s) =>
-      localizedEntries(
-        `/stations/${s.slug}`,
-        'weekly',
-        0.6,
-        s.updated_at ?? undefined,
+  // La fecha de un listado sale de TODAS las emisoras visibles que contiene, indexables o no.
+  const modifiedOf = (match: (s: Station) => boolean) =>
+    maxDate(allStations.filter(match).map((s) => s.updated_at));
+  const country = (s: Station) => s.country_code?.toLowerCase();
+
+  return {
+    static: [
+      ...localizedEntries('/', maxDate(allStations.map((s) => s.updated_at))),
+      ...localizedEntries('/genres'),
+      ...localizedEntries('/countries'),
+      ...localizedEntries('/trending'),
+      ...localizedEntries('/for-stations'),
+      ...trendingGenres.flatMap((g) =>
+        localizedEntries(`/trending/${g.slug}`, modifiedOf((s) => s.genres.includes(g.slug))),
       ),
+    ],
+    genres: genres.flatMap((g) =>
+      localizedEntries(`/genres/${g.slug}`, modifiedOf((s) => s.genres.includes(g.slug))),
     ),
-  ];
+    countries: [
+      ...gatedCountries.flatMap((c) => {
+        const code = c.code.toLowerCase();
+        return localizedEntries(`/countries/${code}`, modifiedOf((s) => country(s) === code));
+      }),
+      ...combos.flatMap((c) =>
+        localizedEntries(
+          `/countries/${c.code}/${c.genre}`,
+          modifiedOf((s) => country(s) === c.code && s.genres.includes(c.genre)),
+        ),
+      ),
+    ],
+    stations: stations.flatMap((s) =>
+      localizedEntries(`/stations/${s.slug}`, s.updated_at ?? undefined),
+    ),
+  };
+}
+
+// Los cuatro hijos del índice se piden casi a la vez: una sola construcción compartida y cacheada
+// en memoria (la caché HTTP de la respuesta cubre el resto).
+const MEMO_TTL_MS = 10 * 60 * 1000;
+let memo: { at: number; value: Promise<SitemapGroups> } | null = null;
+
+export function getSitemapGroups(): Promise<SitemapGroups> {
+  if (memo && Date.now() - memo.at < MEMO_TTL_MS) return memo.value;
+  const value = buildSitemapGroups().catch((err: unknown) => {
+    memo = null; // un fallo no se cachea
+    throw err;
+  });
+  memo = { at: Date.now(), value };
+  return value;
+}
+
+export function resetSitemapMemoForTests(): void {
+  memo = null;
 }

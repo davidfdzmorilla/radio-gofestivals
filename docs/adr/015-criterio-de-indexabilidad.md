@@ -36,3 +36,16 @@ Las rutas sin prefijo de idioma redirigen con **308** de un solo salto (antes 30
 - (−) Los festivales dejan de indexarse en la radio (su ficha canónica está en gofestivals.eu).
 - (−) 6 países (AL, NO, NZ, SE, SI, ID) pasan de indexables a `noindex, follow`.
 - Umbrales y allowlist deben revisarse con datos de GSC cada pocos meses.
+
+## Sitemaps (T2)
+
+`/sitemap.xml` es un `sitemapindex` con `sitemap-static.xml`, `sitemap-genres.xml`,
+`sitemap-countries.xml` (país y país×género) y `sitemap-stations.xml`. Cada hijo lleva solo URLs
+indexables, `hreflang` es/en/x-default y `lastmod` real (la emisora más reciente que lista la
+página); sin `changefreq` ni `priority`. `/sitemap-v2.xml` devuelve 301 al índice y `robots.txt`
+declara una sola línea `Sitemap:` (sin `Host:`). La construcción se comparte entre los cuatro
+hijos con una caché en memoria de 10 min, y cada respuesta lleva caché HTTP de 1 h.
+
+Verificación en un entorno desplegado: `node apps/web/scripts/seo-check.mjs [BASE] [muestras]`
+(sitemap válido y sin festivales, redirects 308/301, muestra de cada tipo con 200, sin noindex y
+canonical propio, y controles `noindex` fuera del sitemap).

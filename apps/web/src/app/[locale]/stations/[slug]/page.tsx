@@ -14,12 +14,12 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { StationCover } from '@/components/stations/StationCover';
 import { readableOnDark } from '@/lib/color';
 import { stationLogoUrl } from '@/lib/logo';
+import { stationRobotsFor } from '@/lib/indexability';
 import { SITE_URL } from '@/lib/site';
 import {
   buildAlternates,
   COUNTRY_GATE_MIN_STATIONS,
   regionName,
-  stationRobots,
 } from '@/lib/seo';
 
 export const revalidate = 60;
@@ -54,7 +54,14 @@ export async function generateMetadata({
     title: station.name,
     description,
     alternates,
-    robots: stationRobots(station.hidden),
+    robots: stationRobotsFor({
+      slug: station.slug,
+      hidden: station.hidden,
+      logo_hash: station.logo_hash,
+      country_code: station.country_code,
+      genreCount: station.genres.length,
+      quality_score: station.quality_score,
+    }),
     openGraph: {
       type: 'website',
       title: station.name,

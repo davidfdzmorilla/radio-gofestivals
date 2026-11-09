@@ -5,6 +5,7 @@ import { getGenresTree, listNewStations } from '@/lib/api';
 import { StationGrid } from '@/components/stations/StationGrid';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { SITE_URL } from '@/lib/site';
+import { NOINDEX_FOLLOW } from '@/lib/indexability';
 import { buildAlternates } from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
@@ -21,6 +22,8 @@ export async function generateMetadata({
     title: t('metaTitle'),
     description: t('metaDescription'),
     alternates: buildAlternates(locale, '/new'),
+    // Listado volátil sin contenido propio: no se indexa, pero sus enlaces se siguen.
+    robots: NOINDEX_FOLLOW,
   };
 }
 

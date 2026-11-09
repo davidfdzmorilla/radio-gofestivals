@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { isGenreIndexable, robotsFor } from "@/lib/indexability";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
@@ -74,6 +75,7 @@ export async function generateMetadata({
     const genres = await getGenresTree();
     const genre = indexBySlug(genres)[slug];
     if (!genre) return { alternates };
+    const robots = robotsFor(isGenreIndexable(genre.station_count));
     const title =
       tGenres("metaTitle", {
         name: genre.name,
@@ -87,6 +89,7 @@ export async function generateMetadata({
       title,
       description,
       alternates,
+      robots,
       openGraph: {
         type: "website",
         title,

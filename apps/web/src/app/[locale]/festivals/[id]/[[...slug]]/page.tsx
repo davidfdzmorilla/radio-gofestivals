@@ -16,6 +16,7 @@ import {
   formatFestivalDates,
   getFestival,
 } from '@/lib/festivals';
+import { NOINDEX_FOLLOW } from '@/lib/indexability';
 import { indexGenresBySlug } from '@/lib/genre-index';
 import { buildAlternates, regionName } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
@@ -42,8 +43,10 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     title,
     description,
     alternates: buildAlternates(locale, path),
-    // Una edición ya celebrada sigue siendo útil para quien llega, pero no merece indexarse.
-    ...(festivalPhase(festival) === 'ended' ? { robots: { index: false, follow: true } } : {}),
+    // Las fichas viven en gofestivals.eu (ADR 015): aquí sirven para quien llega desde la radio,
+    // pero no se indexan ni se listan en el sitemap. Sin canonical: noindex + canonical a otra URL
+    // es una señal contradictoria.
+    robots: NOINDEX_FOLLOW,
     // openGraph propio anula la imagen heredada del file convention: se indica la de marca.
     openGraph: {
       title,

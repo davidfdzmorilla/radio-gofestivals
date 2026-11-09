@@ -44,6 +44,19 @@ export function regionName(locale: string, code: string): string {
   }
 }
 
+/**
+ * x-default de una página. La portada sin prefijo (`/`, escrita sin barra final como la emite
+ * Next en el HTML) negocia el idioma (cookie y
+ * Accept-Language) y redirige con 307 sin caché: es justo el caso para el que existe x-default.
+ * El resto de páginas no tienen equivalente sin prefijo con 200 (redirigen con 308), así que su
+ * x-default es la versión en el idioma por defecto.
+ */
+export function xDefaultUrl(pathWithoutLocale: string): string {
+  return pathWithoutLocale === '' || pathWithoutLocale === '/'
+    ? SITE_URL
+    : `${SITE_URL}/${X_DEFAULT_LOCALE}${pathWithoutLocale}`;
+}
+
 export function buildAlternates(
   locale: string,
   pathWithoutLocale: string,
@@ -52,17 +65,9 @@ export function buildAlternates(
   for (const l of LOCALES) {
     languages[l] = `${SITE_URL}/${l}${pathWithoutLocale}`;
   }
-  languages['x-default'] = `${SITE_URL}/${X_DEFAULT_LOCALE}${pathWithoutLocale}`;
+  languages['x-default'] = xDefaultUrl(pathWithoutLocale);
   return {
     canonical: `${SITE_URL}/${locale}${pathWithoutLocale}`,
     languages,
   };
-}
-
-/**
- * Una emisora oculta (por el clasificador o por spam) sigue abierta por su URL, pero no debe
- * entrar en los índices: `noindex, nofollow`. Las visibles no declaran nada.
- */
-export function stationRobots(hidden: boolean): { index: false; follow: false } | undefined {
-  return hidden ? { index: false, follow: false } : undefined;
 }

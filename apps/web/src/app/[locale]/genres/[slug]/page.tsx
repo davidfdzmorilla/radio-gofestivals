@@ -16,6 +16,7 @@ import {
   buildAlternates,
   COMBO_GATE_MIN_STATIONS,
   regionName,
+  pageTitle,
 } from "@/lib/seo";
 import type { Genre } from "@/lib/types";
 
@@ -88,7 +89,7 @@ export async function generateMetadata({
       count: genre.station_count,
     });
     return {
-      title,
+      title: pageTitle(title),
       description,
       alternates,
       robots,

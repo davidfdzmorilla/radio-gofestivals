@@ -38,7 +38,7 @@
     "crumb": "Festivals",
     "indexTitle": "Upcoming electronic music festivals",
     "indexIntro": "Festivals from the gofestivals calendar, with the radio stations that match their sound.",
-    "indexMetaTitle": "Electronic music festivals: calendar and radio · radio.gofestivals",
+    "indexMetaTitle": "Electronic music festivals: calendar and radio",
     "fullCalendar": "Full calendar on gofestivals",
     "empty": "No upcoming festivals right now."
   },
@@ -49,7 +49,7 @@
     "stationCount": "{count, plural, =0 {no stations} =1 {1 station} other {# stations}}",
     "metaTitle": "{name} radio: {count, plural, =0 {no stations} =1 {1 online station live} other {# online stations live}}",
     "metaDescription": "{count, plural, =0 {No {name} radio stations yet on radio.gofestivals.} =1 {1 online {name} radio station, streaming live. Listen free on radio.gofestivals.} other {# online {name} radio stations, streaming live from across the world. Listen free on radio.gofestivals.}}",
-    "indexTitle": "Electronic music genres · radio.gofestivals",
+    "indexTitle": "Electronic music genres",
     "indexDescription": "Browse every electronic music genre: techno, house, trance, drum & bass, dubstep and more. Stations from around the world, streaming live on radio.gofestivals.",
     "moreGenres": "More genres",
     "subgenres": "Subgenres",

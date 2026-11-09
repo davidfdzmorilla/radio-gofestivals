@@ -13,6 +13,7 @@ import {
   buildAlternates,
   COMBO_GATE_MIN_STATIONS,
   regionName,
+  pageTitle,
 } from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
@@ -91,12 +92,13 @@ export async function generateMetadata({
   const name = regionName(locale, combo.facet.code);
   const pageSuffix = page > 1 ? tPagination('pageSuffix', { page }) : '';
   return {
-    title:
+    title: pageTitle(
       t('comboMetaTitle', {
         genre: combo.genre.name,
         name,
         count: combo.facet.station_count,
       }) + pageSuffix,
+    ),
     description: t('comboMetaDescription', {
       genre: combo.genre.name,
       name,

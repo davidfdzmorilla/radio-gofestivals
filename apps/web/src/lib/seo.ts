@@ -31,6 +31,18 @@ export const TRENDING_GENRE_GATE_MIN = 10;
  */
 export const COMBO_GATE_MIN_STATIONS = 5;
 
+/** Marca que el layout añade a todo título (`title.template`: `%s · radio.gofestivals`). */
+export const BRAND = 'radio.gofestivals';
+export const TITLE_MAX_WITH_BRAND = 60;
+
+/**
+ * Regla de títulos (la misma que gofestivals.eu): si con el sufijo de marca pasa de 60
+ * caracteres, se quita la marca; el contenido del título nunca se recorta.
+ */
+export function pageTitle(title: string): string | { absolute: string } {
+  return `${title} · ${BRAND}`.length > TITLE_MAX_WITH_BRAND ? { absolute: title } : title;
+}
+
 /** Localized country name from its ISO code, falling back to the code. */
 export function regionName(locale: string, code: string): string {
   try {

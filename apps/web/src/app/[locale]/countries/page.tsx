@@ -8,6 +8,7 @@ import {
   buildAlternates,
   COUNTRY_GATE_MIN_STATIONS,
   regionName,
+  pageTitle,
 } from '@/lib/seo';
 
 export const revalidate = 300;
@@ -26,7 +27,7 @@ export async function generateMetadata({
       (f) => f.station_count >= COUNTRY_GATE_MIN_STATIONS,
     ).length;
     return {
-      title: t('indexTitle'),
+      title: pageTitle(t('indexTitle')),
       description: t('indexDescription', { count }),
       alternates,
     };

@@ -20,6 +20,7 @@ import {
   buildAlternates,
   COUNTRY_GATE_MIN_STATIONS,
   regionName,
+  pageTitle,
 } from '@/lib/seo';
 
 export const revalidate = 60;
@@ -51,7 +52,7 @@ export async function generateMetadata({
     hasDetails: details ? 'yes' : 'no',
   });
   return {
-    title: station.name,
+    title: pageTitle(station.name),
     description,
     alternates,
     robots: stationRobotsFor({

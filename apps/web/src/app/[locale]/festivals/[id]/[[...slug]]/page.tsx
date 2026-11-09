@@ -18,7 +18,7 @@ import {
 } from '@/lib/festivals';
 import { NOINDEX_FOLLOW } from '@/lib/indexability';
 import { indexGenresBySlug } from '@/lib/genre-index';
-import { buildAlternates, regionName } from '@/lib/seo';
+import { buildAlternates, regionName, pageTitle } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
 
 export const revalidate = 3600;
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
     : t('pageDescriptionPlain', { name: festival.name, details });
   const path = festivalPath(festival);
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: buildAlternates(locale, path),
     // Las fichas viven en gofestivals.eu (ADR 015): aquí sirven para quien llega desde la radio,

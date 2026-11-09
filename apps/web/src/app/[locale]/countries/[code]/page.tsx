@@ -20,6 +20,7 @@ import {
   COMBO_GATE_MIN_STATIONS,
   COUNTRY_GATE_MIN_STATIONS,
   regionName,
+  pageTitle,
 } from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
@@ -69,7 +70,7 @@ export async function generateMetadata({
   const name = regionName(locale, facet.code);
   const pageSuffix = page > 1 ? tPagination('pageSuffix', { page }) : '';
   return {
-    title: t('metaTitle', { name, count: facet.station_count }) + pageSuffix,
+    title: pageTitle(t('metaTitle', { name, count: facet.station_count }) + pageSuffix),
     description: t('metaDescription', { name, count: facet.station_count }),
     alternates,
     robots: robotsFor(isCountryIndexable(facet.station_count)),

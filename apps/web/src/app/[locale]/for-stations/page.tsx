@@ -5,7 +5,7 @@ import { listStations } from '@/lib/api';
 import { BadgeSnippetGenerator } from '@/components/stations/BadgeSnippetGenerator';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { SITE_URL } from '@/lib/site';
-import { buildAlternates } from '@/lib/seo';
+import { buildAlternates, pageTitle } from '@/lib/seo';
 
 export const revalidate = 3600;
 
@@ -17,7 +17,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'forStations' });
   return {
-    title: t('metaTitle'),
+    title: pageTitle(t('metaTitle')),
     description: t('metaDescription'),
     alternates: buildAlternates(locale, '/for-stations'),
   };

@@ -66,3 +66,13 @@ Con la migración desplegada, el sitemap vuelve a emitir `lastmod` (`LASTMOD_EPO
 emisoras visibles, siempre solo si la fecha es posterior a la migración. Las páginas estáticas y
 el índice no llevan `lastmod`. Hoy no sale ninguno (ninguna emisora ha cambiado desde entonces)
 y va apareciendo conforme haya cambios reales.
+
+## Títulos e introducciones (T4)
+
+Regla de títulos (la misma que gofestivals.eu): `pageTitle()` quita el sufijo de marca
+(`title.absolute`) si con él el título pasa de 60 caracteres; el contenido nunca se recorta. Los
+géneros y países llevan una introducción de 1–3 párrafos generada con datos reales de la página
+(número de emisoras, países, subgéneros, géneros del país y nombres de emisoras), solo en la
+primera página del listado. Los nombres citados se filtran (sin repetidos, sin rótulos
+publicitarios) porque el catálogo los tiene; ver `docs/ideas-backlog.md`. Se corrigió además la
+marca duplicada de `/genres` y `/festivals`.

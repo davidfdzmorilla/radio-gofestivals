@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { pageTitle } from '@/lib/seo';
 import en from '../../messages/en.json';
 import es from '../../messages/es.json';
 
@@ -11,13 +12,15 @@ describe('metadatos SEO en los mensajes', () => {
     it(`${locale}: los metaTitle no repiten la marca del template`, () => {
       const offenders: string[] = [];
       for (const [ns, block] of Object.entries(m)) {
-        const title = (block as Record<string, unknown>)?.metaTitle;
-        if (typeof title === 'string' && title.includes('radio.gofestivals')) {
-          offenders.push(ns);
+        for (const key of ['metaTitle', 'indexTitle', 'indexMetaTitle']) {
+          const title = (block as Record<string, unknown>)?.[key];
+          if (typeof title === 'string' && title.includes('radio.gofestivals')) {
+            offenders.push(`${ns}.${key}`);
+          }
         }
       }
       // home.metaTitle es el título por defecto (sin template): sí lleva marca.
-      expect(offenders.filter((ns) => ns !== 'home')).toEqual([]);
+      expect(offenders.filter((k) => !k.startsWith('home.'))).toEqual([]);
     });
 
     it(`${locale}: las descripciones caben en un snippet (70-165)`, () => {
@@ -33,12 +36,21 @@ describe('metadatos SEO en los mensajes', () => {
       }
       expect(bad).toEqual([]);
     });
-
-    it(`${locale}: el título de un género largo no pasa de 75 con el template`, () => {
-      const raw = m.genres.metaTitle
-        .replace('{name}', 'Progressive House')
-        .replace(/\{count, plural,.*other \{# ([^}]*)\}\}/, '470 $1');
-      expect(`${raw} · radio.gofestivals`.length).toBeLessThanOrEqual(75);
-    });
   }
+});
+
+describe('pageTitle (regla de gofestivals.eu: con marca > 60 caracteres, sin marca)', () => {
+  const BRAND_SUFFIX = ' · radio.gofestivals'.length; // 20
+
+  it('deja el título como está si con la marca cabe en 60', () => {
+    const title = 'x'.repeat(60 - BRAND_SUFFIX);
+    expect(pageTitle(title)).toBe(title);
+  });
+
+  it('quita la marca (title.absolute) si con ella pasa de 60, sin recortar el contenido', () => {
+    const title = 'x'.repeat(60 - BRAND_SUFFIX + 1);
+    expect(pageTitle(title)).toEqual({ absolute: title });
+    const long = 'Radio Progressive House: 470 emisoras online en directo';
+    expect(pageTitle(long)).toEqual({ absolute: long });
+  });
 });

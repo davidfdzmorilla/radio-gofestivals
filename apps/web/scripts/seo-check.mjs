@@ -29,6 +29,14 @@ const robotsOf = (html, headers) => {
   const meta = html.match(/<meta[^>]+name="robots"[^>]*content="([^"]*)"/i)?.[1] ?? html.match(/<meta[^>]+content="([^"]*)"[^>]*name="robots"/i)?.[1] ?? '';
   return `${meta} ${headers.get('x-robots-tag') ?? ''}`.toLowerCase();
 };
+const titleOf = (html) => html.match(/<title>([^<]*)<\/title>/i)?.[1] ?? '';
+// Regla de títulos: con la marca como máximo 60 caracteres; si no cabe, sin marca. Nunca duplicada.
+const titleOk = (t) => {
+  const brand = ' · radio.gofestivals';
+  const decoded = t.replace(/&amp;/g, '&').replace(/&#x27;/g, "'").replace(/&quot;/g, '"');
+  const n = decoded.split(brand).length - 1;
+  return n === 0 ? true : n === 1 && decoded.endsWith(brand) && decoded.length <= 60;
+};
 const canonicalOf = (html) => html.match(/<link[^>]+rel="canonical"[^>]*href="([^"]*)"/i)?.[1];
 
 // 1. robots.txt
@@ -100,7 +108,7 @@ for (const [k, urls] of Object.entries(byKind)) {
     const r = await get(u);
     const html = r.status === 200 ? await r.text() : '';
     const rb = robotsOf(html, r.headers);
-    ok(r.status === 200 && !rb.includes('noindex') && canonicalOf(html) === u, `[${k}] ${u} -> ${r.status}, robots="${rb.trim()}", canonical ${canonicalOf(html) === u ? 'propio' : canonicalOf(html)}`);
+    ok(r.status === 200 && !rb.includes('noindex') && canonicalOf(html) === u && titleOk(titleOf(html)), `[${k}] ${u} -> ${r.status}, robots="${rb.trim()}", canonical ${canonicalOf(html) === u ? 'propio' : canonicalOf(html)}, title "${titleOf(html)}"`);
   }
 }
 

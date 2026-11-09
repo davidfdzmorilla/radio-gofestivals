@@ -6,7 +6,7 @@ import { StationGrid } from '@/components/stations/StationGrid';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { SITE_URL } from '@/lib/site';
 import { NOINDEX_FOLLOW } from '@/lib/indexability';
-import { buildAlternates } from '@/lib/seo';
+import { buildAlternates, pageTitle } from '@/lib/seo';
 import type { Genre } from '@/lib/types';
 
 export const revalidate = 300;
@@ -19,7 +19,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'newStations' });
   return {
-    title: t('metaTitle'),
+    title: pageTitle(t('metaTitle')),
     description: t('metaDescription'),
     alternates: buildAlternates(locale, '/new'),
     // Listado volátil sin contenido propio: no se indexa, pero sus enlaces se siguen.

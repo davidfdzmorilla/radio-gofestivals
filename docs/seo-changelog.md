@@ -116,13 +116,16 @@ Comprobado en prod (sin cambios de código en producción, no hubo despliegue):
 - HTML del servidor de `/en/genres/{techno,electronic,house,dance,ambient}`:
   `html lang="en"`, canonical a su propia URL `/en`, hreflang `en`, `es` y
   `x-default` recíprocos con `/es`, título e intro en inglés, sin `noindex`.
-- Causa probable del aviso: los sitemaps se enviaron el 9 nov y Search Console los
-  marcaba "No se ha podido obtener", así que el informe de "no está en ningún
-  sitemap" refleja que aún no los había leído. "Rastreada, sin indexar" en URLs
-  nuevas en inglés es el estado habitual hasta que Google las evalúa.
+- Causa del aviso: Search Console sí leyó `/sitemap-index.xml` el 9 nov
+  ("Correcto", 1.300 URLs). El "sin sitemap ni enlaces" de `/en/genres/house` viene de
+  que la inspección de URL muestra los datos de descubrimiento del último rastreo, y
+  Google nunca había rastreado esa URL. "Rastreada, sin indexar" en URLs nuevas en
+  inglés es el estado habitual hasta que Google las evalúa.
 
 ### Cambios
 
 - Test `paridad de idiomas en los sitemaps` (`sitemap-indexability.test.ts`): falla si
   cualquier ruta aparece en un idioma y no en el otro, en cualquier hijo.
 - `seo-check.mjs` comprueba esa paridad contra prod en los cuatro sitemaps.
+- Intros: `stationNames` descarta nombres que no empiezan por letra o dígito
+  (`#join...`, `@x`, `[HD]`...), con test. Entra en el próximo despliegue.

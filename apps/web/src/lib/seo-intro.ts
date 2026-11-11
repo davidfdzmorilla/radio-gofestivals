@@ -40,7 +40,8 @@ export function stationNames(stations: Array<{ name: string }>, limit: number): 
   for (const { name } of stations) {
     const clean = name.trim();
     const key = clean.toLowerCase();
-    if (!clean || clean.length > MAX_NAME_LENGTH || /https?:|www\.|\.(com|net|org|club|fm|es|de)\b/i.test(clean)) continue;
+    // Solo nombres que empiezan por letra o dígito: fuera '#join…', '@x', '* radio *', '[HD]'…
+    if (!clean || !/^[\p{L}\p{N}]/u.test(clean) || clean.length > MAX_NAME_LENGTH || /https?:|www\.|\.(com|net|org|club|fm|es|de)\b/i.test(clean)) continue;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(clean);

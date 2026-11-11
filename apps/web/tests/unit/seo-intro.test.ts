@@ -27,6 +27,15 @@ describe('stationNames', () => {
     ]);
   });
 
+  it('descarta nombres que empiezan por símbolo y conserva letras, dígitos y acentos', () => {
+    expect(
+      stationNames(
+        [s('#join the party'), s('@dj'), s('* Radio *'), s('[HD] Mix'), s('106.5 Kiss'), s('Éter FM'), s('Радио Рекорд'), s('Chunt FM')],
+        8,
+      ),
+    ).toEqual(['106.5 Kiss', 'Éter FM', 'Радио Рекорд', 'Chunt FM']);
+  });
+
   it('descarta nombres larguísimos o con aspecto de URL (rótulos publicitarios)', () => {
     expect(
       stationNames(

@@ -93,3 +93,34 @@ describe('x-default del sitemap coincide con el de las páginas', () => {
     expect(genre?.alternates['x-default']).toBe('https://radio.gofestivals.eu/en/genres/techno');
   });
 });
+
+describe('paridad de idiomas en los sitemaps', () => {
+  it('todo género/país/combo/estación indexable sale en es y en, y solo así', async () => {
+    mockApi();
+    const groups = await buildSitemapGroups();
+    for (const [name, entries] of Object.entries(groups)) {
+      const byLocale: Record<string, Set<string>> = { es: new Set(), en: new Set() };
+      for (const e of entries) {
+        const m = e.url.replace('https://radio.gofestivals.eu', '').match(/^\/(es|en)(\/.*)?$/);
+        expect(m, `${name}: URL sin prefijo de idioma ${e.url}`).not.toBeNull();
+        byLocale[m![1]!]!.add(m![2] ?? '');
+      }
+      const onlyEs = [...byLocale.es!].filter((p) => !byLocale.en!.has(p));
+      const onlyEn = [...byLocale.en!].filter((p) => !byLocale.es!.has(p));
+      expect({ name, onlyEs, onlyEn }).toEqual({ name, onlyEs: [], onlyEn: [] });
+      expect(entries.length).toBe(byLocale.es!.size * 2);
+    }
+  });
+
+  it('un género indexable aparece en los dos idiomas con hreflang recíproco', async () => {
+    mockApi();
+    const { genres } = await buildSitemapGroups();
+    const urls = genres.map((e) => e.url);
+    expect(urls).toContain('https://radio.gofestivals.eu/es/genres/techno');
+    expect(urls).toContain('https://radio.gofestivals.eu/en/genres/techno');
+    for (const e of genres) {
+      expect(e.alternates?.es).toMatch(/\/es\/genres\//);
+      expect(e.alternates?.en).toMatch(/\/en\/genres\//);
+    }
+  });
+});

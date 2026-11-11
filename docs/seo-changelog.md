@@ -98,3 +98,31 @@ con tag `ced0d19`; rama `feat/seo-content-and-ga-attribution` ya fusionada).
   con `country=ro` en minúsculas.
 - Las 20 URLs de la lista de indexación (6 géneros y 4 países, es/en): 200,
   indexables y en el sitemap.
+
+## 2026-11-11
+
+### Revisión de /en/genres/* tras avisos de Search Console
+
+Search Console decía que `/en/genres/house` no estaba en ningún sitemap ni tenía
+enlaces internos, y que `/en/genres/{electronic,dance,techno,ambient}` estaban
+"rastreadas, sin indexar" mientras sus versiones `/es` sí estaban indexadas.
+
+Comprobado en prod (sin cambios de código en producción, no hubo despliegue):
+
+- `sitemap-genres.xml`: 66 URLs = 33 géneros × (es, en); ningún género con una sola
+  versión. `/en/genres/house` está en el sitemap, con hreflang es/en/x-default.
+- Enlaces internos: `/en`, `/en/genres` y las fichas de emisora en inglés enlazan a
+  `/en/genres/house`; ninguna página `/en` enlaza a rutas `/es`.
+- HTML del servidor de `/en/genres/{techno,electronic,house,dance,ambient}`:
+  `html lang="en"`, canonical a su propia URL `/en`, hreflang `en`, `es` y
+  `x-default` recíprocos con `/es`, título e intro en inglés, sin `noindex`.
+- Causa probable del aviso: los sitemaps se enviaron el 9 nov y Search Console los
+  marcaba "No se ha podido obtener", así que el informe de "no está en ningún
+  sitemap" refleja que aún no los había leído. "Rastreada, sin indexar" en URLs
+  nuevas en inglés es el estado habitual hasta que Google las evalúa.
+
+### Cambios
+
+- Test `paridad de idiomas en los sitemaps` (`sitemap-indexability.test.ts`): falla si
+  cualquier ruta aparece en un idioma y no en el otro, en cualquier hijo.
+- `seo-check.mjs` comprueba esa paridad contra prod en los cuatro sitemaps.

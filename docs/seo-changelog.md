@@ -79,9 +79,9 @@ dejar el árbol en `main` antes de cada deploy.
 - `/sitemap.xml`
 - `/sitemap-index.xml`
 
-Ambos figuran como "No se ha podido obtener". Se considera un estado provisional
-de Search Console (el servidor responde 200 con el índice correcto); revisar el
-10 nov.
+Al principio figuraban como "No se ha podido obtener", un estado provisional de
+Search Console (el servidor respondía 200 con el índice correcto). Search Console
+leyó `/sitemap-index.xml` el 9 nov: "Correcto", 1.300 URLs.
 
 ### Verificación en prod de T4 + T5 (9 nov, ~14:20 UTC)
 

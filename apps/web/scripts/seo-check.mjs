@@ -97,6 +97,16 @@ for (const child of children) {
   } else {
     console.log(`INFO ${child}: sin lastmod (correcto mientras no haya una fecha de cambio real)`);
   }
+  // paridad de idiomas: cada ruta indexable debe salir en /es y en /en (y solo así)
+  const paths = { es: new Set(), en: new Set() };
+  for (const u of urls) {
+    const m = new URL(u).pathname.match(/^\/(es|en)(\/.*)?$/);
+    if (m) paths[m[1]].add(m[2] ?? '');
+  }
+  const soloEs = [...paths.es].filter((p) => !paths.en.has(p));
+  const soloEn = [...paths.en].filter((p) => !paths.es.has(p));
+  ok(soloEs.length === 0 && soloEn.length === 0 && urls.length === paths.es.size * 2,
+    `${child}: paridad es/en (${paths.es.size} rutas por idioma)${soloEs.length ? ` solo es: ${soloEs.join(',')}` : ''}${soloEn.length ? ` solo en: ${soloEn.join(',')}` : ''}`);
   all.push(...urls);
 }
 
